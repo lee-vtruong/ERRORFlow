@@ -268,3 +268,16 @@
 - Route size: 255/995 claims (`25.63%`) có baseline prediction `REFUTED`.
 - Đã thêm merge/evaluation workflow để chỉ thay prediction ở route subset và giữ baseline ở phần còn lại.
 - Tài liệu: `docs/STEP_20_EVALUATE_SELECTIVE_ROUTE.md`.
+## Step 39 — Selective REFUTED route result
+
+- Applied route: 255/995 claims; baseline giữ nguyên 740 claims.
+- Accuracy: `0.62211 → 0.64623` (+2.41 percentage points).
+- Macro-F1: `0.55315 → 0.58459` (+3.14 points).
+- F1: SUPPORTED `0.77336 → 0.77063`; REFUTED `0.47748 → 0.49171`; NEI `0.40860 → 0.49143`.
+- Kết luận train-side: policy `prediction=REFUTED → evidence_critic` có lợi ròng trên subset này.
+- Cảnh báo: chưa generalize; retrieval hiện chỉ `0.10 claim/s`, cần tối ưu trước khi chạy dev/test lớn.
+## Step 40 — Add faster FTS retrieval mode
+
+- Đã thêm mode `and_or`: thử AND trước, fallback OR; giới hạn query token mặc định 8.
+- Mỗi output ghi mode/token limit/k để provenance.
+- Đây là protocol retrieval mới; cần smoke benchmark trên cùng claims trước khi thay baseline chính.

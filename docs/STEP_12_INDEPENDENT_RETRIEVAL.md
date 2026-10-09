@@ -28,6 +28,8 @@ python scripts/retrieve_fts.py \
 
 Artifact index có thể rất lớn và không commit vào Git.
 
+Chế độ nhanh mặc định là `and_or`: thử AND trên tối đa 8 token đầu, rồi fallback OR. Đây là retrieval protocol mới; phải benchmark riêng, không trộn với output OR cũ.
+
 Script hiển thị `RETRIEVAL_START`, progress theo claim, tốc độ, ETA và `RETRIEVAL_DONE`. Có thể chỉnh tần suất bằng `--progress-every 10`.
 
 Nếu SQLite báo `no such column` khi query claim có tên riêng hoặc dấu câu, hãy pull bản mới: query builder phải quote token trước khi gửi vào FTS5.
