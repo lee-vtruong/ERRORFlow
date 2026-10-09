@@ -154,3 +154,12 @@
 - Quan sát: raw output có reasoning dù prompt yêu cầu label; một số record không evidence là NEI hợp lệ. Không đánh giá bằng mắt hoặc dùng raw reasoning để sửa nhãn.
 - Đã thêm `scripts/evaluate_predictions.py` để join gold/prediction và tính Accuracy, Macro-F1, per-class F1, confusion, latency/token averages.
 - Tài liệu: `docs/STEP_10_EVALUATE_BASELINE.md`.
+
+## Step 21 — Baseline metrics insight
+
+- N=99 paired claims; Accuracy `0.63636`; Macro-F1 `0.57322`.
+- F1: SUPPORTED `0.76056`, REFUTED `0.68132`, NOT ENOUGH INFO `0.27778`.
+- Confusion nổi bật: 14/26 NEI bị dự đoán REFUTED, 7/26 NEI bị dự đoán SUPPORTED; chỉ 5/26 đúng.
+- Latency trung bình `772.36 ms/claim`; generated tokens trung bình `31.70`.
+- Insight ban đầu: bottleneck rõ nhất là phân biệt NEI với hai lớp còn lại; chưa kết luận nguyên nhân retrieval/reasoning từ 99 mẫu.
+- Đã thêm `scripts/build_error_list.py` và `docs/STEP_11_ERROR_LIST.md` để tạo error records observable.
