@@ -7,6 +7,7 @@ def test_prompt_and_label_parser():
     prompt = build_prompt("A claim", ["Evidence one"])
     assert "Label:" in prompt
     assert parse_label("The answer is REFUTED.") == "REFUTED"
+    assert "directly" in build_prompt("A claim", ["Evidence"], "check directly")
 
 
 def test_verifier_record_keeps_provenance():

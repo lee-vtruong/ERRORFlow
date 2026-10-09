@@ -18,12 +18,12 @@ class VerifierConfig:
     max_new_tokens: int = 32
 
 
-def build_prompt(claim: str, evidence: list[str]) -> str:
+def build_prompt(claim: str, evidence: list[str], instruction: str = "") -> str:
     joined = "\n".join(f"[{i + 1}] {item}" for i, item in enumerate(evidence))
     return (
         "Classify the claim using the evidence. Return exactly one label: "
         "SUPPORTED, REFUTED, or NOT ENOUGH INFO.\n\n"
-        f"Claim: {claim}\nEvidence:\n{joined}\nLabel:"
+        f"Claim: {claim}\nEvidence:\n{joined}\n{instruction}\nLabel:"
     )
 
 
@@ -91,10 +91,10 @@ class Qwen3TransformersVerifier(Verifier):
         )
         self._model.eval()
 
-    def predict(self, claim_id: str, claim: str, evidence: list[str], *, split: str = "unknown") -> PredictionRecord:
+    def predict(self, claim_id: str, claim: str, evidence: list[str], *, split: str = "unknown", instruction: str = "") -> PredictionRecord:
         if self._model is None or self._tokenizer is None:
             self.load()
-        prompt = build_prompt(claim, evidence)
+        prompt = build_prompt(claim, evidence, instruction)
         inputs = self._tokenizer(prompt, return_tensors="pt").to(self._model.device)
         started = time.perf_counter()
         with __import__("torch").inference_mode():

@@ -217,3 +217,9 @@
 - Đã thêm diagnosis heuristic theo label transition và candidate actions.
 - Không gọi LLM diagnosis và không coi diagnosis heuristic là ground truth.
 - Tài liệu: `docs/STEP_13_HEURISTIC_DIAGNOSIS.md`.
+## Step 30 — Implement intervention runner
+
+- Đã làm: prompt interventions `evidence_critic` và `conflict_check`; runner ghi intervention metadata.
+- Error list giờ giữ cả evidence text để có thể reverify đúng context.
+- Tài liệu: `docs/STEP_14_INTERVENTION_EVALUATION.md`.
+- Chưa chạy interventions trên server.

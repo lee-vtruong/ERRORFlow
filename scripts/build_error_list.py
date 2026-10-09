@@ -34,6 +34,7 @@ def main() -> None:
             "baseline_prediction": prediction["prediction"],
             "error_type_observable": observable_type(row["gold_label"], prediction["prediction"], evidence),
             "evidence_count": len(evidence),
+            "evidence": evidence,
             "raw_output": prediction.get("metadata", {}).get("raw_output", ""),
             "model": prediction.get("model"),
             "split": prediction.get("split"),
