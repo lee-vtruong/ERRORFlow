@@ -27,3 +27,5 @@ python scripts/retrieve_fts.py \
 ```
 
 Artifact index có thể rất lớn và không commit vào Git.
+
+Nếu SQLite báo `no such column` khi query claim có tên riêng hoặc dấu câu, hãy pull bản mới: query builder phải quote token trước khi gửi vào FTS5.

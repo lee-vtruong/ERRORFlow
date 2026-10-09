@@ -1,9 +1,13 @@
 """Retrieve top-k passages from the independent FEVER FTS index."""
-import argparse, json, sqlite3
+import argparse, json, re, sqlite3
 from pathlib import Path
 
+def fts_query(text):
+    tokens = re.findall(r"[\w]+", text, flags=re.UNICODE)
+    return " OR ".join('"' + token.replace('"', '""') + '"' for token in tokens) or '""'
+
 def retrieve(con, claim, k):
-    rows = con.execute("SELECT text FROM sentences_fts WHERE sentences_fts MATCH ? ORDER BY bm25(sentences_fts) LIMIT ?", (claim, k)).fetchall()
+    rows = con.execute("SELECT text FROM sentences_fts WHERE sentences_fts MATCH ? ORDER BY bm25(sentences_fts) LIMIT ?", (fts_query(claim), k)).fetchall()
     return [row[0] for row in rows]
 
 def main():

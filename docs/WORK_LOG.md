@@ -186,3 +186,9 @@
 - Retriever không dùng gold evidence; cùng một policy cho mọi nhãn.
 - Tài liệu: `docs/STEP_12_INDEPENDENT_RETRIEVAL.md`.
 - Chưa chạy index trên server; đây là job dài và tạo artifact lớn ngoài Git.
+## Step 25 — Fix FTS5 query escaping
+
+- Index build thành công: `25,247,890` sentences.
+- Retrieval lỗi vì raw claim được truyền trực tiếp vào FTS5 MATCH; token như tên riêng bị hiểu như column/operator.
+- Đã sửa query builder: tokenize và quote từng token trước khi MATCH.
+- Đã thêm regression test cho claim có tên riêng/dấu câu.
