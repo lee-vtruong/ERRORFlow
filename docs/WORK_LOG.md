@@ -263,3 +263,8 @@
 - Đã thêm subset builder chọn theo baseline prediction, không dùng gold.
 - Hypothesis đầu tiên: trigger evidence_critic khi baseline dự đoán REFUTED.
 - Tài liệu: `docs/STEP_19_SELECTIVE_REFUTED_ROUTE.md`.
+## Step 38 — Selective REFUTED route subset
+
+- Route size: 255/995 claims (`25.63%`) có baseline prediction `REFUTED`.
+- Đã thêm merge/evaluation workflow để chỉ thay prediction ở route subset và giữ baseline ở phần còn lại.
+- Tài liệu: `docs/STEP_20_EVALUATE_SELECTIVE_ROUTE.md`.
