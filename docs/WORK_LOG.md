@@ -81,3 +81,10 @@
 - Đã làm: `PredictionRecord`, `ExecutionTrace`, demo fixture và 2 test contract.
 - Tài liệu: `docs/STEP_02_DATA_CONTRACTS.md`.
 - Chưa phải kết quả thực nghiệm: fixture deterministic chỉ dùng kiểm tra format.
+
+## Step 11 — Implement verifier adapter contract
+
+- Mục tiêu: khóa prompt/label/provenance interface trước khi load Qwen3.
+- Đã làm: prompt builder, strict label parser, `VerifierConfig` và record builder.
+- Không load model hoặc gọi network ở step này.
+- Tài liệu: `docs/STEP_03_VERIFIER_ADAPTER.md`.
