@@ -140,3 +140,10 @@
 - Đã làm: trích xuất wiki page/sentence references và resolve sentence text từ FEVER wiki-pages JSONL.
 - Chưa tải corpus tự động vì kích thước lớn; cần kiểm tra server trước để tránh tải trùng GraphCURE.
 - Tài liệu: `docs/STEP_08_FEVER_EVIDENCE_RESOLUTION.md`.
+
+## Step 19 — Implement FEVER subset preparation
+
+- Đã làm: script chọn claim thật, quét wiki shards, resolve sentence evidence, normalize label và ghi dataset provenance.
+- Output dự kiến: `data/processed/fever/*.jsonl`; không commit vào Git.
+- Tài liệu: `docs/STEP_09_PREPARE_FEVER_SUBSET.md`.
+- Bước tiếp theo: chạy subset paper-dev 100 records, kiểm tra schema/evidence rồi mới inference Qwen3.
