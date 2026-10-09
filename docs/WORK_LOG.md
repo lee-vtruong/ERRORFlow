@@ -134,3 +134,9 @@
 - Đã thêm mapping explicit `SUPPORTS → SUPPORTED`, `REFUTES → REFUTED`; unknown labels fail closed.
 - Tài liệu: `docs/STEP_07_FEVER_LABEL_NORMALIZATION.md`.
 - Insight: sẽ dùng Macro-F1/per-class metrics; chưa chạy main inference vì evidence passage text chưa được resolve.
+
+## Step 18 — Implement FEVER evidence resolver
+
+- Đã làm: trích xuất wiki page/sentence references và resolve sentence text từ FEVER wiki-pages JSONL.
+- Chưa tải corpus tự động vì kích thước lớn; cần kiểm tra server trước để tránh tải trùng GraphCURE.
+- Tài liệu: `docs/STEP_08_FEVER_EVIDENCE_RESOLUTION.md`.
