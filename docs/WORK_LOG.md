@@ -197,3 +197,23 @@
 - Vấn đề: `retrieve_fts.py` không có output trong lúc chạy, gây cảm giác treo.
 - Đã sửa: hiển thị tổng số rows, progress, evidence_found, rate, ETA và elapsed time; flush ngay mỗi mốc.
 - Index không cần build lại.
+## Step 27 — Independent retrieval completed
+
+- Kết quả server: `995/995` claims có evidence; `RETRIEVAL_DONE rows=995 evidence_found=995`.
+- Runtime: `9718.4s` (~2h42m), throughput `0.10 claim/s`.
+- Protocol: evidence được query độc lập từ SQLite FTS5/BM25, không dùng gold evidence để tạo input verifier.
+- Insight kỹ thuật: retrieval hiện đúng về provenance nhưng quá chậm; giữ output làm baseline, tối ưu tốc độ sau khi có verifier metrics.
+## Step 28 — Independent-retrieval Qwen3 baseline metrics
+
+- N=995 paired claims; Accuracy `0.62211`; Macro-F1 `0.55315`.
+- F1: SUPPORTED `0.77336`, REFUTED `0.47748`, NOT ENOUGH INFO `0.40860`.
+- Confusion nổi bật: SUPPORTED→REFUTED 55, SUPPORTED→NEI 68, REFUTED→NEI 37, NEI→REFUTED 94, NEI→SUPPORTED 76.
+- Latency `761.69 ms/claim`; generated tokens `31.91`.
+- So với gold-evidence input cùng train subset: Accuracy giảm `0.71357 → 0.62211` (-9.15 điểm phần trăm), Macro-F1 giảm `0.62149 → 0.55315` (-6.83 điểm). Đây là bằng chứng thực nghiệm rằng gold-evidence preparation trước đó tạo confound/leakage.
+- Quyết định: chỉ dùng run `train_first1000_retrieved` làm baseline chính cho error memory; loại run gold-evidence khỏi kết luận.
+## Step 29 — Heuristic diagnosis candidates
+
+- Independent error list có 376 records; mọi record có `evidence_count=5`.
+- Đã thêm diagnosis heuristic theo label transition và candidate actions.
+- Không gọi LLM diagnosis và không coi diagnosis heuristic là ground truth.
+- Tài liệu: `docs/STEP_13_HEURISTIC_DIAGNOSIS.md`.
