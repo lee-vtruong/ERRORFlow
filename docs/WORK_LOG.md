@@ -163,3 +163,26 @@
 - Latency trung bình `772.36 ms/claim`; generated tokens trung bình `31.70`.
 - Insight ban đầu: bottleneck rõ nhất là phân biệt NEI với hai lớp còn lại; chưa kết luận nguyên nhân retrieval/reasoning từ 99 mẫu.
 - Đã thêm `scripts/build_error_list.py` và `docs/STEP_11_ERROR_LIST.md` để tạo error records observable.
+## Step 22 — Qwen3 baseline trên train subset 1,000
+
+- Input dự kiến 1,000 nhưng output còn 995 claims do 5 positive claims không resolve được evidence và bị loại theo policy.
+- Accuracy `0.71357`; Macro-F1 `0.62149`.
+- F1: SUPPORTED `0.86034` (support 541), REFUTED `0.56209` (189), NOT ENOUGH INFO `0.44205` (265).
+- Error list: `285` records.
+- Confusion nổi bật: NEI→REFUTED `107`, NEI→SUPPORTED `76`; REFUTED→SUPPORTED `44`.
+- Latency trung bình `762.59 ms/claim`; generated tokens `31.74`.
+- Diễn giải: baseline tốt hơn trên train subset nhưng phân bố khác paper-dev; đây là dữ liệu để xây memory, không dùng làm final generalization claim.
+- Bước tiếp theo: thống kê observable error types và evidence count của 285 lỗi trước khi diagnosis.
+## Step 23 — Phát hiện protocol leakage trong FEVER preparation
+
+- Error distribution: `183 nei_no_evidence`; các lỗi còn lại gồm REFUTED→SUPPORTED 44, SUPPORTED→REFUTED 34, REFUTED→NEI 16, SUPPORTED→NEI 8.
+- Evidence count của error list: 183 record có 0 evidence, 80 có 1, 19 có 2, 1 có 3, 1 có 6, 1 có 13.
+- Phát hiện quan trọng: `prepare_fever_subset.py` đang dùng annotated gold evidence cho SUPPORTS/REFUTES và evidence rỗng cho NEI. Đây là leakage/protocol confound vì evidence availability phụ thuộc gold annotation.
+- Trạng thái metrics train 1k: chỉ dùng để debug pipeline, không được báo cáo như kết quả nghiên cứu.
+- Quyết định: dừng xây error memory từ artifact hiện tại. Cần retrieval độc lập theo claim, cùng policy cho mọi nhãn, rồi chạy lại baseline trước khi phân tích lỗi.
+## Step 24 — Implement independent retrieval baseline
+
+- Đã làm: SQLite FTS5 sentence index builder và BM25 retrieval theo claim.
+- Retriever không dùng gold evidence; cùng một policy cho mọi nhãn.
+- Tài liệu: `docs/STEP_12_INDEPENDENT_RETRIEVAL.md`.
+- Chưa chạy index trên server; đây là job dài và tạo artifact lớn ngoài Git.
