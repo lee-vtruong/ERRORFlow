@@ -74,3 +74,10 @@
 - Tài liệu: `docs/STEP_01_CORE_BASELINE.md`.
 - Kiểm thử dự kiến: schema test cũ + 3 test core mới.
 - Bước tiếp theo: commit/push skeleton, sau đó tạo data contract cho baseline predictions và error diagnosis trước khi kết nối Qwen3.
+
+## Step 10 — Implement prediction/trace contracts
+
+- Mục tiêu: chuẩn hóa artifact verifier và execution trace trước khi tích hợp Qwen3.
+- Đã làm: `PredictionRecord`, `ExecutionTrace`, demo fixture và 2 test contract.
+- Tài liệu: `docs/STEP_02_DATA_CONTRACTS.md`.
+- Chưa phải kết quả thực nghiệm: fixture deterministic chỉ dùng kiểm tra format.
