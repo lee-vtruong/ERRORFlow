@@ -223,3 +223,8 @@
 - Error list giờ giữ cả evidence text để có thể reverify đúng context.
 - Tài liệu: `docs/STEP_14_INTERVENTION_EVALUATION.md`.
 - Chưa chạy interventions trên server.
+## Step 31 — Add intervention recovery evaluator
+
+- Đã làm: evaluator đo recovery rate trên baseline error set và số prediction thay đổi.
+- Tài liệu: `docs/STEP_15_INTERVENTION_METRICS.md`.
+- Chờ output metrics của `evidence_critic` và `conflict_check` từ server.
