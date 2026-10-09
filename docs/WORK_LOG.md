@@ -234,3 +234,9 @@
 - `conflict_check`: recovered 20/376, rate `0.05319`, changed 39.
 - Đã thêm builder lưu cả intervention outcomes thành counterfactual memory.
 - Cảnh báo: chưa đo regression trên baseline-correct claims; chưa chọn policy final.
+## Step 33 — Recovery/regression control evaluation
+
+- Đã thêm control subset builder cho baseline-correct claims.
+- Đã thêm evaluator tính recovery rate, regression rate và net correct change trên toàn bộ paired set.
+- Tài liệu: `docs/STEP_17_RECOVERY_REGRESSION.md`.
+- Chưa chạy control interventions trên server.
