@@ -119,3 +119,10 @@
 - Provenance: base model local Qwen3-4B-Instruct-2507, split `smoke`, 8 generated tokens.
 - Quan sát: raw output chứa hai lần `SUPPORTED` (`SUPPORTED` và `Label: SUPPORTED`), parser vẫn xử lý đúng; cần giữ raw output để audit.
 - Sửa tiếp theo: thay `torch_dtype` deprecated bằng `dtype` và đo latency inference thực tế.
+
+## Step 16 — Download FEVER raw splits
+
+- Nguồn: official `fever.ai/download/fever/` URLs.
+- Đã tải trên server: `train.jsonl` (31.49 MB), `shared_task_dev.jsonl` (4.15 MB), `paper_dev.jsonl` (2.07 MB).
+- Chưa chạy Qwen trên FEVER; cần audit schema/label distribution trước.
+- Cảnh báo protocol: raw FEVER claim files chứa evidence references, không mặc định chứa passage text. Không được đưa reference IDs vào prompt như evidence giả.
