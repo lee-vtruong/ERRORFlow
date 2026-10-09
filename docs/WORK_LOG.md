@@ -251,3 +251,15 @@
 - Đã thêm phân tích recovery của intervention theo `error_type_observable`.
 - Tài liệu: `docs/STEP_18_ACTION_BY_ERROR_TYPE.md`.
 - Mục tiêu: tìm nhóm lỗi mà evidence_critic có lợi ròng trước khi xây router.
+## Step 36 — Evidence critic action analysis
+
+- Hiệu quả cao nhất: NEI→REFUTED recovered 34/94 (`36.17%`).
+- Hiệu quả thứ hai: SUPPORTED→REFUTED recovered 7/55 (`12.73%`).
+- Các nhóm khác: NEI→SUPPORTED `7.89%`; REFUTED→NEI `2.70%`; REFUTED→SUPPORTED `2.17%`; SUPPORTED→NEI `2.94%`.
+- Observable routing hypothesis: chỉ xem xét evidence_critic khi baseline dự đoán REFUTED; không route theo gold-dependent error type.
+- Cần đo selective policy trên tất cả claims có baseline prediction REFUTED, gồm cả claim đúng và sai.
+## Step 37 — Implement observable selective route subset
+
+- Đã thêm subset builder chọn theo baseline prediction, không dùng gold.
+- Hypothesis đầu tiên: trigger evidence_critic khi baseline dự đoán REFUTED.
+- Tài liệu: `docs/STEP_19_SELECTIVE_REFUTED_ROUTE.md`.
