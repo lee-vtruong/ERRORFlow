@@ -240,3 +240,14 @@
 - Đã thêm evaluator tính recovery rate, regression rate và net correct change trên toàn bộ paired set.
 - Tài liệu: `docs/STEP_17_RECOVERY_REGRESSION.md`.
 - Chưa chạy control interventions trên server.
+## Step 34 — Recovery/regression results
+
+- Control set: 619 baseline-correct claims.
+- `evidence_critic`: regressed 26/619 (`4.20%`); combined train-subset net change `+51 - 26 = +25`.
+- `conflict_check`: regressed 23/619 (`3.72%`); combined train-subset net change `+20 - 23 = -3`.
+- Diễn giải: evidence_critic không được áp dụng đại trà; conflict_check bị loại ở phiên bản hiện tại. Cần selective routing theo error type/uncertainty để giảm regression.
+## Step 35 — Add selective action analysis
+
+- Đã thêm phân tích recovery của intervention theo `error_type_observable`.
+- Tài liệu: `docs/STEP_18_ACTION_BY_ERROR_TYPE.md`.
+- Mục tiêu: tìm nhóm lỗi mà evidence_critic có lợi ròng trước khi xây router.
