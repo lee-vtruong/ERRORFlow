@@ -281,3 +281,21 @@
 - Đã thêm mode `and_or`: thử AND trước, fallback OR; giới hạn query token mặc định 8.
 - Mỗi output ghi mode/token limit/k để provenance.
 - Đây là protocol retrieval mới; cần smoke benchmark trên cùng claims trước khi thay baseline chính.
+## Step 41 — Fast FTS retrieval benchmark
+
+- `and_or` mode completed `995/995` claims with evidence.
+- Runtime `8350.4s` (~2h19m), versus prior `9718.4s` (~2h42m): ~14.1% faster.
+- Still too slow for 10k+ dev/test; output is a separate retrieval protocol and must be evaluated separately.
+- Next: run Qwen baseline on fast output to measure quality change before further optimization.
+## Step 42 — Reject fast retrieval mode on quality regression
+
+- Fast `and_or` retrieval baseline: Accuracy `0.59698`, Macro-F1 `0.53955`.
+- Prior OR retrieval baseline: Accuracy `0.62211`, Macro-F1 `0.55315`.
+- Quality loss: Accuracy `-2.52` points; Macro-F1 `-1.36` points.
+- Decision: do not use `and_or` output for memory/router. Keep original OR output as current valid baseline; optimize speed with a method that preserves retrieval quality.
+## Step 43 — Parallelize OR retrieval without changing protocol
+
+- Đã thêm `--workers`; mỗi worker dùng SQLite read-only connection.
+- Query mode/chất lượng giữ nguyên nếu chạy `--mode or`.
+- Output ghi worker count để provenance.
+- Cần benchmark `workers=4` trên cùng 995 claims trước khi dùng cho dev.
