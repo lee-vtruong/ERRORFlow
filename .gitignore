@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+*.egg-info/
+
+# Experiment artifacts and local data
+outputs/
+data/
+checkpoints/
+models/
+hf_cache/
+*.log
+
+# Local tooling
+.idea/
+.vscode/
