@@ -228,3 +228,9 @@
 - Đã làm: evaluator đo recovery rate trên baseline error set và số prediction thay đổi.
 - Tài liệu: `docs/STEP_15_INTERVENTION_METRICS.md`.
 - Chờ output metrics của `evidence_critic` và `conflict_check` từ server.
+## Step 32 — Counterfactual intervention results
+
+- `evidence_critic`: recovered 51/376, rate `0.13564`, changed 81.
+- `conflict_check`: recovered 20/376, rate `0.05319`, changed 39.
+- Đã thêm builder lưu cả intervention outcomes thành counterfactual memory.
+- Cảnh báo: chưa đo regression trên baseline-correct claims; chưa chọn policy final.
