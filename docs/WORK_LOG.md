@@ -88,3 +88,10 @@
 - Đã làm: prompt builder, strict label parser, `VerifierConfig` và record builder.
 - Không load model hoặc gọi network ở step này.
 - Tài liệu: `docs/STEP_03_VERIFIER_ADAPTER.md`.
+
+## Step 12 — Implement Qwen3 baseline runner
+
+- Mục tiêu: tích hợp frozen Qwen3 inference mà không đưa adapter LoRA vào baseline đầu tiên.
+- Đã làm: lazy model/tokenizer loading, greedy decoding, JSONL runner và smoke-test contract.
+- Tài liệu: `docs/STEP_04_QWEN3_BASELINE.md`.
+- Chưa chạy model trong local test; cần server model path thật sau khi pull.

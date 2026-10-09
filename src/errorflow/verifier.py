@@ -64,3 +64,45 @@ class Verifier:
             latency_ms=latency_ms,
             metadata={"raw_output": raw_output},
         )
+
+
+class Qwen3TransformersVerifier(Verifier):
+    """Single-example Qwen3 inference with lazy model loading."""
+
+    def __init__(self, config: VerifierConfig, *, device_map: str = "auto"):
+        super().__init__(config)
+        self.device_map = device_map
+        self._tokenizer = None
+        self._model = None
+
+    def load(self) -> None:
+        try:
+            import torch
+            from transformers import AutoModelForCausalLM, AutoTokenizer
+        except ImportError as exc:
+            raise RuntimeError("Install torch and transformers in the server environment") from exc
+        self._tokenizer = AutoTokenizer.from_pretrained(self.config.model_name_or_path)
+        dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
+        self._model = AutoModelForCausalLM.from_pretrained(
+            self.config.model_name_or_path,
+            torch_dtype=dtype,
+            device_map=self.device_map,
+        )
+        self._model.eval()
+
+    def predict(self, claim_id: str, claim: str, evidence: list[str], *, split: str = "unknown") -> PredictionRecord:
+        if self._model is None or self._tokenizer is None:
+            self.load()
+        prompt = build_prompt(claim, evidence)
+        inputs = self._tokenizer(prompt, return_tensors="pt").to(self._model.device)
+        with __import__("torch").inference_mode():
+            output = self._model.generate(
+                **inputs,
+                do_sample=False,
+                max_new_tokens=self.config.max_new_tokens,
+                pad_token_id=self._tokenizer.eos_token_id,
+            )
+        new_tokens = output[0, inputs["input_ids"].shape[1]:]
+        raw = self._tokenizer.decode(new_tokens, skip_special_tokens=True)
+        token_count = int(new_tokens.shape[-1])
+        return self.record(claim_id, claim, evidence, raw, token_count=token_count, split=split)
