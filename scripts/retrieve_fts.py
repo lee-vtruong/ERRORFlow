@@ -14,7 +14,7 @@ def retrieve(con, claim, k, mode="and_or", max_tokens=8):
     queries.append(" OR ".join(quoted))
     for query in queries:
         if not query: continue
-        rows = con.execute("SELECT text FROM sentences_fts WHERE sentences_fts MATCH ? ORDER BY bm25(sentences_fts) LIMIT ?", (query, k)).fetchall()
+        rows = con.execute("SELECT text FROM sentences_fts WHERE sentences_fts MATCH ? ORDER BY bm25(sentences_fts), sentences_fts.rowid LIMIT ?", (query, k)).fetchall()
         if len(rows) >= k or query == queries[-1]: return [row[0] for row in rows]
     return []
 

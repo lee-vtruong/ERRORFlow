@@ -299,3 +299,14 @@
 - Query mode/chất lượng giữ nguyên nếu chạy `--mode or`.
 - Output ghi worker count để provenance.
 - Cần benchmark `workers=4` trên cùng 995 claims trước khi dùng cho dev.
+## Step 44 — Parallel OR retrieval benchmark
+
+- `workers=4`, `mode=or`, 995/995 claims có evidence.
+- Runtime `2448.6s` (~40.8 phút), so với sequential OR `9718.4s` (~161.97 phút): nhanh hơn ~74.8%, throughput ~0.41 claim/s.
+- Cần kiểm tra deterministic equality với output sequential trước khi dùng parallel output làm baseline chính.
+## Step 45 — Detect nondeterministic parallel retrieval ordering
+
+- Equality check: parallel output matched sequential on `667/995`; `328` differed.
+- Diagnosis: BM25 ties had no stable secondary ordering under concurrent connections.
+- Fix: add deterministic `sentences_fts.rowid` tie-breaker after BM25 score.
+- Must regenerate both reference and parallel outputs before comparison; old outputs are not comparable artifacts.
