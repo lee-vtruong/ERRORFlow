@@ -126,3 +126,11 @@
 - Đã tải trên server: `train.jsonl` (31.49 MB), `shared_task_dev.jsonl` (4.15 MB), `paper_dev.jsonl` (2.07 MB).
 - Chưa chạy Qwen trên FEVER; cần audit schema/label distribution trước.
 - Cảnh báo protocol: raw FEVER claim files chứa evidence references, không mặc định chứa passage text. Không được đưa reference IDs vào prompt như evidence giả.
+
+## Step 17 — FEVER audit and label normalization
+
+- Kết quả audit: train 145,449; shared-task dev 19,998; paper dev 9,999.
+- Train bị lệch lớp: SUPPORTS 80,035; REFUTES 29,775; NOT ENOUGH INFO 35,639. Hai dev split cân bằng.
+- Đã thêm mapping explicit `SUPPORTS → SUPPORTED`, `REFUTES → REFUTED`; unknown labels fail closed.
+- Tài liệu: `docs/STEP_07_FEVER_LABEL_NORMALIZATION.md`.
+- Insight: sẽ dùng Macro-F1/per-class metrics; chưa chạy main inference vì evidence passage text chưa được resolve.
