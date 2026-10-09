@@ -192,3 +192,8 @@
 - Retrieval lỗi vì raw claim được truyền trực tiếp vào FTS5 MATCH; token như tên riêng bị hiểu như column/operator.
 - Đã sửa query builder: tokenize và quote từng token trước khi MATCH.
 - Đã thêm regression test cho claim có tên riêng/dấu câu.
+## Step 26 — Add retrieval progress reporting
+
+- Vấn đề: `retrieve_fts.py` không có output trong lúc chạy, gây cảm giác treo.
+- Đã sửa: hiển thị tổng số rows, progress, evidence_found, rate, ETA và elapsed time; flush ngay mỗi mốc.
+- Index không cần build lại.
