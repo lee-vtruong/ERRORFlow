@@ -95,3 +95,27 @@
 - Đã làm: lazy model/tokenizer loading, greedy decoding, JSONL runner và smoke-test contract.
 - Tài liệu: `docs/STEP_04_QWEN3_BASELINE.md`.
 - Chưa chạy model trong local test; cần server model path thật sau khi pull.
+
+## Step 13 — Qwen3 smoke test blocked by missing local model path
+
+- Thời gian: 2026-10-09 (Asia/Saigon).
+- Lệnh đã chạy: `scripts/run_qwen3_baseline.py --model /home/stackops/whale/cache/models/Qwen3-4B-Instruct-2507 ...`.
+- Kết quả: thất bại trước khi load model; `transformers` không tìm thấy local directory và chuyển path thành repo id, dẫn tới `HFValidationError`.
+- Chẩn đoán: base model chưa được tải/materialized tại path được truyền vào; chưa phải lỗi CUDA, tokenizer hay parser.
+- Việc cần làm: tải `Qwen/Qwen3-4B-Instruct-2507` vào đúng local directory, kiểm tra `config.json`, rồi chạy lại smoke test.
+
+## Step 14 — Qwen3 base model downloaded
+
+- Thời gian: 2026-10-09 (Asia/Saigon).
+- Kết quả server: `hf download Qwen/Qwen3-4B-Instruct-2507` hoàn tất; local path có `config.json`, tokenizer files, index và 3 shard `model-*.safetensors`.
+- Cảnh báo lock: xuất hiện trong lúc tải nhưng download/reconstruction hoàn tất, không xem là lỗi hiện tại.
+- HF auth: đang dùng unauthenticated request; nếu bị rate limit ở các lần tải sau thì dùng `hf auth login`/`HF_TOKEN`.
+- Bước tiếp theo: chạy smoke inference và ghi prediction output; chưa benchmark.
+
+## Step 15 — Qwen3 smoke inference thành công
+
+- Kết quả server: Qwen3 load weights thành công và dự đoán `demo_001 → SUPPORTED`.
+- Output: `outputs/qwen3_baseline/demo_predictions.jsonl`.
+- Provenance: base model local Qwen3-4B-Instruct-2507, split `smoke`, 8 generated tokens.
+- Quan sát: raw output chứa hai lần `SUPPORTED` (`SUPPORTED` và `Label: SUPPORTED`), parser vẫn xử lý đúng; cần giữ raw output để audit.
+- Sửa tiếp theo: thay `torch_dtype` deprecated bằng `dtype` và đo latency inference thực tế.

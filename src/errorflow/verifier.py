@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 import re
+import time
 
 from .contracts import PredictionRecord
 
@@ -85,7 +86,7 @@ class Qwen3TransformersVerifier(Verifier):
         dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
         self._model = AutoModelForCausalLM.from_pretrained(
             self.config.model_name_or_path,
-            torch_dtype=dtype,
+            dtype=dtype,
             device_map=self.device_map,
         )
         self._model.eval()
@@ -95,6 +96,7 @@ class Qwen3TransformersVerifier(Verifier):
             self.load()
         prompt = build_prompt(claim, evidence)
         inputs = self._tokenizer(prompt, return_tensors="pt").to(self._model.device)
+        started = time.perf_counter()
         with __import__("torch").inference_mode():
             output = self._model.generate(
                 **inputs,
@@ -105,4 +107,8 @@ class Qwen3TransformersVerifier(Verifier):
         new_tokens = output[0, inputs["input_ids"].shape[1]:]
         raw = self._tokenizer.decode(new_tokens, skip_special_tokens=True)
         token_count = int(new_tokens.shape[-1])
-        return self.record(claim_id, claim, evidence, raw, token_count=token_count, split=split)
+        latency_ms = (time.perf_counter() - started) * 1000
+        return self.record(
+            claim_id, claim, evidence, raw,
+            token_count=token_count, latency_ms=latency_ms, split=split,
+        )
