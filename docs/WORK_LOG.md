@@ -147,3 +147,10 @@
 - Output dự kiến: `data/processed/fever/*.jsonl`; không commit vào Git.
 - Tài liệu: `docs/STEP_09_PREPARE_FEVER_SUBSET.md`.
 - Bước tiếp theo: chạy subset paper-dev 100 records, kiểm tra schema/evidence rồi mới inference Qwen3.
+
+## Step 20 — Qwen3 baseline trên FEVER subset
+
+- Kết quả server: prediction JSONL đã sinh cho claim thật từ `paper_dev_first100.jsonl`; output có model path, split, token count và latency.
+- Quan sát: raw output có reasoning dù prompt yêu cầu label; một số record không evidence là NEI hợp lệ. Không đánh giá bằng mắt hoặc dùng raw reasoning để sửa nhãn.
+- Đã thêm `scripts/evaluate_predictions.py` để join gold/prediction và tính Accuracy, Macro-F1, per-class F1, confusion, latency/token averages.
+- Tài liệu: `docs/STEP_10_EVALUATE_BASELINE.md`.
