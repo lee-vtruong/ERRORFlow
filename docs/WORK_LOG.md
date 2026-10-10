@@ -356,3 +356,9 @@
 - NEI F1 improved `0.37294→0.43546`, but REFUTED F1 fell `0.60589→0.55743`.
 - Conclusion: label-only route is too broad outside train.
 - Added first-token generation confidence and confidence-threshold routing support.
+## Step 53 — Freeze quality-max and cost-aware router variants
+
+- Confidence sweep shows no threshold beats route-all (`1.0`) on train quality metrics.
+- Quality-max: threshold `1.0`, routed 290/995, Accuracy `0.62613`, Macro-F1 `0.57279`.
+- Cost-aware: threshold `0.90`, routed 66/995, Accuracy `0.61206`, Macro-F1 `0.55582`.
+- Thresholds frozen on train before dev evaluation; confidence is not interpreted as calibrated correctness probability.
