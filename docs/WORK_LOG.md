@@ -370,3 +370,10 @@
 - F1: SUPPORTED `0.64324→0.64619`; REFUTED `0.60589→0.61353`; NEI `0.37294→0.41297`.
 - Cost-aware route outperformed both baseline and route-all-REFUTED on dev quality metrics.
 - Found cost-accounting bug in merged artifact: routed latency/tokens previously represented only critic call. Fixed merge to sum baseline+critic and record LLM calls/route rate.
+## Step 55 — Correct cost-aware dev accounting
+
+- Route rate `0.05`; average calls `1.05` per claim.
+- Average generated tokens `33.485` versus baseline `31.885` (+1.600, ~5.0%).
+- Average latency `819.85 ms` versus baseline `765.19 ms` (+54.65 ms, ~7.1%).
+- Quality gains remain Accuracy `+1.10` points and Macro-F1 `+1.69` points.
+- Added paired bootstrap script for uncertainty and helpful/harmful comparison.
