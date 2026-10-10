@@ -362,3 +362,11 @@
 - Quality-max: threshold `1.0`, routed 290/995, Accuracy `0.62613`, Macro-F1 `0.57279`.
 - Cost-aware: threshold `0.90`, routed 66/995, Accuracy `0.61206`, Macro-F1 `0.55582`.
 - Thresholds frozen on train before dev evaluation; confidence is not interpreted as calibrated correctness probability.
+## Step 54 — Cost-aware router dev result and cost accounting fix
+
+- Frozen threshold `0.90` routed 50/1000 dev claims (`5%`).
+- Accuracy `0.55600→0.56700` (+1.10 percentage points).
+- Macro-F1 `0.54069→0.55757` (+1.69 points).
+- F1: SUPPORTED `0.64324→0.64619`; REFUTED `0.60589→0.61353`; NEI `0.37294→0.41297`.
+- Cost-aware route outperformed both baseline and route-all-REFUTED on dev quality metrics.
+- Found cost-accounting bug in merged artifact: routed latency/tokens previously represented only critic call. Fixed merge to sum baseline+critic and record LLM calls/route rate.

@@ -10,9 +10,21 @@ def main():
     with a.output.open("w",encoding="utf-8") as out:
         for claim_id,row in base.items():
             if claim_id in inter:
-                row=dict(inter[claim_id]); row["metadata"]={**row.get("metadata",{}),"route_applied":True}; changed+=1
+                baseline_row = row
+                row=dict(inter[claim_id])
+                row["token_count"] = int(baseline_row.get("token_count", 0)) + int(row.get("token_count", 0))
+                row["latency_ms"] = float(baseline_row.get("latency_ms", 0.0)) + float(row.get("latency_ms", 0.0))
+                row["metadata"]={
+                    **row.get("metadata",{}),
+                    "route_applied":True,
+                    "llm_calls":2,
+                    "baseline_prediction":baseline_row.get("prediction"),
+                    "baseline_token_count":baseline_row.get("token_count",0),
+                    "intervention_token_count":inter[claim_id].get("token_count",0),
+                }
+                changed+=1
             else:
-                row=dict(row); row["metadata"]={**row.get("metadata",{}),"route_applied":False}
+                row=dict(row); row["metadata"]={**row.get("metadata",{}),"route_applied":False,"llm_calls":1}
             out.write(json.dumps(row,ensure_ascii=False)+"\n")
     print(f"merged={len(base)} route_applied={changed} output={a.output}")
 if __name__=="__main__": main()

@@ -38,6 +38,8 @@ def main() -> None:
         "confusion": {f"{a}->{b}": confusion[(a, b)] for a in labels for b in labels},
         "avg_latency_ms": sum(predictions[i].get("latency_ms", 0.0) for i in ids) / len(ids) if ids else 0.0,
         "avg_generated_tokens": sum(predictions[i].get("token_count", 0) for i in ids) / len(ids) if ids else 0.0,
+        "avg_llm_calls": sum(predictions[i].get("metadata", {}).get("llm_calls", 1) for i in ids) / len(ids) if ids else 0.0,
+        "route_rate": sum(bool(predictions[i].get("metadata", {}).get("route_applied", False)) for i in ids) / len(ids) if ids else 0.0,
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")

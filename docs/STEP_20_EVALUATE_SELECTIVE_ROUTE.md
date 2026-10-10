@@ -20,3 +20,5 @@ python scripts/evaluate_predictions.py \
   --predictions outputs/qwen3_interventions/evidence_critic_selective_full.jsonl \
   --output outputs/qwen3_interventions/evidence_critic_selective_metrics.json
 ```
+
+Merged routed records must account for both baseline and intervention calls. The merge script sums token count and latency and records `llm_calls=2`; non-routed records use one call.
