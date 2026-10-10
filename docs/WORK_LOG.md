@@ -336,3 +336,23 @@
 - F1 change: SUPPORTED `0.74685→0.74788`, REFUTED `0.46764→0.47486`, NEI `0.40417→0.49564`.
 - Policy candidate remains `baseline prediction=REFUTED → evidence_critic`.
 - Added claim-only FEVER preparation for leakage-safe shared-task dev evaluation.
+## Step 50 — Shared-task dev retrieval completed
+
+- Prepared 1,000 claim-only records from `shared_task_dev` without gold evidence.
+- Deterministic OR retrieval completed: `1000/1000` records with evidence.
+- Runtime `2578.9s` (~43.0 minutes), workers=4, k=5.
+- Next: frozen Qwen3 baseline, then apply the train-frozen REFUTED→evidence_critic route without policy changes.
+## Step 51 — Shared-task dev baseline
+
+- N=1000, balanced support: SUPPORTED 331, REFUTED 339, NEI 330.
+- Accuracy `0.55600`; Macro-F1 `0.54069`.
+- F1: SUPPORTED `0.64324`, REFUTED `0.60589`, NEI `0.37294`.
+- Major errors: NEI→REFUTED 121, NEI→SUPPORTED 107.
+- Policy remains frozen from train: baseline prediction `REFUTED` triggers `evidence_critic`.
+## Step 52 — Dev selective-route result and confidence-router design
+
+- Dev baseline: Accuracy `0.55600`, Macro-F1 `0.54069`.
+- Dev route-all-REFUTED: Accuracy `0.55000`, Macro-F1 `0.54447`.
+- NEI F1 improved `0.37294→0.43546`, but REFUTED F1 fell `0.60589→0.55743`.
+- Conclusion: label-only route is too broad outside train.
+- Added first-token generation confidence and confidence-threshold routing support.

@@ -103,12 +103,20 @@ class Qwen3TransformersVerifier(Verifier):
                 do_sample=False,
                 max_new_tokens=self.config.max_new_tokens,
                 pad_token_id=self._tokenizer.eos_token_id,
+                return_dict_in_generate=True,
+                output_scores=True,
             )
-        new_tokens = output[0, inputs["input_ids"].shape[1]:]
+        sequences = output.sequences
+        new_tokens = sequences[0, inputs["input_ids"].shape[1]:]
         raw = self._tokenizer.decode(new_tokens, skip_special_tokens=True)
         token_count = int(new_tokens.shape[-1])
         latency_ms = (time.perf_counter() - started) * 1000
-        return self.record(
+        record = self.record(
             claim_id, claim, evidence, raw,
             token_count=token_count, latency_ms=latency_ms, split=split,
         )
+        if output.scores:
+            first_probs = __import__("torch").softmax(output.scores[0][0].float(), dim=-1)
+            record.confidence = float(first_probs.max().item())
+            record.metadata["confidence_type"] = "first_generated_token_max_probability"
+        return record
