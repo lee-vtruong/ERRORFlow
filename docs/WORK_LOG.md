@@ -377,3 +377,10 @@
 - Average latency `819.85 ms` versus baseline `765.19 ms` (+54.65 ms, ~7.1%).
 - Quality gains remain Accuracy `+1.10` points and Macro-F1 `+1.69` points.
 - Added paired bootstrap script for uncertainty and helpful/harmful comparison.
+## Step 56 — Dev bootstrap and full-dev gate
+
+- Helpful/harmful `23/12`; net `+11` correct.
+- Accuracy delta `+0.01100`, paired 95% CI `[-0.00100, +0.02300]`, `P(delta>0)=0.9642`.
+- Macro-F1 delta `+0.01687`, paired 95% CI `[+0.00470, +0.02960]`, `P(delta>0)=0.9968`.
+- Decision: retain frozen threshold `0.90` and proceed to full shared-task dev confirmation.
+- Added resumable retrieval for long-running full-dev job.

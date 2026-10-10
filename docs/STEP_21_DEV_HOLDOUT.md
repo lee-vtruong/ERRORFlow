@@ -24,3 +24,5 @@ python scripts/retrieve_fts.py \
 ```
 
 Sau retrieval, chạy frozen Qwen3 baseline, tạo subset baseline-predicted `REFUTED`, áp dụng `evidence_critic`, merge và evaluate. Không thay đổi route dựa trên `paper_dev`.
+For long full-dev retrieval, pass `--resume`. The script reads completed claim IDs from the existing output and appends only missing records.
+
