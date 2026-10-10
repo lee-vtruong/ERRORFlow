@@ -310,3 +310,29 @@
 - Diagnosis: BM25 ties had no stable secondary ordering under concurrent connections.
 - Fix: add deterministic `sentences_fts.rowid` tie-breaker after BM25 score.
 - Must regenerate both reference and parallel outputs before comparison; old outputs are not comparable artifacts.
+## Step 46 — Deterministic parallel retrieval validated
+
+- Sequential vs parallel deterministic evidence equality: `995/995`; `different=0`.
+- Workers=4 được chấp nhận để tăng tốc mà không đổi evidence/protocol.
+- Artifact cũ không deterministic không dùng cho báo cáo; từ đây dùng deterministic output.
+## Step 47 — Establish canonical deterministic retrieval baseline
+
+- Comparison: old_or vs new_or same `667/995`; old_or vs fast same `645/995`; new_or vs fast same `963/995`.
+- Diagnosis: old_or was generated before stable rowid tie-breaker and is not reproducible; new_or is the canonical OR protocol.
+- Canonical baseline metrics currently: Accuracy `0.59698`, Macro-F1 `0.53955`.
+- Decision: invalidate old_or-derived error memory/intervention comparisons for final claims. Rebuild error list and interventions from deterministic baseline.
+## Step 48 — Deterministic evidence critic intervention
+
+- Deterministic baseline: 401 errors, 594 correct claims.
+- Evidence critic recovered 65/401 (`16.21%`).
+- Regression on correct control: 36/594 (`6.06%`).
+- Net change: `+29` correct predictions if applied to all claims.
+- Decision: continue with selective route `baseline prediction=REFUTED`; do not apply globally.
+## Step 49 — Deterministic selective route result
+
+- Baseline deterministic: Accuracy `0.59698`, Macro-F1 `0.53955`.
+- Selective route: Accuracy `0.62613`, Macro-F1 `0.57279`.
+- Gains: Accuracy `+2.91` percentage points; Macro-F1 `+3.32` points.
+- F1 change: SUPPORTED `0.74685→0.74788`, REFUTED `0.46764→0.47486`, NEI `0.40417→0.49564`.
+- Policy candidate remains `baseline prediction=REFUTED → evidence_critic`.
+- Added claim-only FEVER preparation for leakage-safe shared-task dev evaluation.
