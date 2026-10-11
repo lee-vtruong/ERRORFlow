@@ -384,3 +384,93 @@
 - Macro-F1 delta `+0.01687`, paired 95% CI `[+0.00470, +0.02960]`, `P(delta>0)=0.9968`.
 - Decision: retain frozen threshold `0.90` and proceed to full shared-task dev confirmation.
 - Added resumable retrieval for long-running full-dev job.
+
+## Step 57 — Consolidate 1K progress report
+
+- Thời gian: 2026-10-11 (Asia/Saigon).
+- Mục tiêu: tổng hợp method, protocol, implementation, kết quả train-side 995 claim và dev audit 1.000 claim trước khi chạy full dev.
+- Đã tạo `docs/ERRORFLOW_1K_PROGRESS_REPORT.md`.
+- Báo cáo tách rõ canonical deterministic results khỏi các run gold-evidence leakage, non-deterministic retrieval và protocol đã bị loại.
+- Kết luận hiện tại: frozen cost-aware router threshold `0.90` đạt Accuracy `0.56700`, Macro-F1 `0.55757` trên dev 1K với route rate `5%`; đây là development evidence, chưa phải final result.
+- Kiểm tra local: `18 passed`, 2 deprecation warnings, không có test failure.
+- Việc còn thiếu: full 19.998 `shared_task_dev`, final locked evaluation trên `paper_dev`, memory-conditioned routing và cross-domain validation.
+
+## Step 58 — Full shared-task dev retrieval completed
+
+- Thời gian báo cáo: 2026-10-11 (Asia/Saigon).
+- Kết quả server: `RETRIEVAL_DONE total_rows=19998 resumed_from=0 session_rows=19998 evidence_found=19998 elapsed_s=52885.1`.
+- Coverage: `19,998/19,998` claim có ít nhất một retrieved evidence.
+- Runtime: `52,885.1s` (~14 giờ 41 phút 25 giây), throughput trung bình khoảng `0.378 claim/s`.
+- Job được chạy từ đầu, không resume từ artifact cũ.
+- Quyết định: giữ nguyên deterministic OR retrieval protocol và frozen cost-aware threshold `0.90`; bước tiếp theo là kiểm tra artifact rồi chạy full frozen baseline.
+- `paper_dev` vẫn chưa được sử dụng.
+
+## Step 59 — Locate full-dev retrieval artifact
+
+- Full artifact: `data/processed/fever/shared_task_dev_all_retrieved.jsonl`.
+- File size: `22,425,161` bytes (~22.4 MB), timestamp `2026-10-11 14:31` trên server.
+- Artifact 1K riêng vẫn tồn tại tại `data/processed/fever/shared_task_dev_first1000_retrieved.jsonl`; không được nhầm hai file khi inference.
+- Các lệnh `wc`, `du`, `tail` chưa chạy vì người dùng giữ nguyên placeholder `<FULL_RETRIEVED_FILE>`; Bash diễn giải ký tự `<` như input redirection và báo `No such file or directory`. Đây không phải lỗi dataset/retrieval.
+- Disk status: `/dev/sda3` còn khoảng `13 GB`, usage `99%`; đủ cho prediction/log của full baseline nhưng cần tránh tạo thêm model/index lớn.
+- Bước tiếp theo: chạy lại integrity check bằng path thật, sau đó chạy frozen Qwen3 baseline trên đúng full artifact.
+
+## Step 60 — Full shared-task dev baseline reported complete
+
+- Thời gian báo cáo: 2026-10-12 (Asia/Saigon).
+- Người dùng xác nhận full frozen Qwen3 baseline job đã chạy xong trên server.
+- Prediction artifact dự kiến: `outputs/qwen3_baseline/shared_task_dev_all_confidence.jsonl`.
+- Chưa nhận được row count, log tail hoặc evaluation metrics nên chưa kết luận job đầy đủ/hợp lệ và chưa ghi baseline quality result.
+- Bước tiếp theo: kiểm tra `19,998` prediction, duplicate/missing IDs và chạy `evaluate_predictions.py` trước khi tạo threshold-`0.90` route subset.
+- Không thay đổi model, prompt, retrieval protocol hoặc router threshold dựa trên full-dev output.
+
+## Step 61 — Full shared-task dev baseline validated
+
+- Thời gian báo cáo: 2026-10-12 (Asia/Saigon).
+- Integrity: `19,998` rows, `19,998` unique IDs, zero duplicates, zero missing confidence và zero missing predictions.
+- Prediction distribution: SUPPORTED `8,095`, REFUTED `7,287`, NOT ENOUGH INFO `4,616`; confidence range `0.346569–0.999999`.
+- Accuracy `0.5637063706`; Macro-F1 `0.5515256446`.
+- Per-class F1: SUPPORTED `0.6515818711`, REFUTED `0.6035977926`, NEI `0.3993972700`.
+- Correct/wrong: `11,273/8,725`.
+- NEI remains the main bottleneck: `2,333` NEI→REFUTED and `2,080` NEI→SUPPORTED; only `2,253/6,666` NEI correct.
+- Cost: average latency `788.056 ms`, generated tokens `31.9469`, calls `1.0`, route rate `0.0`.
+- So với dev 1K, full baseline tăng khoảng `+0.77` điểm Accuracy và `+1.08` điểm Macro-F1; kết luận baseline nhất quán.
+- Quyết định: không retune; chạy đúng frozen route `prediction=REFUTED AND confidence<=0.90`.
+
+## Step 62 — Full-dev frozen route built; critic output empty
+
+- Thời gian báo cáo: 2026-10-12 (Asia/Saigon).
+- Frozen route subset: `1,181/19,998` claims, route rate `5.9056%`.
+- Policy giữ nguyên: baseline prediction `REFUTED` và confidence `<=0.90`.
+- Expected intervention artifact: `outputs/qwen3_interventions/shared_task_dev_all_cost_critic.jsonl`.
+- Observed row count: `0`, trong khi route input có `1,181` rows.
+- Chưa merge hoặc evaluate vì intervention artifact chưa đầy đủ.
+- Cần kiểm tra tmux session, running process, GPU và `outputs/logs/shared_task_dev_all_cost_critic.log` để phân biệt job đang load/running với startup failure.
+
+## Step 63 — Full-dev critic process observed
+
+- Thời gian báo cáo: 2026-10-12 (Asia/Saigon).
+- Process `PID 241809` chạy `run_qwen3_baseline.py` trên `shared_task_dev_all_cost_route.jsonl`; `tee` process là `PID 241810`.
+- Nhiều claim-level predictions đã xuất hiện, xác nhận runner đã bắt đầu inference thay vì lỗi trước prediction đầu tiên.
+- Process snapshot có elapsed `00:56`, CPU `9.9%`; cùng thời điểm `nvidia-smi` hiển thị 0% GPU và không có CUDA process.
+- Chưa đủ bằng chứng để kết luận job hoàn tất hoặc bị treo; không khởi chạy job thứ hai.
+- Tiêu chí hoàn tất: Python process thoát bình thường, critic output có đúng `1,181` rows và log không có traceback.
+
+## Step 64 — Full-dev critic run failed with empty artifact
+
+- Thời gian báo cáo: 2026-10-12 (Asia/Saigon).
+- Critic Python process no longer exists; output artifact remains at `0` rows instead of expected `1,181`.
+- Run status: failed/incomplete. Không merge, evaluate hoặc diễn giải prediction lines đã thấy trước đó.
+- Working hypotheses: abrupt process kill/OOM, startup/runtime exception not yet supplied, or a later duplicate run truncating an earlier partial artifact.
+- Required diagnosis: inspect critic log tail/error markers, filesystem capacity, system memory and kernel OOM messages before rerun.
+- Reliability gap identified: current runner opens output in truncate mode and has no resume/checkpoint option; a robust rerun should add resume plus per-record flush after diagnosis.
+
+## Step 65 — Diagnose truncation and add resumable inference
+
+- Thời gian: 2026-10-12 (Asia/Saigon).
+- Diagnostic evidence: critic output và log đều 0 bytes, cùng bị modified lúc `23:38`; birth time là `22:10`, cho thấy file đã bị mở/truncate lại sau lần chạy ban đầu.
+- Không có bằng chứng OOM hoặc thiếu tài nguyên: server còn khoảng `98 GiB` available RAM và `13 GB` disk.
+- Shell history ghi `--intervention evidence_critic2>&1`, thiếu separator rõ ràng trước redirection; kết hợp timestamp cho thấy retry/truncation là nguyên nhân khả dĩ nhất. Không thể khôi phục prediction chưa được lưu.
+- Đã thêm `--resume` cho Qwen runner, append existing valid output, skip completed IDs, flush sau mỗi record và in `INFERENCE_START/INFERENCE_DONE`.
+- Resume validation fail closed khi output có duplicate ID, corrupt JSON line hoặc claim ID không thuộc input hiện tại.
+- Đã thêm regression tests và `docs/STEP_26_RESUMABLE_INFERENCE.md`.
+- Local verification: `21 passed`, 2 existing deprecation warnings; `compileall` thành công.
