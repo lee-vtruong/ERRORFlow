@@ -28,4 +28,10 @@ Routing directly on `gold→prediction` would be invalid.
 
 ## Result
 
-Pending server execution.
+Completed. The matrix shows strong action conditioning and rejects a global
+prompt policy. No action recovered any error whose gold label was CONFLICTING,
+while every action regressed 8/10 correct CONFLICTING controls. Coverage audit
+was strongest for NEI errors predicted as REFUTED (9/10) or SUPPORTED (5/10).
+Conflict audit was strongest for SUPPORTED→NEI (9/10), SUPPORTED→REFUTED (6/10),
+and tied refutation audit on REFUTED→NEI (6/10). These gold transitions remain
+offline annotations, not online router inputs.

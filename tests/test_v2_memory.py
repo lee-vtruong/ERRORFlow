@@ -57,3 +57,27 @@ def test_router_abstains_without_support():
     decision = select_action([(make_record("1", "critic", True), 0.8)], uncertainty=1.0, min_support=2)
     assert not decision.route
     assert decision.action == "none"
+
+
+def test_retrieval_conditions_on_prediction_and_score_profile():
+    supported = make_record("s", "critic", True)
+    supported.baseline_prediction = "SUPPORTED"
+    supported.metadata["baseline_label_scores"] = {"SUPPORTED": 3.0, "REFUTED": 0.0}
+    refuted = make_record("r", "critic", True)
+    refuted.baseline_prediction = "REFUTED"
+    refuted.metadata["baseline_label_scores"] = {"SUPPORTED": 0.0, "REFUTED": 3.0}
+    store = ErrorMemoryStore([supported, refuted])
+    found = store.retrieve(
+        "unrelated query", dataset="AVeriTeC", baseline_prediction="SUPPORTED",
+        label_scores={"SUPPORTED": 2.5, "REFUTED": 0.0},
+    )
+    assert [record.claim_id for record, _ in found] == ["s"]
+
+
+def test_router_uses_negative_control_utility():
+    harmful = make_record("h1", "critic", False)
+    harmful.utility = -1.0
+    harmful2 = make_record("h2", "critic", False)
+    harmful2.utility = -1.0
+    decision = select_action([(harmful, 0.9), (harmful2, 0.8)], uncertainty=1.0, cost_weight=0.0)
+    assert not decision.route

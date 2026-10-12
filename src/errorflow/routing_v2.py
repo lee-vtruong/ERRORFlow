@@ -37,7 +37,10 @@ def select_action(
         if len(rows) < min_support:
             continue
         weight = sum(similarity for _, similarity in rows)
-        gain = sum(float(record.recovered) * similarity for record, similarity in rows) / weight
+        gain = sum(
+            (record.utility if record.utility is not None else float(record.recovered)) * similarity
+            for record, similarity in rows
+        ) / weight
         cost = sum((record.extra_llm_calls + record.extra_tokens / 1000) * similarity for record, similarity in rows) / weight
         utility = gain * max(0.0, min(1.0, uncertainty)) - cost_weight * cost
         candidates.append((utility, action, gain, cost, len(rows)))

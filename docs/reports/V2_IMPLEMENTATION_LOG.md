@@ -152,3 +152,12 @@ Status: aggregate complete; action matrix pending.
 - Refutation audit: 28 helpful, 12 harmful, net +16.
 - Rejected selecting a global winner from the error-heavy stratified aggregate.
 - Added per-group utility comparison while explicitly forbidding gold transition names as online route features.
+
+## Step 15 — Action-outcome memory foundation
+
+Status: implemented locally; server artifact pending.
+
+- Matrix confirmed that action utility varies sharply by error transition and controls.
+- Added memory construction for all action outcomes, retaining both recovered errors and regressed controls.
+- Added prediction-compatible retrieval using baseline label plus label-score-distribution and lexical similarity.
+- Updated routing to optimize signed empirical utility rather than recovery alone.

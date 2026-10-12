@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import math
 import re
 from dataclasses import fields
 from pathlib import Path
@@ -28,6 +29,23 @@ def jaccard_similarity(left: str, right: str) -> float:
     return len(a & b) / len(a | b) if a or b else 0.0
 
 
+def score_distribution(scores: dict[str, float]) -> dict[str, float]:
+    if not scores:
+        return {}
+    maximum = max(scores.values())
+    exponentials = {label: math.exp(value - maximum) for label, value in scores.items()}
+    total = sum(exponentials.values())
+    return {label: value / total for label, value in exponentials.items()}
+
+
+def distribution_similarity(left: dict[str, float], right: dict[str, float]) -> float:
+    a, b = score_distribution(left), score_distribution(right)
+    if not a or not b:
+        return 0.0
+    labels = set(a) | set(b)
+    return 1.0 - 0.5 * sum(abs(a.get(label, 0.0) - b.get(label, 0.0)) for label in labels)
+
+
 def record_from_dict(payload: dict) -> ErrorMemoryRecord:
     allowed = {item.name for item in fields(ErrorMemoryRecord)}
     return ErrorMemoryRecord(**{key: value for key, value in payload.items() if key in allowed})
@@ -51,7 +69,8 @@ class ErrorMemoryStore:
 
     def retrieve(
         self, claim: str, *, dataset: str | None = None, top_k: int = 5,
-        allowed_splits: set[str] | None = None,
+        allowed_splits: set[str] | None = None, baseline_prediction: str | None = None,
+        label_scores: dict[str, float] | None = None, exclude_claim_ids: set[str] | None = None,
     ) -> list[tuple[ErrorMemoryRecord, float]]:
         scored = []
         for record in self._records.values():
@@ -61,7 +80,14 @@ class ErrorMemoryStore:
                 continue
             if allowed_splits is not None and record.source_split not in allowed_splits:
                 continue
-            score = jaccard_similarity(claim, record.claim)
+            if baseline_prediction and record.baseline_prediction != baseline_prediction:
+                continue
+            if exclude_claim_ids and record.claim_id in exclude_claim_ids:
+                continue
+            lexical = jaccard_similarity(claim, record.claim)
+            historical_scores = record.metadata.get("baseline_label_scores", {})
+            profile = distribution_similarity(label_scores or {}, historical_scores)
+            score = 0.4 * lexical + 0.6 * profile if label_scores and historical_scores else lexical
             if score > 0:
                 scored.append((record, score))
         return sorted(scored, key=lambda item: (-item[1], item[0].memory_id))[:top_k]

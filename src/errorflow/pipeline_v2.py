@@ -34,6 +34,8 @@ def replay_policy(
         neighbors = memory.retrieve(
             row["claim"], dataset=row.get("dataset"), top_k=top_k,
             allowed_splits=allowed_memory_splits,
+            baseline_prediction=row["prediction"],
+            label_scores=row.get("metadata", {}).get("label_scores"),
         )
         decision = select_action(
             neighbors, uncertainty=uncertainty, cost_weight=cost_weight,
