@@ -43,4 +43,5 @@ def test_adapter_reads_official_json_array_and_source_url(tmp_path):
     path.write_text(json.dumps([{"claim": "x", "label": "Supported",
         "questions": [{"question": "q", "answers": [{"answer": "a", "source_url": "https://source.test"}]}]}]), encoding="utf-8")
     example = list(get_adapter("averitec").iter_file(path, "dev"))[0]
+    assert example.example_id == "dev:0"
     assert example.evidence[0].url == "https://source.test"

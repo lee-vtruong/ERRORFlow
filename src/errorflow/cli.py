@@ -17,8 +17,17 @@ def normalize(args: argparse.Namespace) -> None:
     examples = adapter.iter_file(args.input, args.split)
     if args.limit is not None:
         examples = islice(examples, args.limit)
-    rows = (example.to_dict() for example in examples)
-    write_jsonl(args.output, rows)
+    def validated_rows():
+        seen = set()
+        for example in examples:
+            if not example.example_id or example.example_id == "None":
+                raise ValueError("Adapter produced an empty example_id")
+            if example.example_id in seen:
+                raise ValueError(f"Adapter produced duplicate example_id: {example.example_id}")
+            seen.add(example.example_id)
+            yield example.to_dict()
+
+    write_jsonl(args.output, validated_rows())
     print(f"NORMALIZE_DONE dataset={adapter.name} output={args.output}")
 
 

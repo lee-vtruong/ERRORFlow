@@ -16,20 +16,21 @@ class VerifierConfig:
     checkpoint: str = "base"
     seed: int | None = None
     max_new_tokens: int = 32
+    label_space: tuple[str, ...] = LABELS
 
 
-def build_prompt(claim: str, evidence: list[str], instruction: str = "") -> str:
+def build_prompt(claim: str, evidence: list[str], instruction: str = "", label_space: tuple[str, ...] = LABELS) -> str:
     joined = "\n".join(f"[{i + 1}] {item}" for i, item in enumerate(evidence))
     return (
         "Classify the claim using the evidence. Return exactly one label: "
-        "SUPPORTED, REFUTED, or NOT ENOUGH INFO.\n\n"
+        f"{', '.join(label_space)}.\n\n"
         f"Claim: {claim}\nEvidence:\n{joined}\n{instruction}\nLabel:"
     )
 
 
-def parse_label(text: str) -> str:
+def parse_label(text: str, label_space: tuple[str, ...] = LABELS) -> str:
     normalized = re.sub(r"[^A-Z ]", " ", text.upper())
-    for label in LABELS:
+    for label in label_space:
         if label in normalized:
             return label
     raise ValueError(f"Could not parse a supported label from: {text!r}")
@@ -55,7 +56,7 @@ class Verifier:
         return PredictionRecord(
             claim_id=claim_id,
             claim=claim,
-            prediction=parse_label(raw_output),
+            prediction=parse_label(raw_output, self.config.label_space),
             evidence_ids=[str(i) for i in range(len(evidence))],
             model=self.config.model_name_or_path,
             checkpoint=self.config.checkpoint,
@@ -94,7 +95,7 @@ class Qwen3TransformersVerifier(Verifier):
     def predict(self, claim_id: str, claim: str, evidence: list[str], *, split: str = "unknown", instruction: str = "") -> PredictionRecord:
         if self._model is None or self._tokenizer is None:
             self.load()
-        prompt = build_prompt(claim, evidence, instruction)
+        prompt = build_prompt(claim, evidence, instruction, self.config.label_space)
         inputs = self._tokenizer(prompt, return_tensors="pt").to(self._model.device)
         started = time.perf_counter()
         with __import__("torch").inference_mode():

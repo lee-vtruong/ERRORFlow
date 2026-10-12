@@ -41,7 +41,7 @@ class AVeriTeCAdapter(DatasetAdapter):
                         url=first_present(answer, "source_url", "url") if isinstance(answer, dict) else None,
                         source="web",
                     ))
-        claim_id = first_present(row, "claim_id", "id")
+        claim_id = first_present(row, "claim_id", "id", default=f"{split}:{row.get('_row_index')}")
         return NormalizedExample(str(claim_id), self.name, split, row["claim"], label, evidence, {
             "claim_date": row.get("claim_date"), "speaker": row.get("speaker"),
             "reporting_source": row.get("reporting_source"), "justification": row.get("justification"),

@@ -85,3 +85,13 @@ Status: implemented locally; server download pending.
 - Added atomic download, a 100 MiB safety ceiling, schema audit, row/label counts, SHA-256 checksums, and a persisted source manifest.
 - Corrected the adapter for official JSON-array files and `source_url` fields.
 - Added `--limit` so the first server normalization is capped at 25 examples.
+
+## Step 8 — Stable IDs and four-label verifier smoke
+
+Status: implemented locally; server rerun pending.
+
+- Fixed missing official AVeriTeC IDs using deterministic `split:index` IDs.
+- Added empty/duplicate-ID rejection during normalization and safe inference resume.
+- Added a four-label AVeriTeC prompt/parser without changing FEVER's default three-label behavior.
+- Added a canonical V2 Qwen runner and strict ID-paired evaluator.
+- Classified the upcoming 25-example run as oracle-evidence diagnostics, not end-to-end retrieval evaluation.

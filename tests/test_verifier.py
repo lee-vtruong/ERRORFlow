@@ -21,3 +21,9 @@ def test_verifier_record_keeps_provenance():
 def test_unknown_label_is_rejected():
     with pytest.raises(ValueError):
         parse_label("uncertain")
+
+
+def test_averitec_four_label_prompt_and_parser():
+    labels = ("SUPPORTED", "REFUTED", "NOT ENOUGH INFO", "CONFLICTING")
+    assert parse_label("Label: CONFLICTING", labels) == "CONFLICTING"
+    assert "CONFLICTING" in build_prompt("claim", ["evidence"], label_space=labels)

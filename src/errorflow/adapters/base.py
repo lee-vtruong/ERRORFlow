@@ -29,8 +29,10 @@ class DatasetAdapter(ABC):
                     raise ValueError(f"Expected a JSON array in {source}")
             else:
                 rows = read_jsonl(source)
-        for row in rows:
-            yield self.normalize(row, split)
+        for index, row in enumerate(rows):
+            indexed = dict(row)
+            indexed.setdefault("_row_index", index)
+            yield self.normalize(indexed, split)
 
 
 def first_present(row: dict[str, Any], *keys: str, default: Any = None) -> Any:

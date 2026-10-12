@@ -7,7 +7,7 @@ Date: 2026-10-12
 The repository has been migrated from a FEVER-specific experimental codebase to
 an additive V2 foundation while preserving the old pipeline. The final local
 regression gate at the initial V2 milestone was **50 passed, 11 warnings**; Step
-36 raises it to **52 passed, 11 warnings**. The warnings are inherited Python
+36 raised it to 52 and Step 37 raises it to **55 passed, 11 warnings**. The warnings are inherited Python
 deprecation warnings; no test failed.
 
 This is an implementation milestone, not an experimental result. No AVeriTeC,
@@ -81,5 +81,5 @@ because it is auditable and requires no additional model or index download.
 ## Immediate handoff
 
 Use `V2_SERVER_NEXT_STEPS.md`. Do not launch a full job immediately. First pull,
-run the 52-test gate, inspect disk, recover the survey workbook if available,
+run the 55-test gate, inspect disk, recover the survey workbook if available,
 and normalize a maximum of 25 official AVeriTeC examples.
