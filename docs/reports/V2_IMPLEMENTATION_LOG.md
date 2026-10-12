@@ -123,3 +123,13 @@ Status: S0 selected; 475-example server run pending.
 - G1/S1 reduced accuracy to 0.60; explicit definitions increased REFUTED-to-NEI errors and were rejected.
 - Froze the first 25 dev examples as calibration and excluded them from the 475-example holdout.
 - Added offset normalization and explicit average model-forward-pass accounting.
+
+## Step 12 — Holdout result and train-only transition
+
+Status: holdout baseline completed; train baseline pending.
+
+- Holdout S0: accuracy 0.68632, macro-F1 0.52417, 114.69 ms/example.
+- Integrity: 475/475 paired, zero missing/extra, four forward passes/example.
+- Sealed holdout labels/errors from further method and threshold development.
+- Added per-class precision/recall/F1 reporting for future evaluations.
+- Next memory source is exclusively the 3,068-example official train split.

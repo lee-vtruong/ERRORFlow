@@ -7,7 +7,7 @@ Date: 2026-10-12
 The repository has been migrated from a FEVER-specific experimental codebase to
 an additive V2 foundation while preserving the old pipeline. The final local
 regression gate at the initial V2 milestone was **50 passed, 11 warnings**; Step
-later implementation steps raise it to **59 passed, 11 warnings**. The warnings are inherited Python
+later implementation steps raise it to **60 passed, 11 warnings**. The warnings are inherited Python
 deprecation warnings; no test failed.
 
 This is an implementation milestone, not an experimental result. No AVeriTeC,

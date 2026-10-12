@@ -30,12 +30,24 @@ def main() -> None:
     gold_labels = [gold[key]["label"] for key in paired]
     predicted_labels = [predictions[key]["prediction"] for key in paired]
     labels = sorted(set(gold_labels) | set(predicted_labels))
+    per_class = {}
+    for label in labels:
+        tp = sum(g == p == label for g, p in zip(gold_labels, predicted_labels))
+        fp = sum(g != label and p == label for g, p in zip(gold_labels, predicted_labels))
+        fn = sum(g == label and p != label for g, p in zip(gold_labels, predicted_labels))
+        precision = tp / (tp + fp) if tp + fp else 0.0
+        recall = tp / (tp + fn) if tp + fn else 0.0
+        per_class[label] = {
+            "precision": precision, "recall": recall,
+            "f1": 2 * precision * recall / (precision + recall) if precision + recall else 0.0,
+            "support": sum(g == label for g in gold_labels),
+        }
     confusion = {f"{g}->{p}": sum(gg == g and pp == p for gg, pp in zip(gold_labels, predicted_labels))
                  for g in labels for p in labels}
     metrics = {"n_gold": len(gold), "n_predictions": len(predictions), "n_paired": len(paired),
                "missing_predictions": len(missing), "extra_predictions": len(extra),
                "accuracy": accuracy(predicted_labels, gold_labels), "macro_f1": macro_f1(predicted_labels, gold_labels),
-               "labels": labels, "confusion": confusion,
+               "labels": labels, "per_class": per_class, "confusion": confusion,
                "avg_latency_ms": sum(float(predictions[k].get("latency_ms", 0)) for k in paired) / len(paired) if paired else 0.0,
                "avg_generated_tokens": sum(float(predictions[k].get("token_count", 0)) for k in paired) / len(paired) if paired else 0.0,
                "avg_model_forward_passes": sum(float(predictions[k].get("metadata", {}).get("model_forward_passes", 1)) for k in paired) / len(paired) if paired else 0.0}
