@@ -12,6 +12,17 @@ LABEL_SPACES = {
     "averitec": ("SUPPORTED", "REFUTED", "NOT ENOUGH INFO", "CONFLICTING"),
 }
 
+INSTRUCTION_PROFILES = {
+    "none": "",
+    "averitec_v1": (
+        "Use these definitions strictly. SUPPORTED: the evidence directly establishes the claim. "
+        "REFUTED: the evidence directly establishes that the claim is false. "
+        "NOT ENOUGH INFO: the evidence is insufficient to establish either support or refutation. "
+        "CONFLICTING: credible evidence supports and contradicts the claim, or the claim cherry-picks a mixed record. "
+        "Do not treat merely incomplete evidence as CONFLICTING."
+    ),
+}
+
 
 def evidence_texts(row: dict) -> list[str]:
     return [item["text"] if isinstance(item, dict) else str(item) for item in row.get("evidence", [])]
@@ -33,6 +44,9 @@ def main() -> None:
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--label-set", choices=sorted(LABEL_SPACES), required=True)
     parser.add_argument("--split", required=True)
+    parser.add_argument("--decoding", choices=["generate", "label-score"], default="generate")
+    parser.add_argument("--instruction-profile", choices=sorted(INSTRUCTION_PROFILES), default="none")
+    parser.add_argument("--max-new-tokens", type=int, default=32)
     parser.add_argument("--resume", action="store_true")
     args = parser.parse_args()
     rows = list(read_jsonl(args.input))
@@ -44,16 +58,28 @@ def main() -> None:
     if unknown:
         raise ValueError(f"Resume output has {len(unknown)} unknown IDs")
     pending = [row for row in rows if str(row["example_id"]) not in completed]
-    verifier = Qwen3TransformersVerifier(VerifierConfig(args.model, label_space=LABEL_SPACES[args.label_set]))
+    verifier = Qwen3TransformersVerifier(VerifierConfig(
+        args.model, max_new_tokens=args.max_new_tokens, label_space=LABEL_SPACES[args.label_set]
+    ))
     args.output.parent.mkdir(parents=True, exist_ok=True)
     mode = "a" if args.resume and args.output.exists() else "w"
     print(f"V2_INFERENCE_START total={len(rows)} completed={len(completed)} remaining={len(pending)} labels={LABEL_SPACES[args.label_set]}", flush=True)
     with args.output.open(mode, encoding="utf-8") as target:
         for offset, row in enumerate(pending, 1):
-            record = verifier.predict(str(row["example_id"]), row["claim"], evidence_texts(row), split=args.split)
+            kwargs = {
+                "claim_id": str(row["example_id"]), "claim": row["claim"],
+                "evidence": evidence_texts(row), "split": args.split,
+                "instruction": INSTRUCTION_PROFILES[args.instruction_profile],
+            }
+            record = verifier.predict(**kwargs) if args.decoding == "generate" else verifier.score_labels(**kwargs)
             payload = record.to_dict()
             payload["example_id"] = payload.pop("claim_id")
             payload["dataset"] = row.get("dataset")
+            payload["metadata"].update({
+                "instruction_profile": args.instruction_profile,
+                "decoding_mode": args.decoding,
+                "configured_max_new_tokens": args.max_new_tokens,
+            })
             target.write(json.dumps(payload, ensure_ascii=False) + "\n")
             target.flush()
             print(f"progress={len(completed)+offset}/{len(rows)} example_id={payload['example_id']} prediction={payload['prediction']}", flush=True)

@@ -105,3 +105,12 @@ Status: smoke completed; diagnostic pending server execution.
 - No CONFLICTING prediction was produced; REFUTED had six errors.
 - Average generated tokens equaled the 32-token cap, so scaling is paused until raw-output truncation is measured.
 - Added a diagnostic artifact containing transition counts, generation-limit rate, confidence provenance, and error raw outputs.
+
+## Step 10 — Four-label decoding ablation
+
+Status: implemented locally; server comparison pending.
+
+- Confirmed 25/25 outputs hit the cap, but labels preceded truncated explanations.
+- Added an explicit AVeriTeC four-label definition profile.
+- Added short-generation controls and mean conditional label log-probability scoring.
+- Label scoring records all candidate scores, candidate token lengths, four forward passes, and confidence provenance.

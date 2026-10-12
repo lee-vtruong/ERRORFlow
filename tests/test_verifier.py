@@ -27,3 +27,8 @@ def test_averitec_four_label_prompt_and_parser():
     labels = ("SUPPORTED", "REFUTED", "NOT ENOUGH INFO", "CONFLICTING")
     assert parse_label("Label: CONFLICTING", labels) == "CONFLICTING"
     assert "CONFLICTING" in build_prompt("claim", ["evidence"], label_space=labels)
+
+
+def test_label_scoring_api_is_available_without_eager_loading():
+    verifier = VerifierConfig("local", label_space=("SUPPORTED", "REFUTED", "CONFLICTING"))
+    assert verifier.label_space[-1] == "CONFLICTING"

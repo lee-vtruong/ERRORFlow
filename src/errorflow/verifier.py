@@ -121,3 +121,43 @@ class Qwen3TransformersVerifier(Verifier):
             record.confidence = float(first_probs.max().item())
             record.metadata["confidence_type"] = "first_generated_token_max_probability"
         return record
+
+    def score_labels(self, claim_id: str, claim: str, evidence: list[str], *, split: str = "unknown", instruction: str = "") -> PredictionRecord:
+        """Choose the label with highest mean conditional token log-probability."""
+        if self._model is None or self._tokenizer is None:
+            self.load()
+        import torch
+
+        prompt = build_prompt(claim, evidence, instruction, self.config.label_space)
+        prompt_inputs = self._tokenizer(prompt, return_tensors="pt").to(self._model.device)
+        prompt_ids = prompt_inputs["input_ids"]
+        scores = {}
+        candidate_lengths = {}
+        started = time.perf_counter()
+        with torch.inference_mode():
+            for label in self.config.label_space:
+                candidate_ids = self._tokenizer(
+                    " " + label, add_special_tokens=False, return_tensors="pt"
+                )["input_ids"].to(self._model.device)
+                full_ids = torch.cat((prompt_ids, candidate_ids), dim=1)
+                attention_mask = torch.ones_like(full_ids)
+                logits = self._model(input_ids=full_ids, attention_mask=attention_mask).logits
+                start = prompt_ids.shape[1] - 1
+                candidate_logits = logits[0, start:start + candidate_ids.shape[1], :]
+                token_log_probs = torch.log_softmax(candidate_logits.float(), dim=-1)
+                selected = token_log_probs.gather(1, candidate_ids[0].unsqueeze(1)).squeeze(1)
+                scores[label] = float(selected.mean().item())
+                candidate_lengths[label] = int(candidate_ids.shape[1])
+        latency_ms = (time.perf_counter() - started) * 1000
+        best = max(self.config.label_space, key=lambda label: scores[label])
+        probabilities = torch.softmax(torch.tensor([scores[label] for label in self.config.label_space]), dim=0)
+        record = self.record(claim_id, claim, evidence, best, token_count=0, latency_ms=latency_ms, split=split)
+        record.confidence = float(probabilities[self.config.label_space.index(best)].item())
+        record.metadata.update({
+            "decoding": "mean_label_log_probability",
+            "label_scores": scores,
+            "candidate_token_lengths": candidate_lengths,
+            "model_forward_passes": len(self.config.label_space),
+            "confidence_type": "softmax_over_mean_candidate_label_log_probabilities",
+        })
+        return record

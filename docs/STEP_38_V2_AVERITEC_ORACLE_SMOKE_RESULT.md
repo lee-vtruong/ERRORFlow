@@ -33,14 +33,15 @@ This 25-example run validates four-label data flow, model loading, pairing, and
 evaluation. It is too small and label-imbalanced for a research conclusion.
 Because it uses gold QA evidence, it is not an end-to-end AVeriTeC score.
 
-The average generated-token count equals the configured maximum of 32 exactly.
-This suggests systematic generation truncation and must be checked against each
-record's `raw_output` before scaling. First-token maximum probability is also
+All 25 records reached the configured maximum of 32 tokens. Inspection confirmed
+that the label occurs first and the following explanation is truncated. Parsing
+is therefore intact, but generation cost is wasted and rationales are incomplete.
+First-token maximum probability is also
 not calibrated class confidence and must not drive V2 routing as-is.
 
 ## Decision
 
-Do not run all 500 development examples yet. Diagnose truncation and raw output.
-If confirmed, compare a larger generation budget against explicit label
-likelihood scoring on the same frozen 25 examples. Select the verifier protocol
-before any full baseline or error-memory experiment.
+Do not run all 500 development examples yet. Compare short label generation and
+explicit label-likelihood scoring on the same frozen 25 examples, with an
+AVeriTeC-specific definition of CONFLICTING. Select the verifier protocol before
+any full baseline or error-memory experiment.
