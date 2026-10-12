@@ -12,15 +12,16 @@ Status: **COMPLETED**.
 
 ## Phase 1 — Strong verifier reproduction
 
-Status: **IMPLEMENTED; 25-example server pilot pending**.
+Status: **25-example server pilot complete; full B1 train cache pending**.
 
 - Added bounded, resumable, hash-validated V3 action runner.
 - Added manifest and per-sample cache-key provenance.
 - Reused the exact four-label Qwen scorer and immutable B1 prompt.
+- Verified 25/25 cached outputs, 100 forward passes, prompt/input/config hashes, and safe bounded execution.
 
 ## Phase 2 — Residual analysis
 
-Status: **IMPLEMENTED; train result pending**.
+Status: **25-example residual smoke complete; full train result pending**.
 
 - Added confusion/per-class metrics, score margin/entropy, evidence-size
   associations, observable transitions, and unvalidated taxonomy hypotheses.
