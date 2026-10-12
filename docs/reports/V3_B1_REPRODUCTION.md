@@ -1,6 +1,6 @@
 # ERRORFlow V3 B1 reproduction
 
-Status: **25-EXAMPLE SMOKE COMPLETED; FULL TRAIN RUN PENDING**.
+Status: **FULL TRAIN RUN COMPLETED**.
 
 B1 is the immutable `conflict_audit_v1` prompt with mean four-label
 log-probability scoring. V3 must reuse the cached train prediction file when it
@@ -35,3 +35,14 @@ exactly 100 model forward passes. The manifest validated:
 Smoke accuracy was 0.52 and macro-F1 0.45956. These numbers are functional
 diagnostics on the first 25 examples, not representative performance estimates
 and not a basis for prompt or threshold selection.
+
+## Full train result
+
+The hash-validated B1 cache completed all 3,068 official train examples in
+364.65 seconds and recorded 12,272 forward passes. It achieved accuracy
+0.74022 and macro-F1 0.54602, with 2,271 correct and 797 residual errors.
+
+Relative to the historical S0 train baseline (accuracy 0.68644, macro-F1
+0.50691), conflict-first B1 improves accuracy by 0.05378 and macro-F1 by
+0.03911 while reducing the residual count from 962 to 797. This is a train-side
+descriptive comparison, not independent generalization evidence.
