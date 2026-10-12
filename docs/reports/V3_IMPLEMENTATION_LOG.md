@@ -45,6 +45,10 @@ Status: **FUNCTIONALLY IMPLEMENTED; experimental evidence pending**.
   holdout estimate.
 - Memory construction now explicitly includes correct controls so harmful
   regressions contribute negative utility. R0–R6 evaluation remains pending.
+- The first full-train action cache is complete: `conflicting_rescue_v1`
+  produced 3,068/3,068 predictions in 366.998 seconds and 12,272 forward
+  passes. Full-train cached evaluation is the next step; A1, A2, A4, and A5
+  remain screen-only.
 - Added versioned/deactivatable residual action memory and fold-safe retrieval.
 - Added R0–R6 cached-action evaluation at population-weighted matched budgets.
 - Nested inner-fold selection, Architecture B, and cross-domain validation remain

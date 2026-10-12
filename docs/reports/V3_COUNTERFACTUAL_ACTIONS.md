@@ -52,3 +52,15 @@ confidence-routing comparator. All five actions remain available to the
 fold-excluded memory/utility router because some globally harmful actions have
 positive utility in narrower observable neighborhoods. Gold transitions are
 offline analysis fields and are forbidden as online routing inputs.
+
+## Full-train A3 cache
+
+The bounded-screen result authorized one full action run before expanding the
+entire portfolio. `conflicting_rescue_v1` completed all 3,068 AVeriTeC train
+examples in 366.998 seconds with 12,272 model forward passes. The run manifest
+records model hash `ff40807e...fb0da`, input SHA-256
+`f5d4c48e...570f3b`, prompt SHA-256 `09e187ec...97aaf`, and generation-config
+hash `89c39128...cf7`.
+
+Full-train helpful/harmful measurement and fixed-policy fold-excluded routing
+remain pending. The other four full action runs are not yet authorized.
