@@ -68,3 +68,15 @@ python scripts/select_retrieval_topk.py \
 ```
 
 V1 baseline verifier phải dùng đúng top-5 này. Sau đó mới chạy Qwen, đánh giá B1 và xây lại error memory/router cho E1.
+
+## Kết quả reranking 1K
+
+Sanity check đạt: sau rerank, any-sentence recall@100 vẫn là `91.04%` và complete-group recall@100 vẫn là `86.87%`.
+
+| Pool/ranking | Any@1 | Any@5 | Complete@1 | Complete@5 |
+|---|---:|---:|---:|---:|
+| Union trước BGE | 35.52% | 62.39% | 33.13% | 58.51% |
+| Union sau BGE | 42.39% | 68.06% | 38.51% | 63.58% |
+| Delta | +6.87 | +5.67 | +5.37 | +5.07 |
+
+BGE cải thiện đúng vùng ngân sách top-5 của verifier. Complete@10 cũng tăng từ `70.15%` lên `71.79%`; dao động nhỏ tại @20 không ảnh hưởng cấu hình đã khóa. Retrieval V1 được chốt cho baseline 1K là `title top-50 + lexical top-50 → deduplicated union-100 → BGE rerank → top-5`.
