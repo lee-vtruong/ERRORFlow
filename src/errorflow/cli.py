@@ -15,8 +15,10 @@ from .io import config_hash, write_jsonl
 def normalize(args: argparse.Namespace) -> None:
     adapter = get_adapter(args.dataset)
     examples = adapter.iter_file(args.input, args.split)
-    if args.limit is not None:
-        examples = islice(examples, args.limit)
+    if args.offset < 0 or (args.limit is not None and args.limit < 1):
+        raise ValueError("--offset must be non-negative and --limit must be positive")
+    stop = args.offset + args.limit if args.limit is not None else None
+    examples = islice(examples, args.offset, stop)
     def validated_rows():
         seen = set()
         for example in examples:
@@ -49,6 +51,7 @@ def build_parser() -> argparse.ArgumentParser:
     normalizer.add_argument("--input", required=True, type=Path)
     normalizer.add_argument("--output", required=True, type=Path)
     normalizer.add_argument("--limit", type=int, help="Normalize only the first N examples")
+    normalizer.add_argument("--offset", type=int, default=0, help="Skip the first N examples")
     normalizer.set_defaults(func=normalize)
     memory = commands.add_parser("inspect-memory", help="Inspect nearest compatible error memories")
     memory.add_argument("--memory", required=True, type=Path)

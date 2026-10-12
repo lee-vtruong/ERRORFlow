@@ -3,6 +3,7 @@ import json
 import pytest
 
 from errorflow.adapters import get_adapter
+from errorflow.cli import build_parser
 
 
 def test_averitec_adapter_preserves_qa_and_url():
@@ -45,3 +46,12 @@ def test_adapter_reads_official_json_array_and_source_url(tmp_path):
     example = list(get_adapter("averitec").iter_file(path, "dev"))[0]
     assert example.example_id == "dev:0"
     assert example.evidence[0].url == "https://source.test"
+
+
+def test_normalize_cli_accepts_holdout_offset():
+    args = build_parser().parse_args([
+        "normalize", "--dataset", "averitec", "--split", "dev",
+        "--input", "dev.json", "--output", "holdout.jsonl", "--offset", "25", "--limit", "475",
+    ])
+    assert args.offset == 25
+    assert args.limit == 475

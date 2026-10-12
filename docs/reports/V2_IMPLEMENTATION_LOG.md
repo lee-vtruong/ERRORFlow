@@ -114,3 +114,12 @@ Status: implemented locally; server comparison pending.
 - Added an explicit AVeriTeC four-label definition profile.
 - Added short-generation controls and mean conditional label log-probability scoring.
 - Label scoring records all candidate scores, candidate token lengths, four forward passes, and confidence provenance.
+
+## Step 11 — Protocol selection and holdout freeze
+
+Status: S0 selected; 475-example server run pending.
+
+- S0 matched G0 accuracy (0.64), slightly improved macro-F1 (0.49762 vs 0.49485), and reduced latency by about 5.2x.
+- G1/S1 reduced accuracy to 0.60; explicit definitions increased REFUTED-to-NEI errors and were rejected.
+- Froze the first 25 dev examples as calibration and excluded them from the 475-example holdout.
+- Added offset normalization and explicit average model-forward-pass accounting.

@@ -37,7 +37,8 @@ def main() -> None:
                "accuracy": accuracy(predicted_labels, gold_labels), "macro_f1": macro_f1(predicted_labels, gold_labels),
                "labels": labels, "confusion": confusion,
                "avg_latency_ms": sum(float(predictions[k].get("latency_ms", 0)) for k in paired) / len(paired) if paired else 0.0,
-               "avg_generated_tokens": sum(float(predictions[k].get("token_count", 0)) for k in paired) / len(paired) if paired else 0.0}
+               "avg_generated_tokens": sum(float(predictions[k].get("token_count", 0)) for k in paired) / len(paired) if paired else 0.0,
+               "avg_model_forward_passes": sum(float(predictions[k].get("metadata", {}).get("model_forward_passes", 1)) for k in paired) / len(paired) if paired else 0.0}
     atomic_write_json(args.output, metrics)
     print(json.dumps(metrics, indent=2))
 

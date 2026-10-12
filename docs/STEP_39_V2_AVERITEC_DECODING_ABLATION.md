@@ -54,4 +54,17 @@ alone because the 25-example slice contains only three CONFLICTING examples.
 
 ## Result
 
-Pending server execution.
+Completed on the 25-example calibration slice.
+
+| Protocol | Accuracy | Macro-F1 | Latency/example | Generated tokens |
+|---|---:|---:|---:|---:|
+| G0 plain generation (32) | 0.64 | 0.49485 | 807.0 ms | 32 |
+| G1 defined generation (8) | 0.60 | 0.47639 | 249.5 ms | 8 |
+| S1 defined label score | 0.60 | 0.47639 | 150.3 ms | 0 |
+| S0 plain label score | **0.64** | **0.49762** | **154.6 ms** | **0** |
+
+S0 is selected. It matches G0 accuracy, slightly improves macro-F1, and reduces
+latency by roughly 5.2x. It uses four model forward passes per example, which is
+now reported explicitly despite generating zero output tokens. None of the four
+protocols correctly predicted a CONFLICTING example, so that remains a known
+verifier weakness rather than an ErrorFlow gain.
