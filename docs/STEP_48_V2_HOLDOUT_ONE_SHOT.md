@@ -53,3 +53,6 @@ quality/cost trade-off. Use 5,000 samples and seed 2026 for every comparison.
 Acceptance is descriptive, not a new tuning gate: report accuracy, macro-F1,
 per-class scores, helpful/harmful counts, route rate, average forward passes,
 latency, paired confidence intervals, and cost-adjusted utility at weight 0.10.
+For always-conflict, report both interpretations: eight forward passes as a
+baseline-plus-audit cascade, and four passes when deployed as a standalone
+replacement verifier. The latter is the stricter practical comparator.

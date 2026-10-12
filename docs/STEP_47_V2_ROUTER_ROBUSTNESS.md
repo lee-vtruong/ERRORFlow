@@ -54,6 +54,13 @@ paths; do not regenerate inference outputs.
   0.68644 for baseline, and 0.66206 for always-conflict.
 - No holdout label was read by this robustness run.
 
+The cost comparison above treats every intervention as a second pass after the
+baseline, which is the routing-policy deployment model. Because the conflict
+instruction can also be run as a standalone replacement verifier, report that
+alternative separately: it uses four forward passes rather than the eight of an
+always-route cascade. ERRORFlow must not claim a cost advantage over that
+standalone deployment without measuring it directly.
+
 The gate therefore passes for **cost-aware selective routing**, but not for a
 claim of best raw quality. The final holdout must report baseline, ERRORFlow,
 and always-conflict together so memory conditioning is separated from the
