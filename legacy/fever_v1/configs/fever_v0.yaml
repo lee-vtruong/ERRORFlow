@@ -1,0 +1,19 @@
+schema_version: 1
+name: fever_v0
+status: frozen_historical
+dataset: FEVER-1.0
+split: shared_task_dev
+rows: 19998
+retrieval:
+  method: sqlite_fts5_bm25
+  top_k: 5
+verifier:
+  model: Qwen/Qwen3-4B-Instruct-2507
+  training: false
+errorflow:
+  intervention: evidence_critic
+  route_rule: predicted_REFUTED_and_confidence_threshold
+  route_rate: 0.05905590559055906
+notes:
+  - Values describe the completed historical full-dev run.
+  - Exact executable provenance is the audited commit and checksums manifest.

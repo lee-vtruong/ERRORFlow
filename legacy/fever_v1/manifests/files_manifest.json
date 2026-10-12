@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-10-12T00:00:00+07:00",
+  "repository": "https://github.com/lee-vtruong/ERRORFlow",
+  "audited_commit": "a4280b8ac550909beb57b5509e10bf71cd289304",
+  "archive_strategy": "reference_in_place",
+  "source_groups": [
+    {
+      "path": "src/errorflow",
+      "kind": "source",
+      "availability": "local_and_git",
+      "integrity": "commit_and_sha256"
+    },
+    {
+      "path": "scripts",
+      "kind": "entry_points",
+      "availability": "local_and_git",
+      "integrity": "commit_and_sha256"
+    },
+    {
+      "path": "tests",
+      "kind": "tests",
+      "availability": "local_and_git",
+      "integrity": "commit_and_sha256"
+    },
+    {
+      "path": "docs/STEP_01_CORE_BASELINE.md..docs/STEP_35_FULL_V1_CANDIDATE_GENERATION.md",
+      "kind": "experiment_log",
+      "availability": "local_mixed_tracked_and_untracked",
+      "integrity": "working_tree_snapshot_not_mutated"
+    }
+  ],
+  "external_artifacts": [
+    {
+      "path": "/home/stackops/whale/ERRORFlow/data/raw/fever",
+      "kind": "dataset",
+      "availability": "server_user_verified",
+      "copied": false
+    },
+    {
+      "path": "/home/stackops/whale/ERRORFlow/data/processed/fever/wiki_sentences.sqlite",
+      "kind": "retrieval_index",
+      "size_reported": "6.7G",
+      "availability": "server_user_verified",
+      "copied": false
+    },
+    {
+      "path": "/home/stackops/whale/cache/models/Qwen3-4B-Instruct-2507",
+      "kind": "model",
+      "availability": "server_user_verified",
+      "copied": false
+    },
+    {
+      "path": "/home/stackops/whale/cache/models/bge-reranker-v2-m3",
+      "kind": "model",
+      "availability": "server_user_verified",
+      "copied": false
+    },
+    {
+      "path": "/home/stackops/whale/ERRORFlow/data/processed/fever/shared_task_dev_all_title_candidates50.jsonl",
+      "kind": "full_v1_intermediate",
+      "rows": 19998,
+      "size_reported": "264M",
+      "availability": "server_user_verified",
+      "copied": false
+    }
+  ],
+  "missing_expected_inputs": [
+    {
+      "name": "Text_Only_Fact_Checking_Training_Free_Dataset_Survey.xlsx",
+      "search_scope": "C:/Users/ASUS",
+      "status": "not_found_locally"
+    }
+  ],
+  "working_tree_policy": "User-owned modified and untracked files were not staged, overwritten, moved, or deleted."
+}

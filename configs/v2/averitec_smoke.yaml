@@ -1,0 +1,11 @@
+extends: configs/v2/base.yaml
+run_name: averitec_smoke
+dataset:
+  name: averitec
+  max_examples: 25
+  development_split: dev
+memory:
+  allowed_splits: [train]
+execution:
+  dry_run: true
+  max_llm_calls: 0

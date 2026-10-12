@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "dataset": "FEVER-1.0",
+  "results": [
+    {
+      "id": "v0_full_baseline",
+      "split": "shared_task_dev",
+      "n": 19998,
+      "accuracy": 0.5637063706370637,
+      "macro_f1": 0.5515256445746465,
+      "avg_llm_calls": 1.0,
+      "route_rate": 0.0,
+      "status": "completed_user_verified"
+    },
+    {
+      "id": "v0_full_errorflow",
+      "split": "shared_task_dev",
+      "n": 19998,
+      "accuracy": 0.5645064506450646,
+      "macro_f1": 0.5575808232648046,
+      "avg_llm_calls": 1.059055905590559,
+      "route_rate": 0.05905590559055906,
+      "helpful": 457,
+      "harmful": 441,
+      "delta_accuracy": 0.000800080008000803,
+      "accuracy_ci95": [-0.0021502150215021443, 0.0037503750375037503],
+      "delta_macro_f1": 0.006055178690158147,
+      "macro_f1_ci95": [0.0029296449162248273, 0.009183940564385651],
+      "status": "completed_user_verified"
+    },
+    {
+      "id": "v1_1k_baseline",
+      "split": "shared_task_dev_first1000",
+      "n": 1000,
+      "accuracy": 0.583,
+      "macro_f1": 0.5336093986674365,
+      "avg_llm_calls": 1.0,
+      "route_rate": 0.0,
+      "status": "completed_user_verified"
+    },
+    {
+      "id": "v1_1k_errorflow",
+      "split": "shared_task_dev_first1000",
+      "n": 1000,
+      "accuracy": 0.583,
+      "macro_f1": 0.5449431550616856,
+      "avg_llm_calls": 1.049,
+      "route_rate": 0.049,
+      "helpful": 18,
+      "harmful": 18,
+      "delta_accuracy": 0.0,
+      "accuracy_ci95": [-0.01200000000000001, 0.0119999999999999],
+      "delta_macro_f1": 0.01133375639424905,
+      "macro_f1_ci95": [-0.002680839251091194, 0.025722487050642173],
+      "status": "completed_user_verified"
+    }
+  ],
+  "not_completed_at_archive": [
+    "Full 19,998-example FEVER V1 end-to-end baseline",
+    "Full 19,998-example FEVER V1 ERRORFlow evaluation"
+  ]
+}

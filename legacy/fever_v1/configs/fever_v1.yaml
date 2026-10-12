@@ -1,0 +1,22 @@
+schema_version: 1
+name: fever_v1
+status: frozen_historical_1k
+dataset: FEVER-1.0
+split: shared_task_dev_first1000
+rows: 1000
+retrieval:
+  title_candidates: 50
+  lexical_candidates: 50
+  merged_candidates: 100
+  reranker: BAAI/bge-reranker-v2-m3
+  verifier_top_k: 5
+verifier:
+  model: Qwen/Qwen3-4B-Instruct-2507
+  training: false
+errorflow:
+  intervention: entailment_gate
+  route_rule: predicted_REFUTED_and_confidence_lte_0.90
+  route_rate: 0.049
+notes:
+  - V1 was validated on the 1K development slice only at migration time.
+  - Full title candidates existed; the full V1 experiment was not recorded as complete.

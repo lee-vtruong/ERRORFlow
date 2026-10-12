@@ -4,13 +4,17 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "errorflow"
-version = "0.1.0"
+version = "0.2.0"
 description = "Error-conditioned adaptive workflow optimization for training-free fact verification"
 requires-python = ">=3.10"
 dependencies = []
 
+[project.scripts]
+errorflow = "errorflow.cli:main"
+
 [project.optional-dependencies]
 dev = ["pytest>=8"]
+v2 = ["PyYAML>=6", "sentence-transformers>=3"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

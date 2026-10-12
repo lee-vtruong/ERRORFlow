@@ -1,0 +1,26 @@
+schema_version: 2
+project: ERRORFlow
+seed: 2026
+training_free: true
+output_root: outputs/v2
+resume: true
+dataset:
+  name: averitec
+  train_split: train
+  development_split: dev
+  test_split: test
+memory:
+  top_k: 5
+  allowed_splits: [train]
+  min_similarity: 0.05
+  deduplicate: true
+router:
+  min_support: 2
+  min_utility: 0.0
+  cost_weight: 0.02
+evaluation:
+  bootstrap_samples: 5000
+  report_accuracy: true
+  report_macro_f1: true
+  report_helpful_harmful: true
+  report_cost: true

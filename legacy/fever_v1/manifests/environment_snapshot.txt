@@ -1,0 +1,32 @@
+Captured: 2026-10-12 Asia/Saigon
+
+LOCAL AUDIT HOST
+OS: Windows 11 10.0.26200
+Python: 3.13.11
+CPU: 8 physical / 16 logical
+RAM: 15.19 GiB total; 0.89 GiB available at audit
+Disk: 274.72 GiB total; 35.39 GiB free at audit
+GPU: NVIDIA GeForce RTX 3050 6GB Laptop GPU
+GPU memory: 6144 MiB total; 5487 MiB free at audit
+Driver: 582.05
+Selected packages: torch 2.11.0; transformers 4.45.2; datasets 4.1.1;
+sentence-transformers 5.7.0; pytest 9.1.1; PyYAML 6.0.3; faiss-cpu installed.
+
+SERVER (USER-REPORTED; NOT DIRECTLY INSPECTED DURING LOCAL AUDIT)
+Root: /home/stackops/whale/ERRORFlow
+Shared environment: /home/stackops/whale/GraphCURE/.venv
+Python: 3.11.15 (reported earlier)
+torch: 2.13.0+cu130
+CUDA available: true
+CUDA runtime: 13.0
+transformers: 5.15.0
+peft: 0.20.0
+GPU: NVIDIA GeForce RTX 5090
+Disk last reported: 938G total, 888G used, 9.8G available, 99% used
+
+AUDIT TEST
+Command: python -m pytest -q
+Result: 32 passed, 11 warnings in 0.34s
+
+For an exact environment on a future machine, capture `python -m pip freeze`,
+CUDA/driver information, model revisions, and dataset checksums before rerun.
