@@ -37,8 +37,9 @@ Status: **FUNCTIONALLY IMPLEMENTED; experimental evidence pending**.
 - Added a deterministic train-only action-screen builder. It stratifies by
   observed gold→B1 transitions and correct-control labels, then spans each
   group's B1 margin range instead of taking a convenience or random slice.
-- Full-train screen execution and A1–A5 outcome collection remain pending on
-  the server; no action or router has been selected from the full B1 run yet.
+- Full-train screen construction and A1–A5 outcome collection are complete:
+  150 predictions for each of five actions, 750 total. Utility summarization is
+  pending; no action or router has been selected from these outcomes yet.
 - Added versioned/deactivatable residual action memory and fold-safe retrieval.
 - Added R0–R6 cached-action evaluation at population-weighted matched budgets.
 - Nested inner-fold selection, Architecture B, and cross-domain validation remain
