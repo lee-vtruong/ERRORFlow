@@ -183,8 +183,18 @@ Status: implemented locally; server bootstrap/ablation run pending.
 
 ## Step 18 — One-shot holdout runner
 
-Status: three 475-example holdout candidate runs complete; frozen replay and evaluation pending.
+Status: complete; frozen replay and one-shot evaluation finished.
 
 - Added exact replay of the frozen action-balanced router over precomputed candidates.
 - Added canonical four-label paired bootstrap evaluation.
 - Fixed baseline, ERRORFlow, and always-conflict as the reported holdout comparison before candidate outcomes are observed.
+
+## Step 19 — One-shot holdout result and V1 closure
+
+Status: complete; V1 frozen and closed without holdout tuning.
+
+- ERRORFlow improved accuracy from 0.68632 to 0.72421 (+0.03789, paired CI95% excluding zero).
+- Macro-F1 improved from 0.52417 to 0.55839, but its CI95% included zero.
+- Standalone conflict audit reached 0.75789 accuracy and 0.56392 macro-F1.
+- Conflict audit significantly exceeded ERRORFlow accuracy by 0.03368 while using fewer forward passes as a standalone verifier.
+- Recorded the result as a limited positive memory-routing result and a negative result against the strongest simple prompt control.
