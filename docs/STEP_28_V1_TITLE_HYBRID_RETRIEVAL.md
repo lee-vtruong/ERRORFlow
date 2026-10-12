@@ -74,3 +74,5 @@ Title retrieval hoàn tất `1.000` rows, có candidates cho `987` claims và ma
 Title-only tăng complete-group recall@50 thêm `37.01` điểm so với lexical. Hybrid tốt hơn nhẹ tại top-1/5/10, nhưng thấp hơn title-only tại top-20/50 do merge order: 10 title candidates đầu rồi lexical chiếm các vị trí còn lại, khiến title ranks 11–50 bị truncate. Đây là hiệu ứng composition, không phải bằng chứng lexical candidates làm giảm chất lượng gold pool.
 
 Quyết định tiếp theo là tạo union pool tối đa 100 candidates bằng `title-first=50`, rồi đo recall@100. Pool này giữ nguyên toàn bộ title top-50 và bổ sung các lexical candidates không trùng; nó là đầu vào hợp lý cho reranker.
+
+Union-100 thực tế đạt any-sentence recall `91.04%`, complete evidence-group recall `86.87%` và mean best-group coverage `88.94%`. So với title-only top-50, lexical candidates bổ sung `4.18` điểm complete recall. Candidate generation được chấp nhận cho V1 reranker experiment; bước tiếp theo được mô tả trong `docs/STEP_29_V1_CROSS_ENCODER_RERANKING.md`.
