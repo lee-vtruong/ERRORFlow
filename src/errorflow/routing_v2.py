@@ -41,7 +41,10 @@ def select_action(
             (record.utility if record.utility is not None else float(record.recovered)) * similarity
             for record, similarity in rows
         ) / weight
-        cost = sum((record.extra_llm_calls + record.extra_tokens / 1000) * similarity for record, similarity in rows) / weight
+        cost = sum((
+            record.extra_llm_calls + record.extra_tokens / 1000
+            + float(record.metadata.get("model_forward_passes", 0)) / 4.0
+        ) * similarity for record, similarity in rows) / weight
         utility = gain * max(0.0, min(1.0, uncertainty)) - cost_weight * cost
         candidates.append((utility, action, gain, cost, len(rows)))
 

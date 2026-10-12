@@ -71,6 +71,7 @@ class ErrorMemoryStore:
         self, claim: str, *, dataset: str | None = None, top_k: int = 5,
         allowed_splits: set[str] | None = None, baseline_prediction: str | None = None,
         label_scores: dict[str, float] | None = None, exclude_claim_ids: set[str] | None = None,
+        action: str | None = None,
     ) -> list[tuple[ErrorMemoryRecord, float]]:
         scored = []
         for record in self._records.values():
@@ -83,6 +84,8 @@ class ErrorMemoryStore:
             if baseline_prediction and record.baseline_prediction != baseline_prediction:
                 continue
             if exclude_claim_ids and record.claim_id in exclude_claim_ids:
+                continue
+            if action and record.action != action:
                 continue
             lexical = jaccard_similarity(claim, record.claim)
             historical_scores = record.metadata.get("baseline_label_scores", {})

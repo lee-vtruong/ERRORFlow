@@ -161,3 +161,12 @@ Status: implemented locally; server artifact pending.
 - Added memory construction for all action outcomes, retaining both recovered errors and regressed controls.
 - Added prediction-compatible retrieval using baseline label plus label-score-distribution and lexical similarity.
 - Updated routing to optimize signed empirical utility rather than recovery alone.
+
+## Step 16 — Population-weighted router cross-validation
+
+Status: implemented locally; server sweep pending.
+
+- Added leave-one-example-out retrieval so a query cannot reuse its own action outcomes.
+- Added action-balanced top-k retrieval and exact baseline-prediction compatibility.
+- Reweighted the error-heavy screen to the true 3,068-example train transition distribution.
+- Added uncertainty, support, utility, cost, and neighborhood-size sweep without reading holdout outcomes.
