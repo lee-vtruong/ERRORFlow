@@ -51,3 +51,15 @@ python scripts/analyze_action_by_error.py \
 ```
 
 Select an action by recovery rate and label-pair behavior, not total recovery alone. A gate that repairs NEI but destroys SUPPORTED/REFUTED must be routed selectively. Only the selected action proceeds to the 583-control regression test.
+
+## Screening result
+
+Evidence critic recovered `37/417` errors (`8.87%`), while entailment gate recovered `59/417` (`14.15%`). The useful observable family is baseline prediction `REFUTED`:
+
+| Baseline prediction | Evidence critic | Entailment gate |
+|---|---:|---:|
+| REFUTED | 31/151 (20.53%) | 47/151 (31.13%) |
+| SUPPORTED | 2/223 (0.90%) | 11/223 (4.93%) |
+| NOT ENOUGH INFO | 4/43 (9.30%) | 1/43 (2.33%) |
+
+The entailment gate is selected only for the `REFUTED` family. It is not justified for SUPPORTED or NEI predictions. The next step runs it on all 382 baseline-REFUTED claims, including 231 correct controls, and sweeps confidence only within this family. See `docs/STEP_33_V1_ROUTE_REGRESSION.md`.
