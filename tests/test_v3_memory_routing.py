@@ -56,6 +56,13 @@ def test_memory_records_harm_on_correct_controls():
     assert records[0].estimated_net_utility == -1.0
 
 
+def test_memory_uses_four_pass_cost_for_legacy_rows_without_metadata():
+    legacy = candidate()
+    legacy["metadata"] = {}
+    records = build_action_memories([residual()], [("audit", [legacy])])
+    assert records[0].estimated_extra_cost == 1.0
+
+
 def test_utility_router_and_budget_are_deterministic():
     records = build_action_memories(
         [residual("train:1"), residual("train:2")],

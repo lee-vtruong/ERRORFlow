@@ -134,7 +134,10 @@ def build_action_memories(baseline_rows, named_candidates, dataset="AVeriTeC"):
             recovered = not before_correct and after_correct
             regressed = before_correct and not after_correct
             utility = 1.0 if recovered else (-1.0 if regressed else 0.0)
-            extra_passes = float(after.get("metadata", {}).get("model_forward_passes", 1))
+            # V3 label scoring always evaluates four labels in four forward
+            # passes. Early cached rows record this at manifest level only, so
+            # the per-row fallback must be four rather than one.
+            extra_passes = float(after.get("metadata", {}).get("model_forward_passes", 4))
             records.append(ResidualMemoryRecord(
                 memory_id=residual_memory_id(dataset, key, action), version=1,
                 source_dataset=dataset, source_split="train", source_claim_id=key,
