@@ -65,5 +65,21 @@ routing in both accuracy and macro-F1.
 R6 with `top_k=5`, `min_support=2`, `cost_weight=0.1`, and utility threshold
 `>0` is retained as the fixed primary V3 candidate because these settings were
 specified before inspecting the full-train curve. R5 at 20% is an exploratory
-upper operating point, not a frozen primary result. Per-example predictions,
-paired bootstrap, and exact McNemar testing remain pending.
+upper operating point, not a frozen primary result. Per-example predictions
+were materialized for the paired analysis below.
+
+## Paired statistical analysis
+
+The materialized fixed R6 policy improves B1 from 0.74022 to 0.75913 accuracy
+and from 0.54602 to 0.56148 macro-F1. Of 140 discordant examples, R6 alone is
+correct on 99 and B1 alone is correct on 41, for net +58. Exact two-sided
+McNemar `p=1.03e-6`.
+
+With 5,000 paired bootstrap samples, the 95% interval for accuracy delta is
+`[0.01108, 0.02673]`; the macro-F1 delta interval is
+`[0.00346, 0.02745]`. The empirical probabilities of positive deltas are
+1.000 and 0.995 respectively. Both intervals exclude zero.
+
+This supports a train-internal, fold-excluded benefit over B1. It does not
+remove adaptivity from earlier action screening, replace nested inner-fold
+selection, or establish independent-domain generalization.

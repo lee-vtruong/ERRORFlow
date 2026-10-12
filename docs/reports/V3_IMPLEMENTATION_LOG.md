@@ -53,7 +53,9 @@ Status: **FUNCTIONALLY IMPLEMENTED; experimental evidence pending**.
   R6 routed 11.64%, netted +58 corrections, and improved accuracy/macro-F1 by
   +0.01891/+0.01546 at 4.465 average passes. Always-on A3 reduced accuracy.
 - Added per-example fixed-R6 materialization and paired bootstrap/exact McNemar
-  tooling. Statistical execution remains pending.
+  tooling. Statistical execution is complete: net +58, McNemar `p=1.03e-6`,
+  accuracy delta CI95 `[0.01108, 0.02673]`, and macro-F1 delta CI95
+  `[0.00346, 0.02745]`.
 - Added versioned/deactivatable residual action memory and fold-safe retrieval.
 - Added R0–R6 cached-action evaluation at population-weighted matched budgets.
 - Nested inner-fold selection, Architecture B, and cross-domain validation remain

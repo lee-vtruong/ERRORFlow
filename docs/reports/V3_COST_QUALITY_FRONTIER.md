@@ -28,3 +28,9 @@ R5 at 20% reaches +0.01956 accuracy and +0.02319 macro-F1 at 4.799 passes.
 Always-on A3 costs 8.0 passes and decreases accuracy by 0.00424. This makes R6
 the current best predeclared cost-aware operating point, subject to paired
 uncertainty analysis and external validation.
+
+Paired analysis now supports the train-internal R6 gain: accuracy delta CI95
+`[+0.01108, +0.02673]`, macro-F1 delta CI95
+`[+0.00346, +0.02745]`, and exact McNemar `p=1.03e-6`. R6 produces 99 helpful
+versus 41 harmful discordant outcomes while routing 11.64% of examples. External
+validation and fold-level stability remain required.
