@@ -28,6 +28,12 @@ python scripts/run_v2_qwen_baseline.py \
 Repeat with `coverage_audit_v1` and `refutation_audit_v1`. Use `--resume` only
 when resuming the same profile/output pair.
 
+### Candidate-generation result
+
+Completed on the server before router replay and final metric inspection. Each
+frozen action produced exactly 475 predictions; total candidate rows were 1,425.
+No prompt, memory record, threshold, or router setting was changed afterward.
+
 ## Replay frozen router
 
 ```bash

@@ -183,7 +183,7 @@ Status: implemented locally; server bootstrap/ablation run pending.
 
 ## Step 18 — One-shot holdout runner
 
-Status: implemented locally; three holdout candidate runs pending.
+Status: three 475-example holdout candidate runs complete; frozen replay and evaluation pending.
 
 - Added exact replay of the frozen action-balanced router over precomputed candidates.
 - Added canonical four-label paired bootstrap evaluation.
