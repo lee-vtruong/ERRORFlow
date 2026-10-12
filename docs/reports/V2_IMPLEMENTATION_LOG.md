@@ -142,3 +142,13 @@ Status: train baseline completed; candidate screen pending.
 - Identified 962 train errors without reading sealed holdout errors for method development.
 - Added deterministic transition-stratified error sampling plus per-label correct controls.
 - Added three auditable intervention profiles and evaluation of recovery, regression, net change, latency, and forward-pass cost.
+
+## Step 14 — Aggregate intervention result
+
+Status: aggregate complete; action matrix pending.
+
+- Conflict audit: 34 helpful, 12 harmful, net +22.
+- Coverage audit: 30 helpful, 14 harmful, net +16.
+- Refutation audit: 28 helpful, 12 harmful, net +16.
+- Rejected selecting a global winner from the error-heavy stratified aggregate.
+- Added per-group utility comparison while explicitly forbidding gold transition names as online route features.

@@ -24,6 +24,16 @@ No dev/holdout record is used for selection, prompting, or thresholds.
 
 ## Result
 
-Pending server execution. An action is not accepted from recovery alone: net
-correct change, control regression, per-transition utility, and four-forward-pass
-cost are all required.
+Completed on 155 train-only screening examples.
+
+| Action | Helpful | Harmful | Net | Candidate accuracy | Candidate Macro-F1 | Latency |
+|---|---:|---:|---:|---:|---:|---:|
+| conflict audit | 34 | 12 | **+22** | **0.4000** | **0.3655** | 123.4 ms |
+| coverage audit | 30 | 14 | +16 | 0.3613 | 0.3263 | 120.3 ms |
+| refutation audit | 28 | 12 | +16 | 0.3613 | 0.3252 | 120.1 ms |
+
+All actions have positive net change on the stratified screen. Conflict audit is
+the aggregate leader, but it is not promoted to a global intervention because
+the screen intentionally over-represents errors (baseline accuracy 0.2581).
+Action-by-transition and control regression must be inspected before memory and
+routing are built.
