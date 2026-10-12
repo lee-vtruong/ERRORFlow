@@ -14,7 +14,7 @@ python -m errorflow.cli --help
 df -h /
 ```
 
-Expected test count for this implementation snapshot: **50 passed**. A higher count is acceptable; a failure is not.
+Expected test count after Step 36: **52 passed**. A higher count is acceptable; a failure is not.
 
 ## Before the first V2 pilot
 

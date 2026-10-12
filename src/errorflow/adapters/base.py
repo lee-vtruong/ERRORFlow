@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+import json
 from pathlib import Path
 from typing import Any, Iterator
 
@@ -18,7 +19,17 @@ class DatasetAdapter(ABC):
         raise NotImplementedError
 
     def iter_file(self, path: str | Path, split: str) -> Iterator[NormalizedExample]:
-        for row in read_jsonl(path):
+        source = Path(path)
+        with source.open(encoding="utf-8") as handle:
+            first = handle.read(1)
+            handle.seek(0)
+            if first == "[":
+                rows = json.load(handle)
+                if not isinstance(rows, list):
+                    raise ValueError(f"Expected a JSON array in {source}")
+            else:
+                rows = read_jsonl(source)
+        for row in rows:
             yield self.normalize(row, split)
 
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from itertools import islice
 import json
 from pathlib import Path
 
@@ -13,7 +14,10 @@ from .io import config_hash, write_jsonl
 
 def normalize(args: argparse.Namespace) -> None:
     adapter = get_adapter(args.dataset)
-    rows = (example.to_dict() for example in adapter.iter_file(args.input, args.split))
+    examples = adapter.iter_file(args.input, args.split)
+    if args.limit is not None:
+        examples = islice(examples, args.limit)
+    rows = (example.to_dict() for example in examples)
     write_jsonl(args.output, rows)
     print(f"NORMALIZE_DONE dataset={adapter.name} output={args.output}")
 
@@ -35,6 +39,7 @@ def build_parser() -> argparse.ArgumentParser:
     normalizer.add_argument("--split", required=True)
     normalizer.add_argument("--input", required=True, type=Path)
     normalizer.add_argument("--output", required=True, type=Path)
+    normalizer.add_argument("--limit", type=int, help="Normalize only the first N examples")
     normalizer.set_defaults(func=normalize)
     memory = commands.add_parser("inspect-memory", help="Inspect nearest compatible error memories")
     memory.add_argument("--memory", required=True, type=Path)

@@ -76,3 +76,12 @@ Status: implemented and unit tested.
 - Added a builder for paired baseline/intervention outcomes with deterministic IDs, recovery/cost fields, and source-run provenance.
 - Baseline-correct examples are excluded from error memory.
 - Records originating from dev/validation/test are non-routable by default. An explicit unsafe override exists only for diagnostics and is marked in each record's metadata.
+
+## Step 7 — Official AVeriTeC acquisition path
+
+Status: implemented locally; server download pending.
+
+- Selected the authors' official repository and restricted acquisition to the small train/dev annotation files under CC BY-NC 4.0.
+- Added atomic download, a 100 MiB safety ceiling, schema audit, row/label counts, SHA-256 checksums, and a persisted source manifest.
+- Corrected the adapter for official JSON-array files and `source_url` fields.
+- Added `--limit` so the first server normalization is capped at 25 examples.

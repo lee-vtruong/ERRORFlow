@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 from errorflow.adapters import get_adapter
@@ -34,3 +36,11 @@ def test_averitec_not_enough_evidence_label_variants():
     adapter = get_adapter("averitec")
     for label in ("Not Enough Evidence", "NOT_ENOUGH_EVIDENCE"):
         assert adapter.normalize({"id": 1, "claim": "x", "label": label}, "dev").label == "NOT ENOUGH INFO"
+
+
+def test_adapter_reads_official_json_array_and_source_url(tmp_path):
+    path = tmp_path / "dev.json"
+    path.write_text(json.dumps([{"claim": "x", "label": "Supported",
+        "questions": [{"question": "q", "answers": [{"answer": "a", "source_url": "https://source.test"}]}]}]), encoding="utf-8")
+    example = list(get_adapter("averitec").iter_file(path, "dev"))[0]
+    assert example.evidence[0].url == "https://source.test"

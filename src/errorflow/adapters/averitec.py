@@ -38,7 +38,11 @@ class AVeriTeCAdapter(DatasetAdapter):
                 if text:
                     evidence.append(EvidenceItem(
                         f"{index}:{answer_index}", f"Q: {question}\nA: {text}",
-                        url=answer.get("url") if isinstance(answer, dict) else None, source="web",
+                        url=first_present(answer, "source_url", "url") if isinstance(answer, dict) else None,
+                        source="web",
                     ))
         claim_id = first_present(row, "claim_id", "id")
-        return NormalizedExample(str(claim_id), self.name, split, row["claim"], label, evidence, {"claim_date": row.get("claim_date")})
+        return NormalizedExample(str(claim_id), self.name, split, row["claim"], label, evidence, {
+            "claim_date": row.get("claim_date"), "speaker": row.get("speaker"),
+            "reporting_source": row.get("reporting_source"), "justification": row.get("justification"),
+        })
