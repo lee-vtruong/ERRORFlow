@@ -33,3 +33,22 @@ and transition. Group weights map the screen back to the 3,068-example B1 train
 population for descriptive screening only. Because the screen is deterministic
 and margin-spanning rather than randomly sampled, weighted results are not
 holdout estimates and cannot support a generalization claim.
+
+## Screen utility result
+
+Only `conflicting_rescue_v1` has positive population-weighted net utility:
+117.8 projected examples, projected accuracy delta +0.03840, and projected
+macro-F1 delta +0.01731. The other four actions have negative weighted net
+utility despite positive unweighted screen net values. Their regressions occur
+in large correct-control populations, so raw screen counts are misleading.
+
+`conflicting_rescue_v1` recovered 23 and regressed 7 screen examples. Its main
+observed gains came from REFUTED→NEI and REFUTED→SUPPORTED residuals; it did not
+recover the sampled CONFLICTING→REFUTED or CONFLICTING→SUPPORTED errors. Action
+names are therefore not treated as validated causal mechanisms.
+
+This result advances `conflicting_rescue_v1` as the always-action and
+confidence-routing comparator. All five actions remain available to the
+fold-excluded memory/utility router because some globally harmful actions have
+positive utility in narrower observable neighborhoods. Gold transitions are
+offline analysis fields and are forbidden as online routing inputs.

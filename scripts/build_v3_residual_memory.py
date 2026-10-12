@@ -10,13 +10,18 @@ from errorflow.v3_memory import ResidualMemoryStore, build_action_memories
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--residual-records", required=True, type=Path)
+    parser.add_argument(
+        "--baseline-records", "--residual-records", dest="baseline_records",
+        required=True, type=Path,
+        help="Screen baseline records, including errors and correct controls. "
+             "--residual-records is retained as a backward-compatible alias.",
+    )
     parser.add_argument("--candidate", nargs="+", required=True, help="ACTION=predictions.jsonl")
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--max-samples", type=int)
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
-    rows = list(read_jsonl(args.residual_records))
+    rows = list(read_jsonl(args.baseline_records))
     if args.max_samples is not None:
         rows = rows[:args.max_samples]
     named = []
@@ -36,6 +41,7 @@ def main():
         "recovered": sum(record.recovery_count for record in records),
         "regressed": sum(record.regression_count for record in records),
         "train_only": all(record.source_split == "train" for record in records),
+        "includes_correct_controls": any(record.error_pattern == "correct_control" for record in records),
         "dry_run": args.dry_run,
     }
     print(json.dumps(summary, indent=2))

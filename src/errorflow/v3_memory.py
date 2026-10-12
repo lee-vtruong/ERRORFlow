@@ -117,8 +117,9 @@ class ResidualMemoryStore:
         return len(self._records)
 
 
-def build_action_memories(residual_rows, named_candidates, dataset="AVeriTeC"):
-    baseline = {str(row["example_id"]): row for row in residual_rows}
+def build_action_memories(baseline_rows, named_candidates, dataset="AVeriTeC"):
+    """Create action outcomes for both residual errors and correct controls."""
+    baseline = {str(row["example_id"]): row for row in baseline_rows}
     candidates = {action: {str(row["example_id"]): row for row in rows} for action, rows in named_candidates}
     records = []
     for key, row in baseline.items():

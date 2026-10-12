@@ -38,8 +38,13 @@ Status: **FUNCTIONALLY IMPLEMENTED; experimental evidence pending**.
   observed gold→B1 transitions and correct-control labels, then spans each
   group's B1 margin range instead of taking a convenience or random slice.
 - Full-train screen construction and A1–A5 outcome collection are complete:
-  150 predictions for each of five actions, 750 total. Utility summarization is
-  pending; no action or router has been selected from these outcomes yet.
+  150 predictions for each of five actions, 750 total.
+- Utility screening found only `conflicting_rescue_v1` globally positive after
+  population-group weighting (weighted net +117.8; projected accuracy +0.03840;
+  projected macro-F1 +0.01731). This is descriptive train-side screening, not a
+  holdout estimate.
+- Memory construction now explicitly includes correct controls so harmful
+  regressions contribute negative utility. R0–R6 evaluation remains pending.
 - Added versioned/deactivatable residual action memory and fold-safe retrieval.
 - Added R0–R6 cached-action evaluation at population-weighted matched budgets.
 - Nested inner-fold selection, Architecture B, and cross-domain validation remain

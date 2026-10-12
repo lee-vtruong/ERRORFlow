@@ -46,6 +46,16 @@ def test_memory_rejects_non_train_and_utility_is_smoothed():
     assert smoothed_utility(3, 1, 5) > 0
 
 
+def test_memory_records_harm_on_correct_controls():
+    row = residual(correct=True)
+    row["prediction"] = "SUPPORTED"
+    records = build_action_memories([row], [("audit", [candidate(prediction="REFUTED")])])
+    assert records[0].error_pattern == "correct_control"
+    assert records[0].recovery_count == 0
+    assert records[0].regression_count == 1
+    assert records[0].estimated_net_utility == -1.0
+
+
 def test_utility_router_and_budget_are_deterministic():
     records = build_action_memories(
         [residual("train:1"), residual("train:2")],
