@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import time
 from pathlib import Path
 
 from errorflow.evaluation_v2 import accuracy, macro_f1
@@ -108,7 +109,8 @@ def main():
     if missing_groups:
         raise ValueError(f"Screen does not represent population groups: {sorted(missing_groups)}")
     query_weights = {key: population_counts[group_name(row)] / screen_counts[group_name(row)] for key, row in baseline.items()}
-    for key in ids:
+    started = time.perf_counter()
+    for index, key in enumerate(ids, 1):
         row = baseline[key]
         query = {"claim": row["claim"], "retrieval_features": {
             "baseline_prediction": row["prediction"], "label_scores": row.get("label_scores", {}),
@@ -124,6 +126,14 @@ def main():
             memory_actions[key], memory_scores[key] = memory_best.action, memory_best.utility
         if utility_best:
             utility_actions[key], utility_scores[key] = utility_best.action, utility_best.utility
+        if index % 50 == 0 or index == len(ids):
+            elapsed = time.perf_counter() - started
+            rate = index / elapsed if elapsed else 0.0
+            eta = (len(ids) - index) / rate if rate else 0.0
+            print(
+                f"routing_features={index}/{len(ids)} rate={rate:.2f}/s eta={eta:.1f}s",
+                flush=True,
+            )
 
     results = []
     baseline_final = {key: baseline[key]["prediction"] for key in ids}
