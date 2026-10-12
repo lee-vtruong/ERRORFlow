@@ -6,6 +6,7 @@ from pathlib import Path
 
 from errorflow.io import read_jsonl
 from errorflow.verifier import Qwen3TransformersVerifier, VerifierConfig
+from errorflow.v3_prompts import V3_ACTION_PROMPTS
 
 LABEL_SPACES = {
     "fever": ("SUPPORTED", "REFUTED", "NOT ENOUGH INFO"),
@@ -37,6 +38,7 @@ INSTRUCTION_PROFILES = {
         "NOT ENOUGH INFO means the evidence cannot establish either truth or falsity. Do not convert absence into refutation. "
         "Choose CONFLICTING only when credible evidence supports both directions."
     ),
+    **V3_ACTION_PROMPTS,
 }
 
 

@@ -6,10 +6,14 @@ import argparse
 from itertools import islice
 import json
 from pathlib import Path
+import shutil
+import sys
 
 from .adapters import get_adapter
 from .error_memory import ErrorMemoryStore
-from .io import config_hash, write_jsonl
+from .experiment import git_value
+from .io import atomic_write_json, config_hash, write_jsonl
+from .v3_prompts import B1_CONFLICT_AUDIT_SHA256, assert_b1_immutable, prompt_sha256, B1_CONFLICT_AUDIT
 
 
 def normalize(args: argparse.Namespace) -> None:
@@ -42,9 +46,43 @@ def inspect_memory(args: argparse.Namespace) -> None:
     ]}, ensure_ascii=False, indent=2))
 
 
+def doctor(args: argparse.Namespace) -> None:
+    assert_b1_immutable()
+    usage = shutil.disk_usage(Path.cwd())
+    report = {
+        "status": "ok", "python": sys.version.split()[0], "git_commit": git_value("rev-parse", "HEAD"),
+        "git_dirty": bool(git_value("status", "--porcelain")),
+        "disk_free_gb": round(usage.free / 1024 ** 3, 2),
+        "b1_prompt_sha256": prompt_sha256(B1_CONFLICT_AUDIT),
+        "b1_prompt_immutable": prompt_sha256(B1_CONFLICT_AUDIT) == B1_CONFLICT_AUDIT_SHA256,
+    }
+    print(json.dumps(report, indent=2))
+
+
+def v3_audit(args: argparse.Namespace) -> None:
+    assert_b1_immutable()
+    tag = "archive/errorflow-v2-conflict-audit"
+    report = {
+        "phase": "V3_phase_0_repository_audit", "status": "completed",
+        "head": git_value("rev-parse", "HEAD"), "git_dirty": bool(git_value("status", "--porcelain")),
+        "v2_archive_tag": tag, "v2_archive_commit": git_value("rev-list", "-n", "1", tag),
+        "b1_prompt_sha256": B1_CONFLICT_AUDIT_SHA256, "b1_prompt_bytes": len(B1_CONFLICT_AUDIT.encode("utf-8")),
+        "opened_holdout_policy": "dev:25..dev:499 excluded from V3 development",
+        "historical_reports": [
+            "docs/reports/AVERITEC_V2_HOLDOUT_REPORT.md", "docs/STEP_48_V2_HOLDOUT_ONE_SHOT.md",
+            "docs/reports/V2_IMPLEMENTATION_LOG.md",
+        ],
+    }
+    if args.output:
+        atomic_write_json(args.output, report)
+    print(json.dumps(report, indent=2))
+
+
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="errorflow", description="ERRORFlow V2 utilities")
+    parser = argparse.ArgumentParser(prog="errorflow", description="ERRORFlow reproducible research utilities")
     commands = parser.add_subparsers(dest="command", required=True)
+    health = commands.add_parser("doctor", help="Audit local runtime and frozen prompt invariants")
+    health.set_defaults(func=doctor)
     normalizer = commands.add_parser("normalize", help="Normalize a dataset JSONL file")
     normalizer.add_argument("--dataset", required=True, choices=["fever", "averitec", "scifact", "climate-fever"])
     normalizer.add_argument("--split", required=True)
@@ -59,6 +97,11 @@ def build_parser() -> argparse.ArgumentParser:
     memory.add_argument("--dataset")
     memory.add_argument("--top-k", type=int, default=5)
     memory.set_defaults(func=inspect_memory)
+    v3 = commands.add_parser("v3", help="ERRORFlow V3 research commands")
+    v3_commands = v3.add_subparsers(dest="v3_command", required=True)
+    audit = v3_commands.add_parser("audit", help="Verify the V2 boundary and V3 contamination policy")
+    audit.add_argument("--output", type=Path)
+    audit.set_defaults(func=v3_audit)
     return parser
 
 

@@ -1,0 +1,9 @@
+{
+  "archive_tag": "archive/errorflow-v2-conflict-audit",
+  "archive_commit": "6e20716bba77e2217f8532e717857318a017395c",
+  "b1_profile": "conflict_audit_v1",
+  "b1_prompt_sha256": "700ebdc1b55cb9f04f7524f31b7a5d3bd41813f198e5629fe75ca551333decf7",
+  "b1_prompt_utf8_bytes": 372,
+  "opened_holdout_ids": "dev:25..dev:499",
+  "opened_holdout_usage": "historical_reporting_only"
+}
