@@ -27,5 +27,20 @@ then macro-F1, then lower route rate.
 
 ## Result
 
-Pending server execution. This remains train-only model selection; no holdout
-labels or candidate outcomes are read.
+Completed on the server. The best configuration uses three memories per action,
+minimum support two, minimum utility zero, cost weight 0.10, and inverse
+confidence uncertainty. Population-weighted estimates are:
+
+- Baseline accuracy: 0.68644; candidate accuracy: 0.74948; delta: **+0.06304**.
+- Baseline macro-F1: 0.50691; candidate macro-F1: 0.53949; delta: **+0.03258**.
+- Route rate: 0.29762; weighted helpful 279.8; harmful 86.4; net +193.4.
+
+The optimum is not isolated. All first six configurations produce the same
+predictions, while the neighboring `k=5` family retains +0.0602 accuracy and
++0.0298 macro-F1 at a lower 0.1875 route rate. All top ten use inverse
+confidence. The first-ranked configuration is frozen as
+`configs/v2/averitec_router_v1.json` before any holdout intervention is run.
+
+This is still a train-only, population-reweighted estimate rather than a final
+generalization result. The 216-configuration search can introduce selection
+optimism, so bootstrap and negative-control checks are required next.

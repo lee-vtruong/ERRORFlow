@@ -1,0 +1,19 @@
+{
+  "policy_id": "averitec_errorflow_router_v1",
+  "dataset": "AVeriTeC",
+  "memory_splits": ["train"],
+  "actions": [
+    "conflict_audit_v1",
+    "coverage_audit_v1",
+    "refutation_audit_v1"
+  ],
+  "top_k_per_action": 3,
+  "min_support": 2,
+  "min_similarity": 0.0,
+  "min_utility": 0.0,
+  "cost_weight": 0.1,
+  "uncertainty_mode": "inverse_confidence",
+  "selection_protocol": "leave_one_example_out_population_weighted_train_screen",
+  "selection_seed": 2026,
+  "frozen_before_holdout_interventions": true
+}

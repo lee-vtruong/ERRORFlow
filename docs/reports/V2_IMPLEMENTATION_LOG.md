@@ -164,9 +164,19 @@ Status: implemented locally; server artifact pending.
 
 ## Step 16 — Population-weighted router cross-validation
 
-Status: implemented locally; server sweep pending.
+Status: server sweep complete; first-ranked policy frozen.
 
 - Added leave-one-example-out retrieval so a query cannot reuse its own action outcomes.
 - Added action-balanced top-k retrieval and exact baseline-prediction compatibility.
 - Reweighted the error-heavy screen to the true 3,068-example train transition distribution.
 - Added uncertainty, support, utility, cost, and neighborhood-size sweep without reading holdout outcomes.
+- Best weighted train estimate: +0.06304 accuracy, +0.03258 macro-F1, and 0.29762 route rate.
+
+## Step 17 — Router freeze and robustness gate
+
+Status: implemented locally; server bootstrap/ablation run pending.
+
+- Recorded the stable top-ten neighborhood and froze the first-ranked router before holdout intervention inference.
+- Added transition-stratified population-weighted bootstrap intervals.
+- Added no-memory, always-action, and random same-budget negative controls.
+- Preserved the train-only boundary; the robustness evaluator never opens holdout labels.

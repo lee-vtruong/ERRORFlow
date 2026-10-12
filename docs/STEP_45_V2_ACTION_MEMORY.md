@@ -24,4 +24,12 @@ combines claim lexical similarity and label-score-distribution similarity.
 
 ## Result
 
-Pending server construction and validation.
+Completed and validated:
+
+- 465 unique memory records from 155 unique train claims.
+- 155 records for each of the three actions.
+- Utility distribution: 92 positive, 38 negative, and 335 zero.
+- Roles: 345 error records and 120 correct-control records.
+- No non-train claim ID is present.
+
+Artifact: `outputs/v2/averitec/memory/action_outcomes_train.jsonl`.

@@ -39,4 +39,8 @@ measurement is roughly 6–10 minutes, but progress output is authoritative.
 
 ## Result
 
-Pending server execution.
+Completed on all 3,068 official train examples with no missing or extra
+predictions. S0 reached accuracy 0.68644 and macro-F1 0.50691. The weakest class
+was CONFLICTING (F1 0.09322, recall 0.05641); REFUTED and SUPPORTED reached F1
+0.78653 and 0.73241. This result is a train-only memory-construction baseline,
+not a generalization claim.
