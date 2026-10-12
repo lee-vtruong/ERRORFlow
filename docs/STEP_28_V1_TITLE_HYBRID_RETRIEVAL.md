@@ -60,3 +60,17 @@ python scripts/evaluate_fever_retrieval.py \
 - Hybrid complete-group recall@50 tăng rõ: giữ title expansion và tiếp tục cải thiện ranking/reranking.
 - Title-only tốt nhưng hybrid top-k thấp: sweep `--title-first` trên artifact đã tạo, không cần quét wiki lại.
 - Hybrid recall@50 vẫn thấp: bước sau là fuzzy/alias entity linking hoặc dense document retrieval, chưa chạy verifier full.
+
+## Kết quả 1K
+
+Title retrieval hoàn tất `1.000` rows, có candidates cho `987` claims và match `11.561` wiki pages. Trên 670 verifiable claims:
+
+| Retrieval | Complete@1 | Complete@5 | Complete@10 | Complete@20 | Complete@50 |
+|---|---:|---:|---:|---:|---:|
+| Lexical BM25 | 10.30% | 23.58% | 29.40% | 37.31% | 45.67% |
+| Title-only | 32.84% | 57.76% | 69.25% | 77.61% | 82.69% |
+| Hybrid, title-first=10 | 33.13% | 58.51% | 70.15% | 72.84% | 74.33% |
+
+Title-only tăng complete-group recall@50 thêm `37.01` điểm so với lexical. Hybrid tốt hơn nhẹ tại top-1/5/10, nhưng thấp hơn title-only tại top-20/50 do merge order: 10 title candidates đầu rồi lexical chiếm các vị trí còn lại, khiến title ranks 11–50 bị truncate. Đây là hiệu ứng composition, không phải bằng chứng lexical candidates làm giảm chất lượng gold pool.
+
+Quyết định tiếp theo là tạo union pool tối đa 100 candidates bằng `title-first=50`, rồi đo recall@100. Pool này giữ nguyên toàn bộ title top-50 và bổ sung các lexical candidates không trùng; nó là đầu vào hợp lý cho reranker.
