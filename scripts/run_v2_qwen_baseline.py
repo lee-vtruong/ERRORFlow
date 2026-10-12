@@ -21,6 +21,22 @@ INSTRUCTION_PROFILES = {
         "CONFLICTING: credible evidence supports and contradicts the claim, or the claim cherry-picks a mixed record. "
         "Do not treat merely incomplete evidence as CONFLICTING."
     ),
+    "conflict_audit_v1": (
+        "Audit whether the evidence contains credible support and credible contradiction for the same essential claim. "
+        "Choose CONFLICTING only when both directions are genuinely present or the claim cherry-picks a mixed record. "
+        "If evidence supports one direction without a credible opposite, choose SUPPORTED or REFUTED. "
+        "If neither direction is established, choose NOT ENOUGH INFO."
+    ),
+    "coverage_audit_v1": (
+        "Decompose the claim into its essential factual parts and check whether the evidence covers every required part. "
+        "Choose SUPPORTED or REFUTED only for direct complete evidence. Missing links require NOT ENOUGH INFO. "
+        "Use CONFLICTING only for genuine support and contradiction, not mere incompleteness."
+    ),
+    "refutation_audit_v1": (
+        "Distinguish direct contradiction from missing evidence. REFUTED requires evidence that establishes an essential claim part is false. "
+        "NOT ENOUGH INFO means the evidence cannot establish either truth or falsity. Do not convert absence into refutation. "
+        "Choose CONFLICTING only when credible evidence supports both directions."
+    ),
 }
 
 

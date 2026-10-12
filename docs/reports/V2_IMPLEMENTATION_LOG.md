@@ -133,3 +133,12 @@ Status: holdout baseline completed; train baseline pending.
 - Sealed holdout labels/errors from further method and threshold development.
 - Added per-class precision/recall/F1 reporting for future evaluations.
 - Next memory source is exclusively the 3,068-example official train split.
+
+## Step 13 — Train baseline and intervention screen
+
+Status: train baseline completed; candidate screen pending.
+
+- Train S0: 3,068/3,068 paired, accuracy 0.68644, macro-F1 0.50691.
+- Identified 962 train errors without reading sealed holdout errors for method development.
+- Added deterministic transition-stratified error sampling plus per-label correct controls.
+- Added three auditable intervention profiles and evaluation of recovery, regression, net change, latency, and forward-pass cost.
