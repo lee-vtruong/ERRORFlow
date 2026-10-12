@@ -36,3 +36,9 @@ Expected error count is `417`. The summary records label-pair counts, mean basel
 ## Decision after audit
 
 Do not copy V0's `REFUTED and confidence <= 0.90` router. B1's dominant failure is expected to be NEI overcommitment across both SUPPORTED and REFUTED predictions. Intervention design and routing must be selected from B1 recovery and regression measurements.
+
+## Audit result
+
+All `417` errors were recovered and diagnosed. `273/417` (`65.5%`) have gold NEI: 144 are predicted SUPPORTED and 129 REFUTED. Moreover, `357/417` (`85.6%`) errors have first-token confidence in `[0.9, 1.0]`, so low-confidence routing cannot cover the dominant failure. Top-1 evidence source is also balanced across exact-title (202) and lexical BM25 (215), ruling out a source-only routing rule.
+
+The next experiment therefore compares the existing evidence critic with a stricter entailment gate on all B1 errors. See `docs/STEP_32_V1_INTERVENTION_SCREEN.md`.

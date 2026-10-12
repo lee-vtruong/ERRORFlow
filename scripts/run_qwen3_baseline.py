@@ -7,6 +7,19 @@ from pathlib import Path
 from errorflow.verifier import Qwen3TransformersVerifier, VerifierConfig
 
 
+INTERVENTION_INSTRUCTIONS = {
+    "none": "",
+    "evidence_critic": "Before choosing a label, inspect each evidence sentence and explain whether it directly supports, contradicts, or fails to establish the claim.",
+    "conflict_check": "Before choosing a label, explicitly check for both supporting and contradicting evidence. Choose NOT ENOUGH INFO when neither direction is established.",
+    "entailment_gate": (
+        "Apply a strict entailment gate. Evidence that merely mentions the same entities or topic is not proof. "
+        "Choose SUPPORTED only when the evidence directly establishes every essential part of the claim. "
+        "Choose REFUTED only when it directly contradicts an essential part. Otherwise choose NOT ENOUGH INFO. "
+        "Do not fill missing links with background knowledge or assumptions."
+    ),
+}
+
+
 def load_jsonl(path: Path) -> list[dict]:
     rows = []
     with path.open(encoding="utf-8") as source:
@@ -36,14 +49,9 @@ def main() -> None:
     parser.add_argument("--input", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--split", default="unknown")
-    parser.add_argument("--intervention", default="none", choices=["none", "evidence_critic", "conflict_check"])
+    parser.add_argument("--intervention", default="none", choices=sorted(INTERVENTION_INSTRUCTIONS))
     parser.add_argument("--resume", action="store_true")
     args = parser.parse_args()
-    instructions = {
-        "none": "",
-        "evidence_critic": "Before choosing a label, inspect each evidence sentence and explain whether it directly supports, contradicts, or fails to establish the claim.",
-        "conflict_check": "Before choosing a label, explicitly check for both supporting and contradicting evidence. Choose NOT ENOUGH INFO when neither direction is established.",
-    }
     rows = load_jsonl(args.input)
     completed = completed_claim_ids(args.output) if args.resume else set()
     input_ids = [str(row["claim_id"]) for row in rows]
@@ -63,7 +71,7 @@ def main() -> None:
     output_mode = "a" if args.resume and args.output.exists() else "w"
     with args.output.open(output_mode, encoding="utf-8") as target:
         for done, row in enumerate(pending, 1):
-            record = verifier.predict(row["claim_id"], row["claim"], row.get("evidence", []), split=args.split, instruction=instructions[args.intervention])
+            record = verifier.predict(row["claim_id"], row["claim"], row.get("evidence", []), split=args.split, instruction=INTERVENTION_INSTRUCTIONS[args.intervention])
             record.metadata["intervention"] = args.intervention
             target.write(json.dumps(record.to_dict(), ensure_ascii=False) + "\n")
             target.flush()

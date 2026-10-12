@@ -29,3 +29,9 @@ def test_load_jsonl_reports_corrupt_partial_line(tmp_path):
     output.write_text('{"claim_id":"a"}\n{"claim_id":', encoding="utf-8")
     with pytest.raises(ValueError, match="line 2"):
         MODULE.load_jsonl(output)
+
+
+def test_entailment_gate_requires_direct_evidence_and_allows_nei():
+    instruction = MODULE.INTERVENTION_INSTRUCTIONS["entailment_gate"]
+    assert "directly establishes every essential part" in instruction
+    assert "NOT ENOUGH INFO" in instruction

@@ -8,7 +8,7 @@ def diagnose(row):
     if pred == "NOT ENOUGH INFO":
         basis, actions = "verifier returned insufficiency despite retrieved context", ["evidence_critic", "reverify"]
     elif gold == "NOT ENOUGH INFO":
-        basis, actions = "verifier selected a verdict where annotation is NEI", ["evidence_critic", "conflict_check"]
+        basis, actions = "verifier selected a verdict where annotation is NEI", ["entailment_gate", "evidence_critic"]
     else:
         basis, actions = "supported/refuted polarity confusion", ["contradiction_critic", "reverify"]
     return {**row, "diagnosis_basis": basis, "candidate_actions": actions, "diagnosis_status": "heuristic_candidate"}
