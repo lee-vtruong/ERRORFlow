@@ -46,3 +46,24 @@ results. The next bounded experiment runs only the globally positive A3 action
 on all 3,068 train examples. That removes unstable screen population weights
 and tests whether fixed confidence and memory policies remain beneficial before
 authorizing the other four full action runs.
+
+## Full-train A3 fixed-policy result
+
+The 3,068-example cached A3 experiment reverses the sparse-screen memory
+finding. With same-outer-fold memories excluded, R5 at a fixed 20% matched
+budget yields net +60, accuracy delta +0.01956, and macro-F1 delta +0.02319.
+The cost-aware R6 policy routes only examples with estimated utility above zero:
+11.64% of the population, net +58, accuracy delta +0.01891, macro-F1 delta
++0.01546, and 4.465 average forward passes.
+
+Always applying A3 produces net -13 and accuracy delta -0.00424, despite a
+macro-F1 delta of +0.00983. The selective gain therefore cannot be attributed
+to A3 being uniformly stronger than B1. At comparable budgets, memory routing
+also exceeds deterministic random, confidence-only, and label-conditional
+routing in both accuracy and macro-F1.
+
+R6 with `top_k=5`, `min_support=2`, `cost_weight=0.1`, and utility threshold
+`>0` is retained as the fixed primary V3 candidate because these settings were
+specified before inspecting the full-train curve. R5 at 20% is an exploratory
+upper operating point, not a frozen primary result. Per-example predictions,
+paired bootstrap, and exact McNemar testing remain pending.

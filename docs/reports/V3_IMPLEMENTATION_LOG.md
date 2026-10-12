@@ -49,6 +49,11 @@ Status: **FUNCTIONALLY IMPLEMENTED; experimental evidence pending**.
   produced 3,068/3,068 predictions in 366.998 seconds and 12,272 forward
   passes. Full-train cached evaluation is the next step; A1, A2, A4, and A5
   remain screen-only.
+- Full-train fold-excluded routing now supports the memory hypothesis for A3:
+  R6 routed 11.64%, netted +58 corrections, and improved accuracy/macro-F1 by
+  +0.01891/+0.01546 at 4.465 average passes. Always-on A3 reduced accuracy.
+- Added per-example fixed-R6 materialization and paired bootstrap/exact McNemar
+  tooling. Statistical execution remains pending.
 - Added versioned/deactivatable residual action memory and fold-safe retrieval.
 - Added R0–R6 cached-action evaluation at population-weighted matched budgets.
 - Nested inner-fold selection, Architecture B, and cross-domain validation remain

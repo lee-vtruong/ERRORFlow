@@ -19,3 +19,12 @@ same development screen, and the screen uses deterministic margin-spanning
 sampling rather than random sampling. The next experiment evaluates cached A3
 outcomes over all 3,068 train examples with grouped fold exclusion. Nested
 inner-fold selection and independent external validation remain pending.
+
+## Full-train A3 update
+
+On all 3,068 train examples, R6 routes 11.64% of claims and reaches accuracy
+delta +0.01891 and macro-F1 delta +0.01546 at 4.465 average forward passes.
+R5 at 20% reaches +0.01956 accuracy and +0.02319 macro-F1 at 4.799 passes.
+Always-on A3 costs 8.0 passes and decreases accuracy by 0.00424. This makes R6
+the current best predeclared cost-aware operating point, subject to paired
+uncertainty analysis and external validation.
