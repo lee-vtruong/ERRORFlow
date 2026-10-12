@@ -168,6 +168,8 @@ def main():
             for action in config["actions"]
         },
     })
+    frozen["cost_adjusted_accuracy"] = frozen["candidate_accuracy"] - config["cost_weight"] * frozen["weighted_route_rate"]
+    frozen["cost_adjusted_macro_f1"] = frozen["candidate_macro_f1"] - config["cost_weight"] * frozen["weighted_route_rate"]
 
     ablations = {"no_memory": evaluate_rows(
         ids, screen, baseline, {key: baseline[key]["prediction"] for key in ids}, weights
@@ -175,6 +177,13 @@ def main():
     for action in config["actions"]:
         ablations[f"always_{action}"] = evaluate_rows(
             ids, screen, baseline, {key: candidates[action][key]["prediction"] for key in ids}, weights
+        )
+        ablations[f"always_{action}"]["weighted_route_rate"] = 1.0
+        ablations[f"always_{action}"]["cost_adjusted_accuracy"] = (
+            ablations[f"always_{action}"]["candidate_accuracy"] - config["cost_weight"]
+        )
+        ablations[f"always_{action}"]["cost_adjusted_macro_f1"] = (
+            ablations[f"always_{action}"]["candidate_macro_f1"] - config["cost_weight"]
         )
 
     routed_count = sum(action != "none" for action in route_actions.values())

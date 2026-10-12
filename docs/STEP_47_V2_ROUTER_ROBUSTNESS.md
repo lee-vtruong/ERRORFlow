@@ -42,12 +42,22 @@ python scripts/evaluate_v2_router_robustness.py \
 If the actual Step 46 screen or candidate filenames differ, reuse those exact
 paths; do not regenerate inference outputs.
 
-## Pass gate before holdout
+## Result
 
-- Accuracy and macro-F1 bootstrap intervals should preferably exclude zero.
-- Frozen routing should beat all global `always_*` policies.
-- Random same-budget routing should rarely match the frozen delta.
-- No dev/holdout labels or intervention outcomes may be read.
+- Accuracy delta is +0.06304 with CI95% `[0.00713, 0.10939]` and
+  `P(delta > 0) = 0.9858`.
+- Macro-F1 delta is +0.03258, but CI95% `[-0.01740, 0.07575]` includes zero.
+- Only 0.2% of random same-budget trials matched the frozen accuracy delta.
+- The global conflict audit achieved higher raw train estimates: +0.07562
+  accuracy and +0.05575 macro-F1, but routed 100% rather than 29.76%.
+- At the frozen cost weight 0.10, accuracy utility is 0.71972 for ERRORFlow,
+  0.68644 for baseline, and 0.66206 for always-conflict.
+- No holdout label was read by this robustness run.
+
+The gate therefore passes for **cost-aware selective routing**, but not for a
+claim of best raw quality. The final holdout must report baseline, ERRORFlow,
+and always-conflict together so memory conditioning is separated from the
+benefit of simply applying the strongest prompt globally.
 
 If the gate passes, precompute the three intervention candidates on the sealed
 475-example holdout without labels, replay this frozen router once, then perform

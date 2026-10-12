@@ -180,3 +180,11 @@ Status: implemented locally; server bootstrap/ablation run pending.
 - Added transition-stratified population-weighted bootstrap intervals.
 - Added no-memory, always-action, and random same-budget negative controls.
 - Preserved the train-only boundary; the robustness evaluator never opens holdout labels.
+
+## Step 18 — One-shot holdout runner
+
+Status: implemented locally; three holdout candidate runs pending.
+
+- Added exact replay of the frozen action-balanced router over precomputed candidates.
+- Added canonical four-label paired bootstrap evaluation.
+- Fixed baseline, ERRORFlow, and always-conflict as the reported holdout comparison before candidate outcomes are observed.
