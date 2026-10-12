@@ -95,3 +95,13 @@ Status: implemented locally; server rerun pending.
 - Added a four-label AVeriTeC prompt/parser without changing FEVER's default three-label behavior.
 - Added a canonical V2 Qwen runner and strict ID-paired evaluator.
 - Classified the upcoming 25-example run as oracle-evidence diagnostics, not end-to-end retrieval evaluation.
+
+## Step 9 — Oracle smoke result and generation audit
+
+Status: smoke completed; diagnostic pending server execution.
+
+- Integrity: 25/25 paired, no missing or extra predictions.
+- Result: accuracy 0.64, macro-F1 0.49485.
+- No CONFLICTING prediction was produced; REFUTED had six errors.
+- Average generated tokens equaled the 32-token cap, so scaling is paused until raw-output truncation is measured.
+- Added a diagnostic artifact containing transition counts, generation-limit rate, confidence provenance, and error raw outputs.
