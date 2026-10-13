@@ -1,0 +1,31 @@
+{
+  "protocol_id": "scifact_retrieved_evidence_wp4_v1",
+  "dataset": "SciFact",
+  "split": "official_dev_300_locked_external",
+  "retrieval": {
+    "scope": "entire_official_corpus",
+    "method": "two_stage_bm25",
+    "top_documents": 5,
+    "top_sentences": 5,
+    "k1": 1.2,
+    "b": 0.75,
+    "uses_cited_doc_ids": false,
+    "uses_gold_rationales": false,
+    "uses_gold_labels_for_ranking": false
+  },
+  "systems": ["B1", "A3-All", "R-Confidence", "R-Similarity", "R6"],
+  "source_memory": "AVeriTeC_train_only_frozen",
+  "router": {
+    "top_k": 5,
+    "min_support": 2,
+    "cost_weight": 0.1,
+    "utility_threshold": 0.0
+  },
+  "label_projection": {"CONFLICTING": "NOT ENOUGH INFO"},
+  "primary_metrics": ["three_label_macro_f1", "accuracy"],
+  "retrieval_metrics": ["claim_any_sentence_recall", "complete_rationale_recall", "mean_best_rationale_coverage"],
+  "comparison_condition": "existing_scifact_gold_rationale_oracle",
+  "selection_policy": "no_target_tuning_single_frozen_configuration",
+  "seed": 2026,
+  "bootstrap_samples": 5000
+}
