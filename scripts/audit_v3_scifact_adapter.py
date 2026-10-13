@@ -129,19 +129,24 @@ def main():
         row = {
             "example_id": key, "gold_label": expected[position],
             "b1_raw_label": b1_raw[position], "r6_raw_label": r6_raw[position],
+            "a3_raw_label": a3_raw[position],
             "b1_projected_label": b1_projected[position],
             "r6_projected_label": r6_projected[position],
+            "a3_projected_label": a3_projected[position],
             "was_routed": routed[position],
             "raw_verdict_changed": b1_raw[position] != r6_raw[position],
             "b1_projection_changed_label": b1_raw[position] != b1_projected[position],
             "r6_projection_changed_label": r6_raw[position] != r6_projected[position],
+            "a3_projection_changed_label": a3_raw[position] != a3_projected[position],
             "genuine_raw_correction": b1_raw[position] != expected[position] and r6_raw[position] == expected[position],
             "projected_correction": b1_projected[position] != expected[position] and r6_projected[position] == expected[position],
             "b1_projection_only_gain": b1_raw[position] != expected[position] and b1_projected[position] == expected[position],
             "r6_projection_only_gain": r6_raw[position] != expected[position] and r6_projected[position] == expected[position],
+            "a3_projection_only_gain": a3_raw[position] != expected[position] and a3_projected[position] == expected[position],
             "projection_hides_r6_four_label_error": r6_raw[position] != expected[position] and r6_projected[position] == expected[position],
         }
-        if row["raw_verdict_changed"] or row["b1_projection_changed_label"] or row["r6_projection_changed_label"]:
+        if (row["raw_verdict_changed"] or row["b1_projection_changed_label"]
+                or row["r6_projection_changed_label"] or row["a3_projection_changed_label"]):
             transitions.append(row)
 
     projection_counts = {
@@ -151,6 +156,9 @@ def main():
         "r6_changed": sum(a != b for a, b in zip(r6_raw, r6_projected)),
         "r6_correctness_gained": sum(a != g and b == g for g, a, b in zip(expected, r6_raw, r6_projected)),
         "r6_correctness_lost": sum(a == g and b != g for g, a, b in zip(expected, r6_raw, r6_projected)),
+        "a3_changed": sum(a != b for a, b in zip(a3_raw, a3_projected)),
+        "a3_correctness_gained": sum(a != g and b == g for g, a, b in zip(expected, a3_raw, a3_projected)),
+        "a3_correctness_lost": sum(a == g and b != g for g, a, b in zip(expected, a3_raw, a3_projected)),
     }
     summary = {
         "evaluation": "scifact_label_adapter_audit",
@@ -178,14 +186,17 @@ def main():
             "r6_vs_b1_projected": comparison(expected, b1_projected, r6_projected, args.samples, args.seed),
             "a3_all_vs_b1_raw": comparison(expected, b1_raw, a3_raw, args.samples, args.seed),
             "a3_all_vs_b1_projected": comparison(expected, b1_projected, a3_projected, args.samples, args.seed),
+            "r6_vs_a3_all_projected": comparison(expected, a3_projected, r6_projected, args.samples, args.seed),
             "b1_projection_only": comparison(expected, b1_raw, b1_projected, args.samples, args.seed),
             "r6_projection_only": comparison(expected, r6_raw, r6_projected, args.samples, args.seed),
+            "a3_projection_only": comparison(expected, a3_raw, a3_projected, args.samples, args.seed),
         },
         "transition_counts": {
             "rows_written": len(transitions),
             "raw_genuine_corrections": sum(row["genuine_raw_correction"] for row in transitions),
             "projected_corrections": sum(row["projected_correction"] for row in transitions),
             "r6_projection_only_gains": sum(row["r6_projection_only_gain"] for row in transitions),
+            "a3_projection_only_gains": sum(row["a3_projection_only_gain"] for row in transitions),
         },
         "input_artifacts": {
             "gold": {"path": str(args.gold), "sha256": sha256_file(args.gold)},
@@ -201,6 +212,16 @@ def main():
     for name, path in (("b1_direct3", args.b1_direct3), ("a3_direct3", args.a3_direct3)):
         if path:
             summary["input_artifacts"][name] = {"path": str(path), "sha256": sha256_file(path)}
+    if "b1_direct3" in direct:
+        b1_direct = [direct["b1_direct3"][key]["prediction"] for key in ids]
+        summary["comparisons"]["b1_direct3_vs_b1_projected"] = comparison(
+            expected, b1_projected, b1_direct, args.samples, args.seed,
+        )
+    if "a3_direct3" in direct:
+        a3_direct = [direct["a3_direct3"][key]["prediction"] for key in ids]
+        summary["comparisons"]["a3_direct3_vs_a3_projected"] = comparison(
+            expected, a3_projected, a3_direct, args.samples, args.seed,
+        )
     args.output_dir.mkdir(parents=True, exist_ok=True)
     atomic_write_json(args.output_dir / "summary.json", summary)
     write_jsonl(args.output_dir / "transitions.jsonl", transitions)

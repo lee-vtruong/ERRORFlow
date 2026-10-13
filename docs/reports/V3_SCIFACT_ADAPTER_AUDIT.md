@@ -1,6 +1,6 @@
 # ERRORFlow V3 SciFact label-adapter audit
 
-Status: **IMPLEMENTED; SERVER CONTROLLED EVALUATION PENDING**.
+Status: **CONTROLLED EVALUATION COMPLETE; ENHANCED ACCOUNTING RERUN PENDING**.
 
 ## Research question
 
@@ -79,3 +79,60 @@ outputs/v3/scifact/direct3/conflicting_rescue_v1.jsonl
 The final report section will be completed only from these real server
 artifacts. Until then the historical projected transfer remains conditionally
 supported and projection-dependent.
+
+## Controlled evaluation result
+
+All 300 official SciFact dev claims were evaluated with oracle rationale
+evidence. The observed quality/cost results are:
+
+| System | Label behavior | Accuracy | Macro-F1 | Mean passes |
+|---|---|---:|---:|---:|
+| B1 | raw four-label | 0.6067 | 0.4239 | 4.000 |
+| A3-All | raw four-label | 0.5167 | 0.4208 | 8.000 |
+| R6 memory, no A3 | raw four-label | 0.6067 | 0.4239 | 4.000 |
+| R6 full | raw four-label | 0.5967 | 0.4253 | 4.453 |
+| B1 | projected three-label | 0.6067 | 0.5596 | 4.000 |
+| A3-All | projected three-label | **0.8167** | **0.7822** | 8.000 |
+| R6 memory, no A3 | projected three-label | 0.6067 | 0.5596 | 4.000 |
+| R6 full | projected three-label | 0.6367 | 0.6052 | 4.453 |
+| B1 | direct three-label | 0.4900 | 0.3767 | 3.000 |
+| A3-All | direct three-label | 0.4400 | 0.3051 | 6.000 |
+
+R6 routes 34/300 examples. Under raw labels it is one accuracy point worse
+than B1 and statistically unsupported, reproducing the historical sensitivity.
+Under final-label projection it is three accuracy points and 4.56 macro-F1
+points above B1.
+
+Projection changes five B1 predictions but produces no B1 correctness gain.
+It changes twelve R6 predictions and all twelve become correct NEI verdicts.
+Thus the complete positive R6 delta is adapter-mediated rather than a raw
+four-label correction effect.
+
+The newly exposed decisive control is projected A3-All: it reaches 81.67%
+accuracy and 78.22 macro-F1, far above projected R6. Raw A3-All is poor, so the
+quality gain is specifically produced by interpreting A3 `CONFLICTING` outputs
+as target-domain NEI. R6's AVeriTeC source-memory router invokes this useful
+target behavior on only a small subset and therefore does not establish that
+source-domain route utility transfers well.
+
+Direct three-label scoring is also poor and nearly eliminates NEI recall
+(B1: 0.0357; A3: 0.0089). Because this prompt protocol was frozen before its
+result was observed, it is retained as a negative sensitivity and will not be
+tuned on the same SciFact dev set.
+
+Raw four-label macro-F1 and adapted three-label macro-F1 use different label
+sets and must not be compared as if their denominators were identical. Within
+each protocol, however, paired system comparisons remain valid.
+
+## WP2 gate decision
+
+The cross-domain claim is narrowed to the following:
+
+> A predeclared final-label projection makes the frozen four-label A3 critic
+> highly effective on SciFact oracle evidence; selective R6 preserves a small
+> part of that gain at lower inference cost.
+
+The data do **not** support unconditional raw-label transfer, direct three-label
+robustness, or successful transfer of the AVeriTeC source-memory routing policy.
+SciFact therefore supplies evidence for an ontology-adapted critic and a
+quality/cost trade-off, not clean source-memory generalization.
