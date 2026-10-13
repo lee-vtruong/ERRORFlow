@@ -1,6 +1,6 @@
 # ERRORFlow V3 cross-domain validation
 
-Status: **PROTOCOL FROZEN; SCIFACT EXECUTION NOT RUN**.
+Status: **PROTOCOL FROZEN; SCIFACT DEV PREPARED; MODEL EXECUTION PENDING**.
 
 ## Frozen source system
 
@@ -38,3 +38,19 @@ projection, and evaluation protocol are frozen. They may be used for final
 metrics but not for model selection. Any later SciFact adaptation must be a
 separate experiment with a new protocol and cannot reuse this result as an
 untouched external evaluation.
+
+## Prepared external artifact
+
+Official SciFact dev preparation completed with 300 unique claims:
+
+- NOT ENOUGH INFO: 112;
+- SUPPORTED: 124;
+- REFUTED: 64;
+- missing corpus documents: 0;
+- invalid rationale sentence indices: 0.
+
+The corpus SHA-256 is `b8d6c89624cb2ed74dee8938effc4f5d8bd2086887880af8110d64be4ceade62`;
+the dev-claims SHA-256 is
+`86f0435d08fdb65d1aa41d1472684f57e6e71930626497bdf4d7a9ec1a632217`.
+NEI examples have no official gold rationale and therefore carry empty oracle
+evidence. This is dataset semantics, not a preprocessing failure.
