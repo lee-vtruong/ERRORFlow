@@ -1,7 +1,7 @@
 # CLIMATE-FEVER external validation protocol
 
-Status: **PROTOCOL, DATA MANIFEST, AND 25-EXAMPLE INFERENCE SMOKE VERIFIED;
-FULL INFERENCE PENDING**.
+Status: **PROTOCOL, DATA MANIFEST, SMOKE, AND FULL CACHED INFERENCE VERIFIED;
+EXTERNAL ROUTING EVALUATION PENDING**.
 
 ## Dataset reconnaissance
 
@@ -99,3 +99,15 @@ and generation configuration hash `89c39128dd0fd365b9a9455658561ad3`.
 Only the frozen action prompt differed. B1 completed in 10.14 seconds and A3
 in 10.11 seconds. The smoke gate therefore passed without partial output,
 cache-contract mismatch, or label-protocol mismatch.
+
+## Full cached inference
+
+The same frozen B1 and A3 configurations were subsequently executed over all
+1,535 claims. Both manifests report `complete`, and both prediction artifacts
+contain exactly 1,535 rows. These two cached artifacts are the only model
+outputs used by B1, A3-All, source-memory R6, and the matched-route-count
+confidence and similarity controls. Selective-policy evaluation therefore
+changes routing only and does not trigger additional model inference.
+
+At completion the server retained 9.7 GiB free on `/`; no additional dataset,
+model, or retrieval index was created for this stage.
