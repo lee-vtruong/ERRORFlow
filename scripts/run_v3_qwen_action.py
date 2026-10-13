@@ -167,6 +167,7 @@ def main():
                 "prompt_sha256": prompt_hash, "model_hash": model_hash,
                 "evidence_hash": evidence_hash, "generation_config_hash": generation_hash,
                 "cache_key": cache_key, "gold_label_accessed": False,
+                "model_forward_passes": 4, "llm_requests": 1,
             })
             target.write(json.dumps(record, ensure_ascii=False) + "\n")
             target.flush()
