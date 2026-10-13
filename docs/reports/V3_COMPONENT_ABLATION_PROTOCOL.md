@@ -40,6 +40,12 @@ For A8, neighbor selection is randomized but the selected records retain their
 full similarity values when estimating recovery/regression. This isolates the
 ranking effect. Twenty predeclared seeds (2026--2045) are aggregated.
 
+For a single-feature variant, all selected similarities can legitimately be
+zero (especially claim-only when no compatible memory shares a token). In
+that case only, the estimator falls back to uniform weights over the selected
+top-k records and reports `uniform_weight_fallback_count/rate`. Without this
+declared fallback the weighted utility denominator is zero.
+
 ## Evaluation modes
 
 1. **Natural:** route when the variant's own utility is greater than zero.
@@ -100,7 +106,7 @@ for key, x in r["results"].items():
     print(variant, mode, x["routed"], f'{x["accuracy"]:.6f}',
           f'{x["macro_f1"]:.6f}', f'{x["delta_accuracy_vs_b1"]:.6f}',
           f'{x["delta_macro_f1_vs_b1"]:.6f}', x["net"],
-          f'{overlap:.4f}', sep="\t")
+          f'{overlap:.4f}', "fallback=" + str(x["uniform_weight_fallback_count"]), sep="\t")
 print("A8_AGGREGATE")
 print(json.dumps(r["random_neighbor_aggregate"], indent=2))
 print("A8_VS_A0")

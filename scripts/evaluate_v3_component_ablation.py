@@ -38,7 +38,7 @@ VARIANTS = {
 def utility_scores(ids, baseline, records, action, top_k, min_support, cost_weight,
                    weights, selection_mode="ranked", random_seed=2026):
     store = ResidualMemoryStore(records)
-    scores, supports = {}, {}
+    scores, supports, uniform_fallbacks = {}, {}, {}
     for key in ids:
         row = baseline[key]
         query = {
@@ -60,13 +60,14 @@ def utility_scores(ids, baseline, records, action, top_k, min_support, cost_weig
             selection_mode=selection_mode,
             random_seed=random_seed,
         )
-        best, _ = best_memory_action(
+        best, estimates = best_memory_action(
             [action], neighbors, cost_weight=cost_weight,
             min_support=min_support, utility_aware=True,
         )
         scores[key] = best.utility if best else float("-inf")
         supports[key] = best.support if best else 0
-    return scores, supports
+        uniform_fallbacks[key] = any(estimate.uniform_weight_fallback for estimate in estimates)
+    return scores, supports, uniform_fallbacks
 
 
 def top_count(ids, scores, count):
@@ -89,6 +90,7 @@ def summarize_replicates(rows):
     keys = (
         "routed", "route_rate", "accuracy", "macro_f1", "helpful", "harmful",
         "net", "avg_forward_passes", "delta_accuracy_vs_b1", "delta_macro_f1_vs_b1",
+        "uniform_weight_fallback_count", "uniform_weight_fallback_rate",
     )
     summary = {
         key: {
@@ -144,7 +146,7 @@ def main():
     base_metrics, _ = evaluate_selection(ids, baseline, candidate, set())
     gold = [baseline[key]["gold_label"] for key in ids]
 
-    full_scores, full_support = utility_scores(
+    full_scores, full_support, full_fallbacks = utility_scores(
         ids, baseline, records, args.action, args.top_k, args.min_support,
         args.cost_weight, **VARIANTS["A0_full_r6"], random_seed=args.seed,
     )
@@ -152,9 +154,12 @@ def main():
     matched_count = len(full_natural)
     results, route_rows, prediction_rows = {}, [], []
 
-    def record_run(variant, mode, seed, selected, scores, supports, save_predictions=True):
+    def record_run(variant, mode, seed, selected, scores, supports, uniform_fallbacks,
+                   save_predictions=True):
         metrics, predictions = evaluate_variant(ids, baseline, candidate, selected, base_metrics)
         metrics["route_overlap_with_a0_natural"] = route_overlap(selected, full_natural)
+        metrics["uniform_weight_fallback_count"] = sum(uniform_fallbacks.values())
+        metrics["uniform_weight_fallback_rate"] = sum(uniform_fallbacks.values()) / len(ids)
         metrics["seed"] = seed
         results_key = f"{variant}:{mode}" + (f":seed={seed}" if seed is not None else "")
         results[results_key] = metrics
@@ -177,22 +182,26 @@ def main():
     deterministic_predictions = {}
     for variant in deterministic_variants:
         if variant == "A0_full_r6":
-            scores, supports = full_scores, full_support
+            scores, supports, uniform_fallbacks = full_scores, full_support, full_fallbacks
         else:
-            scores, supports = utility_scores(
+            scores, supports, uniform_fallbacks = utility_scores(
                 ids, baseline, records, args.action, args.top_k, args.min_support,
                 args.cost_weight, **VARIANTS[variant], random_seed=args.seed,
             )
         natural = {key for key in ids if scores[key] > args.utility_threshold}
         matched = top_count(ids, scores, matched_count)
-        _, natural_predictions = record_run(variant, "natural", None, natural, scores, supports)
-        _, matched_predictions = record_run(variant, "matched_budget", None, matched, scores, supports)
+        _, natural_predictions = record_run(
+            variant, "natural", None, natural, scores, supports, uniform_fallbacks,
+        )
+        _, matched_predictions = record_run(
+            variant, "matched_budget", None, matched, scores, supports, uniform_fallbacks,
+        )
         deterministic_predictions[(variant, "natural")] = natural_predictions
         deterministic_predictions[(variant, "matched_budget")] = matched_predictions
 
     random_results = {"natural": [], "matched_budget": []}
     for random_seed in args.random_neighbor_seeds:
-        scores, supports = utility_scores(
+        scores, supports, uniform_fallbacks = utility_scores(
             ids, baseline, records, args.action, args.top_k, args.min_support,
             args.cost_weight, **VARIANTS["A8_random_neighbors"], random_seed=random_seed,
         )
@@ -202,6 +211,7 @@ def main():
         ):
             metrics, _ = record_run(
                 "A8_random_neighbors", mode, random_seed, selected, scores, supports,
+                uniform_fallbacks,
                 save_predictions=False,
             )
             random_results[mode].append(metrics)

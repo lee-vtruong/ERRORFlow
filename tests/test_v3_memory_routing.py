@@ -76,6 +76,20 @@ def test_utility_router_and_budget_are_deterministic():
     assert select_weighted_budget(["a", "b"], {"a": 2, "b": 1}, {"a": 1, "b": 9}, 0.1) == {"a"}
 
 
+def test_zero_similarity_neighbors_use_auditable_uniform_fallback():
+    records = build_action_memories(
+        [residual("train:1"), residual("train:2")],
+        [("audit", [candidate("train:1"), candidate("train:2")])],
+    )
+    best, estimates = best_memory_action(
+        ["audit"], [(record, 0.0) for record in records],
+        cost_weight=0.1, min_support=2,
+    )
+    assert best is not None
+    assert estimates[0].uniform_weight_fallback is True
+    assert estimates[0].expected_cost == 1.0
+
+
 def test_memory_size_ranking_cache_is_invalidated_on_update():
     records = build_action_memories([residual()], [("audit", [candidate()])])
     store = ResidualMemoryStore(records)

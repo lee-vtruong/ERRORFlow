@@ -14,6 +14,7 @@ class ActionEstimate:
     expected_cost: float
     utility: float
     support: int
+    uniform_weight_fallback: bool = False
 
     def to_dict(self):
         return asdict(self)
@@ -24,12 +25,17 @@ def estimate_action(action, neighbors, cost_weight=0.1, smoothing=1.0):
     if not rows:
         return ActionEstimate(action, 0.0, 0.0, 0.0, float("-inf"), 0)
     weight = sum(similarity for _, similarity in rows)
+    uniform_weight_fallback = weight <= 0.0
+    if uniform_weight_fallback:
+        rows = [(record, 1.0) for record, _ in rows]
+        weight = float(len(rows))
     denominator = weight + 2 * smoothing
     recovery = (sum(record.recovery_count * similarity for record, similarity in rows) + smoothing) / denominator
     regression = (sum(record.regression_count * similarity for record, similarity in rows) + smoothing) / denominator
     cost = sum((record.estimated_extra_cost or 0.0) * similarity for record, similarity in rows) / weight
     return ActionEstimate(action, recovery, regression, cost,
-                          recovery - regression - cost_weight * cost, len(rows))
+                          recovery - regression - cost_weight * cost, len(rows),
+                          uniform_weight_fallback)
 
 
 def best_memory_action(actions, neighbors, cost_weight=0.1, min_support=2, utility_aware=True):

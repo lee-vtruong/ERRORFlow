@@ -62,6 +62,7 @@ def test_random_replicate_summary_includes_cost_and_route_overlap():
         "routed": 1, "route_rate": 0.5, "accuracy": 0.5, "macro_f1": 0.4,
         "helpful": 1, "harmful": 0, "net": 1, "avg_forward_passes": 6.0,
         "delta_accuracy_vs_b1": 0.1, "delta_macro_f1_vs_b1": 0.2,
+        "uniform_weight_fallback_count": 2, "uniform_weight_fallback_rate": 0.1,
         "route_overlap_with_a0_natural": {"jaccard": 0.25},
     }
     summary = summarize_replicates([base, base])
