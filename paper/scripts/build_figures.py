@@ -5,7 +5,6 @@ import json
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = json.loads((ROOT / "data" / "verified_results.json").read_text(encoding="utf-8"))
@@ -20,18 +19,6 @@ def save(name: str) -> None:
     plt.tight_layout()
     plt.savefig(OUT / name, bbox_inches="tight")
     plt.close()
-
-def architecture() -> None:
-    fig, ax = plt.subplots(figsize=(6.8, 2.15)); ax.axis("off")
-    boxes = [(0.02, .37, .16, .28, "Claim + evidence"), (.25, .37, .15, .28, "B1 frozen\nlabel scorer"),
-             (.48, .56, .18, .28, "Residual memory\n(source outcomes)"), (.48, .16, .18, .28, "R6 utility\nrouter"),
-             (.75, .16, .16, .28, "A3 frozen\ncorrection")]
-    for x,y,w,h,s in boxes:
-        ax.add_patch(FancyBboxPatch((x,y),w,h,boxstyle="round,pad=.015",fc="#F2F2F2",ec="#333333")); ax.text(x+w/2,y+h/2,s,ha="center",va="center")
-    arrows=[((.18,.51),(.25,.51)),((.40,.51),(.48,.30)),((.66,.30),(.75,.30)),((.66,.70),(.57,.44)),((.91,.30),(.97,.30)),((.40,.51),(.97,.70))]
-    for a,b in arrows: ax.add_patch(FancyArrowPatch(a,b,arrowstyle="->",mutation_scale=10,color="#333333"))
-    ax.text(.93,.73,"keep B1 if not routed",ha="center",fontsize=7); ax.text(.94,.22,"final label",ha="center",fontsize=7)
-    ax.set_xlim(0,1); ax.set_ylim(0,1); save("architecture.pdf")
 
 def quality_cost() -> None:
     fig, axes = plt.subplots(1,2,figsize=(6.8,2.5))
@@ -67,5 +54,5 @@ def cross_domain_delta() -> None:
     ax.axhline(0,color="black",lw=.7); ax.set_xticks(list(x),[v for _,v in ds]); ax.set_ylabel("R6 minus B1"); ax.legend(frameon=False,ncol=2); save("cross_domain_delta.pdf")
 
 if __name__ == "__main__":
-    architecture(); quality_cost(); helpful_harmful(); retrieval_strata(); cross_domain_delta()
-    print(f"FIGURES_DONE count=5 output_dir={OUT}")
+    quality_cost(); helpful_harmful(); retrieval_strata(); cross_domain_delta()
+    print(f"FIGURES_DONE count=4 output_dir={OUT}")

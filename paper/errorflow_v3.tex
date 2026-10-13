@@ -85,7 +85,7 @@ The main contributions are:
 
 \section{Related Work}
 
-\paragraph{Fact verification.}
+\paragraph{Evidence-grounded fact verification.}
 FEVER established large-scale claim verification over Wikipedia
 \cite{thorne2018fever}; subsequent benchmarks test scientific claims
 \cite{wadden2020scifact}, climate claims \cite{diggelmann2020climate},
@@ -96,23 +96,58 @@ systems target faithful entailment \cite{krishna2022proofver}. Direct
 leaderboard comparison is inappropriate when evidence, labels, training, or
 metrics differ.
 
-\paragraph{Test-time correction and adaptive compute.}
+\paragraph{Test-time self-correction.}
 Iterative critique can improve model outputs
 \cite{madaan2023selfrefine,gao2023rarr,dhuliawala2024coverification}, but
 intrinsic self-correction can fail without reliable feedback
-\cite{huang2024cannot}. Selective QA and adaptive retrieval instead make
-computation input-dependent
-\cite{kamath2020selective,jiang2023active,jeong2024adaptiverag,asai2024selfrag}.
-ERRORFlow evaluates a frozen second pass against matched inference budgets.
+\cite{huang2024cannot}. Self-Refine repeatedly feeds model-generated feedback
+back to the same model; RARR retrieves sources and revises generated text; and
+Chain-of-Verification plans and answers verification questions. ERRORFlow does
+not generate a critique chain or revise free text: it exposes one alternative
+frozen label-scoring instruction and learns only whether invoking that action
+was helpful in similar source cases.
 
-\paragraph{Non-parametric memory and retrieval robustness.}
+\paragraph{Selective inference and routing.}
+Selective QA studies abstention under domain shift, while active and adaptive
+retrieval allocate retrieval effort conditionally
+\cite{kamath2020selective,jiang2023active,jeong2024adaptiverag,asai2024selfrag}.
+These approaches motivate uncertainty and confidence controls. ERRORFlow's
+router instead estimates the signed downstream value of a particular action,
+including regressions, and compares it with confidence, margin,
+label-conditional, similarity-only, static-pattern, and random routing at the
+same realized route count.
+
+\paragraph{Outcome-based non-parametric memory.}
 Retrieval augmentation \cite{lewis2020rag}, case-based reasoning
 \cite{das2021case}, and verbal memory \cite{shinn2023reflexion} motivate
-non-parametric reuse. Cross-domain retrieval \cite{thakur2021beir}, long
-contexts \cite{liu2024lost}, and noisy evidence \cite{fang2024noise} expose
-important robustness limits. Our memory stores observed correction outcomes,
-including regressions; it is supervised by source labels and is therefore
-training-free in parameters, not label-free.
+non-parametric reuse. Their memories store knowledge, solutions, or verbal
+experience. ERRORFlow stores action outcomes: observable B1 features, whether
+A3 recovered an error or regressed a correct prediction, and action cost.
+Cross-domain retrieval \cite{thakur2021beir}, long contexts
+\cite{liu2024lost}, and noisy evidence \cite{fang2024noise} expose robustness
+limits that motivate our retrieval-stratified analysis. The memory is
+supervised by source labels and is training-free in parameters, not label-free.
+
+\begin{table*}[t]
+\caption{Conceptual positioning. Entries summarize the cited method's primary
+protocol rather than every possible implementation. ``Outcome memory'' means
+stored helpful/harmful action outcomes, not generic retrieved knowledge.}
+\label{tab:related}
+\centering\small
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccccc}
+\toprule
+Approach & Frozen model & Outcome memory & Selective correction & Regression-aware & Cost reported \\
+\midrule
+Self-Refine \cite{madaan2023selfrefine} & Setting-dependent & No & Iterative, not routed & No explicit model & Iterations \\
+Reflexion \cite{shinn2023reflexion} & Setting-dependent & Verbal experience & Agent-policy dependent & No explicit model & Trajectories \\
+Selective QA \cite{kamath2020selective} & Predictor-dependent & No & Abstention & Risk--coverage & Coverage \\
+Adaptive-RAG \cite{jeong2024adaptiverag} & No & No & Retrieval-depth routing & No explicit model & Retrieval steps \\
+ERRORFlow & Yes & Helpful and harmful & Yes & Yes & Forward passes \\
+\bottomrule
+\end{tabular}
+}
+\end{table*}
 
 \section{Method}
 
@@ -133,6 +168,30 @@ A3 is a second immutable instruction, \texttt{conflicting\_rescue\_v1}, that
 asks the same model to reconsider evidence coverage, polarity, and potential
 conflict. A3 uses the same candidate-label scoring rule as B1. Always-on A3
 therefore adds four model forward passes per example.
+
+Crucially, A3 does not receive B1's prediction, confidence, explanation, or
+retrieved memories. It receives the same claim and evidence under a different
+instruction and is therefore an alternative second-pass verifier, not a
+conversational edit of B1. Table~\ref{tab:b1a3} isolates the intervention.
+
+\begin{table}[t]
+\caption{B1 and A3 differ only in instruction and invocation policy.}
+\label{tab:b1a3}
+\centering\small
+\begin{tabular}{lll}
+\toprule
+Dimension & B1 conflict audit & A3 conflicting rescue \\
+\midrule
+Backbone & Frozen Qwen3-4B & Same model \\
+Input & Claim + evidence & Same claim + evidence \\
+Prompt focus & Four-way audit & Support/refute re-audit \\
+Label scoring & Mean token log-prob. & Same scoring \\
+Extra passes & Base four & Four if routed \\
+Weight updates & None & None \\
+Receives B1 output & No & No \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \subsection{Residual Outcome Memory}
 
@@ -162,11 +221,42 @@ With one constant-cost action, this penalty cannot change ordering at a fixed
 budget; our experiments therefore validate residual outcome-memory routing,
 not an independent heterogeneous-cost mechanism.
 
+\subsection{Utility Estimation and Decision Boundary}
+
+The additive one in each outcome numerator and additive two in the denominator
+are symmetric Laplace-style smoothing. They pull sparse neighborhoods toward
+equal recovery and regression rates. Because the effective sample size is
+$W=\sum_iw_i$ rather than a count, this is a heuristic similarity-weighted
+estimator, not a calibrated Bayesian posterior. Similarities are bounded but
+are not renormalized before the sums; division by $W$ normalizes only the cost
+average. If fewer than two compatible records remain after label, action, ID,
+and fold filters, R6 does not route. Recovery means B1 wrong/A3 correct under
+the offline source gold label; regression means B1 correct/A3 wrong.
+
+The zero boundary follows the operational objective: spend the second pass
+only when estimated recovery exceeds estimated regression plus cost. The cost
+unit is one additional four-forward-pass A3 call, so $\widehat C=1$ in the
+current single-action experiment and 0.1 is a fixed utility penalty selected
+on source development. No probabilistic confidence interval surrounds $U$;
+near-zero routes may therefore be unstable. Threshold and weight sensitivity
+are limitations, and the primary evidence comes from matched-budget controls
+rather than interpreting $U$ as calibrated probability.
+
+For mechanics, suppose five neighbors have similarities
+$(.80,.70,.60,.50,.40)$, recovery indicators $(1,1,0,0,0)$, regression
+indicators $(0,0,0,1,0)$, and unit costs. Then $W=3.0$,
+$\widehat R=(1.5+1)/5=.50$, $\widehat G=(.5+1)/5=.30$,
+$\widehat C=1$, and $U=.10>0$, so A3 is invoked. This arithmetic example is
+not an experimental result; the release script exports a genuine routed trace
+from the server artifacts for the final qualitative case table.
+
 \begin{figure}[t]
 \centering
-\includegraphics[width=\linewidth]{figures/architecture.pdf}
-\caption{ERRORFlow inference. B1 and A3 are immutable instructions over the
-same frozen label scorer; memory affects routing, not model parameters.}
+\includegraphics[width=\linewidth]{figures/Overview-method.png}
+\caption{ERRORFlow overview. Offline source outcomes populate residual memory;
+online R6 retrieves compatible outcomes and invokes A3 only at positive
+estimated utility. The score-profile/internal-signal block denotes recorded
+B1 label scores and evidence-length features, not a separately trained model.}
 \label{fig:architecture}
 \end{figure}
 
@@ -270,6 +360,60 @@ bootstrap intervals are positive and exact McNemar gives $p=8.75\times
 this result is train-selected rather than an independent generalization
 estimate. At the matched budget, R6 does not obtain a Holm-significant
 macro-F1 advantage over the strongest label-conditional control.
+
+\begin{table*}[t]
+\caption{AVeriTeC matched-budget routing at the natural grouped R6 budget.
+Every selective router may invoke the same cached A3 on 343 examples; random
+is the mean of 20 deterministic seeds. Bold marks the best selective value,
+not a claim of significant superiority over every control.}
+\label{tab:matched}
+\centering\small
+\begin{tabular}{lrrrrrr}
+\toprule
+Router & Accuracy & Macro-F1 & Helpful & Harmful & Net & Mean passes \\
+\midrule
+B1 & .7402 & .5460 & 0 & 0 & 0 & 4.000 \\
+A3-All & .7360 & .5559 & 192 & 205 & -13 & 8.000 \\
+Random & .7393 & .5465 & 21.8 & 24.4 & -2.7 & 4.447 \\
+Confidence & .7392 & .5458 & 60 & 63 & -3 & 4.447 \\
+Margin & .7454 & .5522 & 68 & 52 & 16 & 4.447 \\
+Label-conditional & .7451 & .5547 & 71 & 56 & 15 & 4.447 \\
+Similarity-only & .7331 & .5416 & 11 & 33 & -22 & 4.447 \\
+Static pattern & .7526 & .5451 & 60 & 22 & 38 & 4.447 \\
+Outcome memory & \textbf{.7552} & \textbf{.5577} & 90 & 44 & 46 & 4.447 \\
+ERRORFlow R6 & \textbf{.7552} & \textbf{.5577} & 90 & 44 & 46 & 4.447 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+Table~\ref{tab:matched} establishes value over B1, random, confidence-only,
+and similarity-only routing. It also exposes the boundary of the contribution:
+R6 and outcome-memory routing are identical because the only action has
+constant cost, and R6's macro-F1 advantage over label-conditional routing is
+not confirmatory after Holm correction. Component-only variants of the
+$0.35/0.50/0.15$ similarity and removal of the regression term have not been
+executed in the frozen artifact set; we do not invent those ablation values.
+
+\begin{table*}[t]
+\caption{Direct same-budget statistical comparisons for grouped AVeriTeC.
+``Positive'' means the reported paired 95\% interval excludes zero; ``crosses''
+means it includes zero. NR denotes a comparison not reported by the frozen
+artifact. Holm $p$ is for correctness flips.}
+\label{tab:stats}
+\centering\small
+\begin{tabular}{lrrrrl}
+\toprule
+Comparison & $\Delta$Acc. & $\Delta$F1 & Holm $p$ & Accuracy CI & Macro-F1 CI \\
+\midrule
+R6 $-$ B1 & +.01499 & +.01169 & .000612 & [.00750,.02249] & [.00009,.02393] \\
+R6 $-$ Random mean & +.01587 & +.01117 & NR & NR & NR \\
+R6 $-$ Confidence & +.0160 & +.0119 & NR & NR & NR \\
+R6 $-$ Label-conditional & +.01010 & +.00298 & .0674 & positive & crosses zero \\
+R6 $-$ Similarity-only & +.0221 & +.0161 & NR & NR & NR \\
+R6 $-$ Static pattern & +.0026 & +.0126 & .9935 & crosses zero & positive \\
+\bottomrule
+\end{tabular}
+\end{table*}
 
 \subsection{External Four-Label Transfer}
 
@@ -395,6 +539,41 @@ follow label order: SUPPORTED, REFUTED, NOT ENOUGH INFO, CONFLICTING. Reported
 confidence is a softmax over mean label scores, not a calibrated sequence
 probability. Although A3 asks to list evidence directions, label scoring does
 not generate a rationale.
+
+\paragraph{B1 instruction (SHA-256 \texttt{700ebdc1...decf7}).}
+\begin{quote}\small
+Audit whether the evidence contains credible support and credible
+contradiction for the same essential claim. Choose CONFLICTING only when both
+directions are genuinely present or the claim cherry-picks a mixed record. If
+evidence supports one direction without a credible opposite, choose SUPPORTED
+or REFUTED. If neither direction is established, choose NOT ENOUGH INFO.
+\end{quote}
+
+\paragraph{A3 instruction (SHA-256 \texttt{09e187ec...aaf}).}
+\begin{quote}\small
+Independently list the strongest supporting evidence and the strongest
+refuting evidence for the same essential claim. Choose CONFLICTING only if
+both directions are credible and materially established, including genuine
+cherry-picking. Multiple sources alone are not a conflict. If only one
+direction is established choose SUPPORTED or REFUTED; otherwise choose NOT
+ENOUGH INFO.
+\end{quote}
+
+The phrase ``list'' is part of the immutable instruction, but the deployed
+label-scoring decoder does not generate that list. It scores only the four
+candidate verdict strings. A3 changes verification emphasis, not output format.
+
+\section{Worked-Trace Artifact Contract}
+
+A genuine qualitative example must be exported from fold-safe execution
+artifacts rather than reconstructed from aggregate results. The accompanying
+\texttt{export\_v3\_worked\_example.py} selects a routed example, recomputes
+its fold-excluded top-five neighbors, and records the claim, evidence, B1/A3
+predictions, each neighbor's similarity and recovery/regression outcome,
+$\widehat R$, $\widehat G$, $\widehat C$, and $U$. This trace is excluded from
+quantitative evaluation and is intended only to make the decision path
+auditable. We defer printing claim text until the server export is available;
+no synthetic claim is presented as an observed case.
 
 \section{Statistical Detail and Negative Findings}
 For grouped AVeriTeC, R6 changes 90 errors to correct and 44 correct predictions

@@ -18,6 +18,11 @@ The repository includes a verified bibliography, a frozen numeric snapshot,
 vector-figure generator, claim ledger, and reproducibility guide. Raw V3
 prediction artifacts remain server-side because `outputs/` is ignored.
 
+The revised method overview uses `figures/Overview-method.png`. A genuine
+claim-level memory-routing example can be exported from server artifacts with
+`scripts/export_v3_worked_example.py`; the manuscript does not present a
+synthetic claim as an observed trace.
+
 Before submission:
 
 1. replace author and affiliation placeholders;
