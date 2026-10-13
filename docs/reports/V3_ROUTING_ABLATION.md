@@ -1,6 +1,6 @@
 # ERRORFlow V3 routing ablation
 
-Status: **BOUNDED SCREEN COMPLETED; FULL-TRAIN FIXED-POLICY TEST PENDING**.
+Status: **FULL-TRAIN FIXED-POLICY AND FIRST EXTERNAL TEST COMPLETE**.
 
 Implemented cached-action policies:
 

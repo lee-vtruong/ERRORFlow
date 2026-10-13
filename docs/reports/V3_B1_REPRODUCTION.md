@@ -19,8 +19,8 @@ python scripts/run_v2_qwen_baseline.py \
   --instruction-profile conflict_audit_v1 --decoding label-score
 ```
 
-Use `--resume` only for the same output/configuration. Full-train metrics remain
-unreported until the complete server execution.
+Use `--resume` only for the same output/configuration. The completed full-train
+metrics are reported below.
 
 ## Smoke result
 

@@ -1,6 +1,6 @@
 # ERRORFlow V3 cost-quality frontier
 
-Status: **BOUNDED SCREEN OBSERVED; FULL-TRAIN CONFIRMATION PENDING**.
+Status: **FULL-TRAIN FRONTIER CONFIRMED; FIRST EXTERNAL TEST COMPLETE**.
 
 The 150-example action screen indicates that always applying
 `conflicting_rescue_v1` provides the largest projected accuracy gain but doubles
