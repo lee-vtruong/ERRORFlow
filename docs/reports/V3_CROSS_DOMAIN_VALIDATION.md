@@ -1,6 +1,6 @@
 # ERRORFlow V3 cross-domain validation
 
-Status: **PROTOCOL FROZEN; SCIFACT B1 AND A3 INFERENCE COMPLETE; ROUTING/EVALUATION PENDING**.
+Status: **COMPLETE — FROZEN SOURCE-ONLY CROSS-DOMAIN EVALUATION**.
 
 ## Frozen source system
 
@@ -95,3 +95,20 @@ the frozen conflict-aware system plus its predeclared target-label adapter; it
 must not be presented as label-projection-independent improvement. The number
 of projected predictions from each output remains to be copied from the two
 projection command logs.
+
+The strict-result difference is not statistically distinguishable from zero.
+There are 12 baseline-only-correct and 9 candidate-only-correct examples
+(`p=0.66362`, exact two-sided McNemar). The paired-bootstrap 95% interval is
+`[-0.0400, 0.0200]` for accuracy delta and `[-0.02425, 0.02752]` for macro-F1
+delta. In contrast, the predeclared projected evaluation has positive intervals
+for both metrics. This contrast is retained as a mandatory sensitivity result,
+not discarded as an unsuccessful configuration.
+
+## Conclusion boundary
+
+This experiment supports cross-domain transfer of the complete frozen system:
+source-only AVeriTeC error memory, R6 selective routing, A3 conflict rescue, and
+the predeclared SciFact label adapter. It does not support a claim that A3 or R6
+improves SciFact independently of label-space reconciliation. It also remains
+an oracle-evidence verifier experiment rather than an open-retrieval SciFact
+pipeline result.
