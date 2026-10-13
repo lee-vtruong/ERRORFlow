@@ -1,6 +1,7 @@
 # CLIMATE-FEVER external validation protocol
 
-Status: **PROTOCOL AND DATA MANIFEST VERIFIED; INFERENCE PENDING**.
+Status: **PROTOCOL, DATA MANIFEST, AND 25-EXAMPLE INFERENCE SMOKE VERIFIED;
+FULL INFERENCE PENDING**.
 
 ## Dataset reconnaissance
 
@@ -81,3 +82,20 @@ The structural gate passed: 1,535 unique claims, five candidates per claim, no
 evidence annotation metadata in the normalized prompt artifact, and a pinned
 official-release hash. The paper/release one-label discrepancy is documented
 above and does not block inference.
+
+## Inference smoke test
+
+The frozen four-label B1 (`conflict_audit_v1`) and A3
+(`conflicting_rescue_v1`) paths were each executed on the first 25 normalized
+examples with seed 2026. Both manifests completed all 25 requested examples,
+produced unique 25-row artifacts, and recorded 100 model forward passes (four
+label-scoring passes per example).
+
+The two runs used the same model identifier hash
+`ff40807e64582d4384b524b9dfae599b42a61a8ececdf5abc22bc401f71fb0da`,
+input artifact hash
+`28e0ae4f01e454b4dd3e378d3ea7f029e994ef38cedac7bf379fb7ab85f8b7f3`,
+and generation configuration hash `89c39128dd0fd365b9a9455658561ad3`.
+Only the frozen action prompt differed. B1 completed in 10.14 seconds and A3
+in 10.11 seconds. The smoke gate therefore passed without partial output,
+cache-contract mismatch, or label-protocol mismatch.
