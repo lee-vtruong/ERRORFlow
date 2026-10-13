@@ -1,6 +1,6 @@
 # ERRORFlow V3 SciFact label-adapter audit
 
-Status: **CONTROLLED EVALUATION COMPLETE; ENHANCED ACCOUNTING RERUN PENDING**.
+Status: **COMPLETE**.
 
 ## Research question
 
@@ -136,3 +136,12 @@ The data do **not** support unconditional raw-label transfer, direct three-label
 robustness, or successful transfer of the AVeriTeC source-memory routing policy.
 SciFact therefore supplies evidence for an ontology-adapted critic and a
 quality/cost trade-off, not clean source-memory generalization.
+
+Enhanced accounting confirms that projection changes 96 A3-All outputs,
+producing 90 correctness gains and zero losses. Projected A3-All beats projected
+B1 with 74 candidate-only versus 11 baseline-only correct examples (exact
+McNemar `p=1.29e-12`); the paired 95% intervals are `[0.1533, 0.2634]` for
+accuracy and `[0.1659, 0.2813]` for macro-F1. Projected R6 is substantially
+worse than projected A3-All: 9 candidate-only versus 63 baseline-only correct
+examples (`p=4.18e-11`), with accuracy and macro-F1 intervals entirely below
+zero. These results close WP2 and make the projection dependence explicit.

@@ -28,6 +28,23 @@ def test_scifact_adapter_normalizes_labels():
     assert example.evidence[0].source == "scientific_abstract"
 
 
+def test_climate_fever_adapter_maps_disputed_and_strips_evidence_annotations():
+    row = {
+        "claim_id": "9", "claim": "A climate claim", "claim_label": "DISPUTED",
+        "evidences": [{
+            "evidence_id": "Article:1", "article": "Article", "evidence": "Evidence text",
+            "evidence_label": "SUPPORTS", "votes": ["SUPPORTS"], "entropy": 0.0,
+        }],
+    }
+    example = get_adapter("climate-fever").normalize(row, "external_all")
+    payload = example.to_dict()
+    assert example.example_id == "climate-fever:9"
+    assert example.label == "CONFLICTING"
+    assert example.evidence[0].source == "wikipedia_retrieved_candidate"
+    assert "evidence_label" not in payload["evidence"][0]["metadata"]
+    assert example.metadata["gold_evidence_annotations_excluded_from_prompt_artifact"] is True
+
+
 def test_unknown_adapter_is_explicit():
     with pytest.raises(ValueError, match="Unknown dataset adapter"):
         get_adapter("unknown")

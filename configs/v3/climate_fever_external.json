@@ -1,0 +1,31 @@
+{
+  "protocol_id": "climate_fever_external_v1",
+  "dataset": "CLIMATE-FEVER",
+  "dataset_release": "1.0.1",
+  "evaluation_population": "all_1535_official_claims_locked_external",
+  "official_split_status": "single_labeled_release_no_train_dev_test_split",
+  "evidence_protocol": "five_official_retrieved_and_annotated_wikipedia_candidates_text_only",
+  "label_mapping": {
+    "SUPPORTS": "SUPPORTED",
+    "REFUTES": "REFUTED",
+    "NOT_ENOUGH_INFO": "NOT ENOUGH INFO",
+    "DISPUTED": "CONFLICTING"
+  },
+  "mapping_basis": "official claim aggregation: both supporting and refuting evidence yields DISPUTED",
+  "frozen_source_system": {
+    "baseline_action": "conflict_audit_v1",
+    "correction_action": "conflicting_rescue_v1",
+    "memory_source": "averitec_train_full_source_only",
+    "top_k": 5,
+    "min_support": 2,
+    "cost_weight": 0.1,
+    "utility_threshold": 0.0,
+    "model": "Qwen/Qwen3-4B-Instruct-2507",
+    "decoding": "mean_label_log_probability",
+    "label_protocol": "averitec4"
+  },
+  "target_label_use": "metrics_only_after_predictions_and_routes_are_frozen",
+  "license_status": "unknown_no_license_declared_in_official_repository",
+  "redistribution": false,
+  "seed": 2026
+}
