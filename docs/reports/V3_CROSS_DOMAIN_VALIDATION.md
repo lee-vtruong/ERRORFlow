@@ -120,3 +120,25 @@ the predeclared SciFact label adapter. It does not support a claim that A3 or R6
 improves SciFact independently of label-space reconciliation. It also remains
 an oracle-evidence verifier experiment rather than an open-retrieval SciFact
 pipeline result.
+
+## CLIMATE-FEVER complementary external result
+
+CLIMATE-FEVER provides a stricter ontology-aligned four-label test because its
+official DISPUTED label maps directly to CONFLICTING; no post-hoc label
+projection is used. Evaluation covers all 1,535 official claims with five
+official retrieved-and-annotated evidence candidates each. Target labels were
+not used for memory construction, routing, threshold selection, or prompting.
+
+B1 obtains 52.12% accuracy and 38.08 macro-F1. A3-All obtains 55.18% accuracy
+and 43.93 macro-F1, a significant gain of +3.06 and +5.85 points. Frozen
+source-only R6 routes 19.93% of examples and obtains 53.75% accuracy and 40.63
+macro-F1, significant improvements of +1.63 and +2.55 points over B1 while
+using 4.797 rather than 8.0 forward passes per example.
+
+Matched-budget controls qualify the mechanism claim. R6 does not significantly
+outperform the confidence-only router, which obtains 53.55% accuracy and 41.56
+macro-F1 at the same route count. It is directionally above the
+similarity-only router (52.83%, 39.23) but that difference is also not
+significant. Thus CLIMATE-FEVER independently supports the conflict-rescue
+action and the usefulness of selective intervention, but does not establish
+source error memory as the uniquely effective routing signal.

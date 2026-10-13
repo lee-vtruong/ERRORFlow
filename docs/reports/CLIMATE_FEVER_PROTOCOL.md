@@ -1,7 +1,7 @@
 # CLIMATE-FEVER external validation protocol
 
-Status: **PROTOCOL, DATA MANIFEST, SMOKE, AND FULL CACHED INFERENCE VERIFIED;
-EXTERNAL ROUTING EVALUATION PENDING**.
+Status: **PRIMARY EXTERNAL EVALUATION COMPLETE; PER-CLASS RESULT EXTRACTION
+PENDING**.
 
 ## Dataset reconnaissance
 
@@ -111,3 +111,40 @@ changes routing only and does not trigger additional model inference.
 
 At completion the server retained 9.7 GiB free on `/`; no additional dataset,
 model, or retrieval index was created for this stage.
+
+## Primary external result
+
+The frozen B1 baseline reaches 52.12% accuracy and 38.08 macro-F1. Running the
+training-free A3 conflict-rescue action on every example raises these values to
+55.18% and 43.93, respectively: +3.06 accuracy points and +5.85 macro-F1
+points. A3-All makes 128 helpful and 81 harmful changes (net +47) at eight
+model forward passes per example. The improvement is statistically supported
+by exact McNemar (`p=0.00140`) and paired-bootstrap 95% intervals of
+`[0.0124, 0.0489]` for accuracy delta and `[0.0355, 0.0825]` for macro-F1
+delta.
+
+Frozen source-only R6 routes 306/1,535 examples (19.93%), requiring an average
+of 4.797 forward passes. It makes 53 helpful and 28 harmful changes (net +25),
+reaching 53.75% accuracy and 40.63 macro-F1: +1.63 and +2.55 points over B1.
+This selective gain is also statistically supported (`p=0.00728`; bootstrap
+95% intervals `[0.0052, 0.0280]` for accuracy and `[0.0070, 0.0451]` for
+macro-F1).
+
+At the identical 306-example route count, confidence routing reaches 53.55%
+accuracy and 41.56 macro-F1, while similarity routing reaches 52.83% and
+39.23. R6 is not statistically distinguishable from either control. Relative
+to confidence routing, R6 is +0.20 accuracy points but -0.93 macro-F1 points
+(`p=0.83756` for paired correctness); both bootstrap intervals cross zero.
+Relative to similarity routing, R6 is +0.91 accuracy points and +1.40 macro-F1
+points, but again the intervals cross zero (`p=0.16544`).
+
+## Interpretation boundary
+
+This untouched four-label external result supports transfer of the
+training-free conflict-rescue intervention and supports a positive selective
+R6-versus-B1 effect without target tuning or ontology projection. It does not
+show that source error-memory routing is superior to a simple confidence
+router at matched cost. A3-All remains the strongest quality configuration;
+R6 trades part of its gain for substantially lower compute. Claims about the
+memory mechanism must therefore remain narrower than claims about the action
+itself until additional external matched-budget evidence is available.
