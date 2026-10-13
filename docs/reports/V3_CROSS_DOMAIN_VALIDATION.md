@@ -92,9 +92,17 @@ mapping `CONFLICTING` to `NOT ENOUGH INFO`, R6 has 9 helpful and 12 harmful
 routes, changes accuracy by -1.00 point, and changes four-label macro-F1 by
 +0.13 point. Thus the positive external result is specifically evidence for
 the frozen conflict-aware system plus its predeclared target-label adapter; it
-must not be presented as label-projection-independent improvement. The number
-of projected predictions from each output remains to be copied from the two
-projection command logs.
+must not be presented as label-projection-independent improvement.
+
+The projection changes 5/300 B1 predictions and 12/300 R6 predictions. B1 has
+identical raw and projected accuracy, so none of its five projected
+`CONFLICTING` predictions becomes correct. R6 accuracy rises from 59.67% raw to
+63.67% projected, exactly 12 additional correct examples; therefore all 12 of
+its projected `CONFLICTING` predictions have an NEI gold label. Relative to
+projected B1, this converts the raw net of -3 correct examples into a projected
+net of +9. This is direct evidence that the external gain is mediated by the
+frozen label adapter, with A3's conflict state acting as an NEI-compatible
+intermediate state on these routed SciFact examples.
 
 The strict-result difference is not statistically distinguishable from zero.
 There are 12 baseline-only-correct and 9 candidate-only-correct examples
