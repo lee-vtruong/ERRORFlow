@@ -29,12 +29,13 @@ correction framework that stores source-domain action outcomes in a
 non-parametric error memory and selectively invokes a frozen corrective prompt
 when similar residual patterns indicate positive utility. ERRORFlow updates no
 model weights and explicitly measures the quality--cost trade-off. Using
-Qwen3-4B-Instruct-2507, conservative grouped evaluation on AVeriTeC shows that
+Qwen3-4B-Instruct-2507, train-selected conservative grouped evaluation on
+AVeriTeC shows that
 memory-conditioned routing improves accuracy by 1.50 points and macro-F1 by
 1.17 points while routing 11.18\% of examples. On the locked four-label
 CLIMATE-FEVER evaluation, always-on correction improves accuracy and macro-F1
 by 3.06 and 5.85 points, while selective ERRORFlow obtains smaller significant
-gains at 19.93\% routing. On SciFact with open-corpus BM25 evidence, ERRORFlow
+paired gains at 19.93\% routing. On SciFact with open-corpus BM25 evidence, ERRORFlow
 routes 18.67\%, improving macro-F1 by 2.58 points with a positive paired
 bootstrap interval, although its accuracy interval crosses zero. Retrieval
 stratification shows that selection avoids regressions caused by always-on
@@ -149,7 +150,25 @@ ERRORFlow & Yes & Helpful and harmful & Yes & Yes & Forward passes \\
 }
 \end{table*}
 
-\section{Method}
+\section{Problem Formulation}
+
+Let a frozen verifier $f_{B1}$ map claim--evidence input $x=(c,E)$ to a
+verdict, and let a fixed alternative instruction $f_{A3}$ be available at an
+additional cost. A routing policy $\pi(x)\in\{0,1\}$ returns B1 when
+$\pi(x)=0$ and A3 when $\pi(x)=1$. For a labeled source population, a routed
+example is helpful when B1 is wrong and A3 is correct, harmful when B1 is
+correct and A3 is wrong, and neutral otherwise. ERRORFlow estimates this
+signed residual outcome from compatible source cases while constraining the
+expected extra forward passes. The goal is not to learn a new verifier or a
+new correction strategy, but to perform \emph{memory-guided selection of one
+fixed corrective action}.
+
+Target labels never enter $\pi$. They are read only after predictions are
+materialized for evaluation. Source labels are required to construct outcome
+memory, so ``training-free'' means no parameter optimization, not no
+supervision.
+
+\section{Methodology}
 
 \subsection{Frozen Base Verifier}
 
@@ -268,7 +287,7 @@ label-conditional, static-pattern, and outcome-memory routers. Selective
 controls receive exactly the realized R6 route count. Average model forward
 passes equal $4+4r$, where $r$ is the route rate.
 
-\section{Experimental Protocol}
+\section{Experimental Setup}
 
 \subsection{Datasets and Evidence Conditions}
 
@@ -308,7 +327,7 @@ changes, route rate, and average forward passes. Paired comparisons use exact
 two-sided McNemar tests and 5,000-sample paired bootstrap confidence intervals.
 Source matched-router comparisons additionally apply Holm correction.
 
-\section{Results}
+\section{Main Results}
 
 \begin{table*}[t]
 \caption{Main quality--cost results. AVeriTeC uses the conservative
@@ -339,6 +358,24 @@ Evaluation & System & Accuracy & Macro-F1 & Route rate & Avg. passes \\
  & B1 & 0.6100 & 0.5778 & 0.000 & 4.000 \\
  & A3-All & 0.6367 & 0.6157 & 1.000 & 8.000 \\
  & R6 & 0.6267 & 0.6035 & 0.187 & 4.747 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{table*}[t]
+\caption{R6 change over B1 with paired 95\% bootstrap intervals. A positive
+point estimate is not treated as established when its interval crosses zero.
+SciFact oracle uses the predeclared post-routing label projection.}
+\label{tab:delta-ci}
+\centering\small
+\begin{tabular}{lrrrr}
+\toprule
+Condition & $\Delta$Accuracy & 95\% CI & $\Delta$Macro-F1 & 95\% CI \\
+\midrule
+AVeriTeC grouped internal & +.01499 & [.00750,.02249] & +.01169 & [.00009,.02393] \\
+CLIMATE-FEVER candidates & +.01629 & [.00521,.02801] & +.02554 & [.00700,.04507] \\
+SciFact oracle projected & +.03000 & [.00667,.05333] & +.04563 & [.01717,.07738] \\
+SciFact BM25 projected & +.01667 & [-.00667,.04000] & +.02576 & [.00199,.05298] \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -419,7 +456,7 @@ R6 $-$ Static pattern & +.0026 & +.0126 & .9935 & crosses zero & positive \\
 
 On CLIMATE-FEVER, A3-All improves B1 by 3.06 accuracy points and 5.85 macro-F1
 points. R6 routes 19.93\% and improves B1 by 1.63 and 2.55 points; both paired
-intervals are positive. R6 is not significantly different from the
+intervals are positive (Table~\ref{tab:delta-ci}). R6 is not significantly different from the
 confidence-only router at the same route count. Per-class analysis further
 shows that CONFLICTING F1 changes only from 0.1111 to 0.1202 under A3-All;
 most improvement occurs for NOT ENOUGH INFO and REFUTED.
@@ -435,7 +472,8 @@ more gains but also more regressions.}
 \subsection{SciFact Ontology Sensitivity}
 
 With oracle rationales, projected R6 improves accuracy by 3.00 points and
-macro-F1 by 4.56 points. The raw four-label comparison is null. Moreover, A3
+macro-F1 by 4.56 points, with positive paired intervals
+(Table~\ref{tab:delta-ci}). The raw four-label comparison is null. Moreover, A3
 produces 96 CONFLICTING outputs under oracle evidence, and projection converts
 90 additional examples to correct predictions. This result is therefore
 adapter-mediated and cannot support projection-independent transfer.
@@ -463,7 +501,8 @@ verifiable misses, where A3-All regresses.}
 
 \subsection{Cross-Domain Summary}
 
-Figure~\ref{fig:delta} summarizes R6's change over B1. All point estimates are
+Figure~\ref{fig:delta} and Table~\ref{tab:delta-ci} summarize R6's change over
+B1. All point estimates are
 positive, but interpretation differs: AVeriTeC is train-selected; SciFact
 oracle is projection-sensitive; CLIMATE-FEVER has no independent retrieval;
 and SciFact BM25 accuracy is statistically inconclusive. The replicated
@@ -473,10 +512,154 @@ router superiority.
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/cross_domain_delta.pdf}
-\caption{R6 change over B1. Bars are descriptive; paired intervals and
-protocol qualifications remain necessary.}
+\caption{R6 change over B1 with paired 95\% bootstrap intervals. The vertical
+line marks zero change. The SciFact oracle condition is explicitly
+adapter-sensitive; an interval crossing zero does not establish a gain.}
 \label{fig:delta}
 \end{figure}
+
+\section{Analysis and Ablations}
+
+\subsection{Per-Class Behavior}
+
+Table~\ref{tab:per-class} confirms that aggregate gains do not solve
+CONFLICTING recognition. CLIMATE-FEVER R6 improves REFUTED, NEI, and SUPPORTED
+over B1, but CONFLICTING remains essentially unchanged. The available
+AVeriTeC class breakdown belongs to the historical exact-fold sensitivity
+(357 routes), not the conservative 0.90-grouped primary result (343 routes);
+we label it explicitly rather than substituting it for missing grouped values.
+
+\begin{table*}[t]
+\caption{Per-class F1. $\dagger$ denotes the historical exact-fold AVeriTeC
+sensitivity; conservative grouped R6 per-class values require the server
+matched-budget summary and are not inferred.}
+\label{tab:per-class}
+\centering\small
+\begin{tabular}{llrrrr}
+\toprule
+Dataset/protocol & Method & SUPPORTED & REFUTED & NEI & CONFLICTING \\
+\midrule
+AVeriTeC exact-fold$\dagger$ & B1 & .7498 & .8163 & .5357 & .0823 \\
+AVeriTeC exact-fold$\dagger$ & R6 & .7597 & .8381 & .5608 & .0873 \\
+\midrule
+CLIMATE-FEVER candidates & B1 & .6791 & .4101 & .3227 & .1111 \\
+CLIMATE-FEVER candidates & A3-All & .6982 & .4680 & .4707 & .1202 \\
+CLIMATE-FEVER candidates & R6 & .6963 & .4438 & .3722 & .1128 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{Budget and Memory Sensitivity}
+
+The frozen historical exact-fold sweep in Table~\ref{tab:budget} shows that
+R6 gains emerge by 5--10\% routing and saturate at its natural positive-utility
+set. Budgets above 11.64\% do not force non-positive routes. These values are a
+development-fold sensitivity analysis, not an externally tuned operating
+curve and not a replacement for the conservative grouped primary result.
+
+\begin{table}[t]
+\caption{Historical exact-fold R6 budget sweep on AVeriTeC development folds.}
+\label{tab:budget}
+\centering\small
+\begin{tabular}{rrrrr}
+\toprule
+Budget & Actual route & $\Delta$Acc. & $\Delta$F1 & Passes \\
+\midrule
+0\% & .000 & .0000 & .0000 & 4.000 \\
+5\% & .050 & .0137 & .0102 & 4.199 \\
+10\% & .100 & .0163 & .0123 & 4.399 \\
+20\% & .116 & .0189 & .0155 & 4.465 \\
+35\% & .116 & .0189 & .0155 & 4.465 \\
+50\% & .116 & .0189 & .0155 & 4.465 \\
+100\% & .116 & .0189 & .0155 & 4.465 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Memory-size ablation is non-monotonic: 25, 50, 100, 200, and all available
+records yield accuracy changes of +.0127, +.0166, +.0205, +.0169, and +.0189,
+respectively. The best point at 100 records is exploratory and is not used to
+retune the frozen policy. Near-duplicate grouping sensitivity at thresholds
+.85/.90/.95 yields accuracy changes +.0147/+.0150/+.0186 and macro-F1 changes
++.0120/+.0117/+.0143, with positive accuracy intervals at all thresholds.
+This supports robustness to grouping, while also showing route membership is
+not identical across thresholds.
+
+The requested claim-only, label-score-only, evidence-length-only, no-outcome,
+and no-regression variants have not been executed. Likewise, no frozen grid
+over top-$k$, minimum support, or the $0.35/0.50/0.15$ similarity weights is
+available. We report these as required future development-fold ablations and
+do not tune them on CLIMATE-FEVER or SciFact after observing target results.
+
+\subsection{Compute and Runtime Accounting}
+
+\begin{table*}[t]
+\caption{What the current artifact set does and does not measure. A request is
+one label-scoring call; each four-label request performs four model forwards.}
+\label{tab:cost}
+\centering\small
+\begin{tabular}{llll}
+\toprule
+Component & Per-example work & Available measurement & Claim boundary \\
+\midrule
+B1 & 1 request / 4 forwards & cached component latency & not fresh end-to-end \\
+Memory lookup & CPU scan + top-5 sort & not benchmarked separately & no latency claim \\
+R6 arithmetic & weighted estimates & not benchmarked separately & no latency claim \\
+A3 when routed & +1 request / +4 forwards & cached component latency & incurred only on routes \\
+Input volume & claim + evidence reprocessed & whitespace-token proxy & not tokenizer tokens \\
+Full pipeline & $4+4r$ forwards & no synchronized wall clock & forward-pass efficiency only \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+The full A3 cache processed 3,068 examples in 366.998 seconds on one RTX 5090,
+but this batch run excludes the online memory/router path and is not reported
+as end-to-end latency. The defensible efficiency claim is therefore fewer
+model forward passes than A3-All, not a demonstrated proportional wall-clock
+or monetary reduction.
+
+\section{Discussion}
+
+\subsection{Protocol-Aware Positioning}
+
+Table~\ref{tab:protocol-aware} prevents four incompatible evidence conditions
+from being presented as one leaderboard. Published benchmark systems are
+context, not controlled causal baselines, unless split, evidence source,
+label ontology, and metric all match.
+
+\begin{table*}[t]
+\caption{Protocol-aware comparison. A dash means that the metric is absent or
+not comparable under the cited protocol, not a score of zero.}
+\label{tab:protocol-aware}
+\centering\scriptsize
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llllllll}
+\toprule
+Work & Dataset/split & Evidence source & Backbone & Training & Verdict acc. & Official score & Comparable? \\
+\midrule
+ERRORFlow & AVeriTeC train grouped & human QA evidence & Qwen3-4B & no weight update & .7552 & -- & internal only \\
+AVeriTeC task \cite{schlichtkrull2024averitec} & official dev/test & web retrieval + QA & varied & varied & -- & AVeriTeC score & no \\
+ERRORFlow & CLIMATE-FEVER all & five official candidates & Qwen3-4B & no weight update & .5375 & -- & protocol-specific \\
+CLIMATE-FEVER \cite{diggelmann2020climate} & official release & supplied candidates & dataset baselines & supervised & -- & paper metrics & context only \\
+ERRORFlow & SciFact dev oracle & gold rationales & Qwen3-4B & no weight update & .6367 & -- & adapter-sensitive \\
+SciFact \cite{wadden2020scifact} & official dev/test & corpus retrieval/rationales & trained verifier & supervised & -- & task metrics & no \\
+ERRORFlow & SciFact dev BM25 & open corpus top-5 & Qwen3-4B & no weight update & .6267 & -- & closest internal condition \\
+\bottomrule
+\end{tabular}}
+\end{table*}
+
+\subsection{What the Evidence Supports}
+
+Outcome memory is useful because it estimates both recovery and regression of
+the same fixed A3 action in nearby source cases. This differs from uncertainty
+routing, which ranks ambiguity without observing whether A3 historically
+helped that type of input. The matched-budget evidence supports improvement
+over B1, random, confidence-only, and similarity-only routing. It does not
+establish a secure macro-F1 advantage over label-conditional routing after
+Holm correction, and constant action cost makes R6 equivalent to outcome-only
+memory ranking at a fixed budget. Accordingly, ERRORFlow is described as
+memory-guided selection of a fixed corrective action, not as learning reusable
+correction strategies or heterogeneous cost-aware planning.
 
 \section{Reproducibility and Audit}
 

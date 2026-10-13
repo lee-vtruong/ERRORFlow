@@ -23,6 +23,13 @@ claim-level memory-routing example can be exported from server artifacts with
 `scripts/export_v3_worked_example.py`; the manuscript does not present a
 synthetic claim as an observed trace.
 
+The current source revision also adds paired confidence intervals, per-class
+F1, development-fold budget and memory-size sensitivity, explicit compute
+accounting, and a protocol-aware literature table. The cross-domain figure
+generator now produces confidence-interval forest plots. These source changes
+have intentionally not yet been rendered into the draft PDF, so the existing
+PDF remains the earlier checkpoint until the final consolidated build.
+
 Before submission:
 
 1. replace author and affiliation placeholders;

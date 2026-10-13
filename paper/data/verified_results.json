@@ -6,7 +6,21 @@
       "B1": {"accuracy": 0.7402216428, "macro_f1": 0.5460199747, "route_rate": 0.0, "passes": 4.0},
       "A3-All": {"accuracy": 0.7359843546, "macro_f1": 0.5558539, "route_rate": 1.0, "passes": 8.0, "helpful": 192, "harmful": 205},
       "R6": {"accuracy": 0.7552151239, "macro_f1": 0.5577058837, "route_rate": 0.1117992177, "passes": 4.4471968709, "helpful": 90, "harmful": 44}
-    }
+    },
+    "r6_ci95": {"accuracy": [0.0074967405, 0.0224902216], "macro_f1": [0.0000862172, 0.0239327035]},
+    "historical_exact_fold_per_class": {
+      "B1": {"CONFLICTING": 0.08230, "NOT ENOUGH INFO": 0.53571, "REFUTED": 0.81631, "SUPPORTED": 0.74975},
+      "R6": {"CONFLICTING": 0.08730, "NOT ENOUGH INFO": 0.56075, "REFUTED": 0.83813, "SUPPORTED": 0.75972}
+    },
+    "historical_exact_fold_budget_sweep": [
+      {"budget": 0.00, "route_rate": 0.0, "delta_accuracy": 0.0, "delta_macro_f1": 0.0, "passes": 4.0},
+      {"budget": 0.05, "route_rate": 0.0499, "delta_accuracy": 0.013690, "delta_macro_f1": 0.010207, "passes": 4.199},
+      {"budget": 0.10, "route_rate": 0.0997, "delta_accuracy": 0.016297, "delta_macro_f1": 0.012260, "passes": 4.399},
+      {"budget": 0.20, "route_rate": 0.1164, "delta_accuracy": 0.018905, "delta_macro_f1": 0.015456, "passes": 4.465},
+      {"budget": 0.35, "route_rate": 0.1164, "delta_accuracy": 0.018905, "delta_macro_f1": 0.015456, "passes": 4.465},
+      {"budget": 0.50, "route_rate": 0.1164, "delta_accuracy": 0.018905, "delta_macro_f1": 0.015456, "passes": 4.465},
+      {"budget": 1.00, "route_rate": 0.1164, "delta_accuracy": 0.018905, "delta_macro_f1": 0.015456, "passes": 4.465}
+    ]
   },
   "climate_fever": {
     "n": 1535,
@@ -14,10 +28,17 @@
       "B1": {"accuracy": 0.521173, "macro_f1": 0.380751, "route_rate": 0.0, "passes": 4.0},
       "A3-All": {"accuracy": 0.551792, "macro_f1": 0.439273, "route_rate": 1.0, "passes": 8.0, "helpful": 128, "harmful": 81},
       "R6": {"accuracy": 0.537459, "macro_f1": 0.406288, "route_rate": 0.1993, "passes": 4.797, "helpful": 53, "harmful": 28}
+    },
+    "r6_ci95": {"accuracy": [0.0052117264, 0.0280130293], "macro_f1": [0.0070046086, 0.0450689014]},
+    "per_class_f1": {
+      "B1": {"CONFLICTING": 0.1111, "NOT ENOUGH INFO": 0.3227, "REFUTED": 0.4101, "SUPPORTED": 0.6791},
+      "A3-All": {"CONFLICTING": 0.1202, "NOT ENOUGH INFO": 0.4707, "REFUTED": 0.4680, "SUPPORTED": 0.6982},
+      "R6": {"CONFLICTING": 0.1128, "NOT ENOUGH INFO": 0.3722, "REFUTED": 0.4438, "SUPPORTED": 0.6963}
     }
   },
   "scifact_oracle_projected": {
     "n": 300,
+    "r6_ci95": {"accuracy": [0.0066666667, 0.0533333333], "macro_f1": [0.0171748857, 0.0773757359]},
     "systems": {
       "B1": {"accuracy": 0.6066666667, "macro_f1": 0.5595707915, "route_rate": 0.0, "passes": 4.0},
       "A3-All": {"accuracy": 0.8166666667, "macro_f1": 0.7822, "route_rate": 1.0, "passes": 8.0},
@@ -26,6 +47,7 @@
   },
   "scifact_bm25_projected": {
     "n": 300,
+    "r6_ci95": {"accuracy": [-0.0066666667, 0.0400000000], "macro_f1": [0.0019867336, 0.0529821430]},
     "systems": {
       "B1": {"accuracy": 0.61, "macro_f1": 0.577790, "route_rate": 0.0, "passes": 4.0},
       "A3-All": {"accuracy": 0.6366666667, "macro_f1": 0.615747, "route_rate": 1.0, "passes": 8.0, "helpful": 22, "harmful": 14},

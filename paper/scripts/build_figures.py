@@ -49,9 +49,24 @@ def cross_domain_delta() -> None:
     ds=[("averitec","AVeriTeC"),("climate_fever","CLIMATE-FEVER"),("scifact_oracle_projected","SciFact oracle"),("scifact_bm25_projected","SciFact BM25")]
     acc=[DATA[k]["systems"]["R6"]["accuracy"]-DATA[k]["systems"]["B1"]["accuracy"] for k,_ in ds]
     f1=[DATA[k]["systems"]["R6"]["macro_f1"]-DATA[k]["systems"]["B1"]["macro_f1"] for k,_ in ds]
-    fig,ax=plt.subplots(figsize=(6.8,2.6)); x=range(len(ds)); w=.34
-    ax.bar([i-w/2 for i in x],acc,w,label="Accuracy",color="#4C78A8"); ax.bar([i+w/2 for i in x],f1,w,label="Macro-F1",color="#F58518")
-    ax.axhline(0,color="black",lw=.7); ax.set_xticks(list(x),[v for _,v in ds]); ax.set_ylabel("R6 minus B1"); ax.legend(frameon=False,ncol=2); save("cross_domain_delta.pdf")
+    acc_ci=[DATA[k]["r6_ci95"]["accuracy"] for k,_ in ds]
+    f1_ci=[DATA[k]["r6_ci95"]["macro_f1"] for k,_ in ds]
+    fig,ax=plt.subplots(figsize=(6.8,3.0)); y=list(range(len(ds))); offset=.11
+    for values,cis,dy,label,color,marker in [
+        (acc,acc_ci,-offset,"Accuracy","#4C78A8","o"),
+        (f1,f1_ci,offset,"Macro-F1","#F58518","s"),
+    ]:
+        lower=[v-ci[0] for v,ci in zip(values,cis)]
+        upper=[ci[1]-v for v,ci in zip(values,cis)]
+        ax.errorbar(values,[i+dy for i in y],xerr=[lower,upper],fmt=marker,
+                    color=color,capsize=3,label=label,lw=1.2,markersize=5)
+    ax.axvline(0,color="black",lw=.8,ls="--")
+    ax.set_yticks(y,[v for _,v in ds]); ax.invert_yaxis()
+    ax.set_xlabel("R6 minus B1 (paired 95% bootstrap CI)")
+    ax.annotate("adapter-sensitive",(f1[2],2+offset),xytext=(8,7),
+                textcoords="offset points",fontsize=7)
+    ax.legend(frameon=False,ncol=2,loc="lower right"); ax.grid(axis="x",alpha=.2)
+    save("cross_domain_delta.pdf")
 
 if __name__ == "__main__":
     quality_cost(); helpful_harmful(); retrieval_strata(); cross_domain_delta()
