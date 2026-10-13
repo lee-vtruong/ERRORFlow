@@ -7,12 +7,29 @@ import time
 from pathlib import Path
 
 from errorflow.io import atomic_write_json, canonical_json, config_hash, read_jsonl
-from errorflow.v3_prompts import B1_CONFLICT_AUDIT, V3_ACTION_PROMPTS, assert_b1_immutable, prompt_sha256
+from errorflow.v3_prompts import (
+    B1_CONFLICT_AUDIT,
+    SCIFACT_THREE_LABEL_PROMPTS,
+    V3_ACTION_PROMPTS,
+    assert_b1_immutable,
+    prompt_sha256,
+)
 from errorflow.verifier import Qwen3TransformersVerifier, VerifierConfig
 
 
 LABELS = ("SUPPORTED", "REFUTED", "NOT ENOUGH INFO", "CONFLICTING")
+SCIFACT_LABELS = ("SUPPORTED", "REFUTED", "NOT ENOUGH INFO")
+LABEL_PROTOCOLS = {"averitec4": LABELS, "scifact3": SCIFACT_LABELS}
 ACTION_PROMPTS = {"conflict_audit_v1": B1_CONFLICT_AUDIT, **V3_ACTION_PROMPTS}
+
+
+def resolve_protocol(action, protocol):
+    labels = LABEL_PROTOCOLS[protocol]
+    if protocol == "scifact3":
+        if action not in SCIFACT_THREE_LABEL_PROMPTS:
+            raise ValueError(f"No frozen SciFact three-label prompt for action: {action}")
+        return labels, SCIFACT_THREE_LABEL_PROMPTS[action]
+    return labels, ACTION_PROMPTS[action]
 
 
 def sha256_text(value):
@@ -74,6 +91,7 @@ def main():
     parser.add_argument("--model", required=True)
     parser.add_argument("--input", required=True, type=Path)
     parser.add_argument("--action", required=True, choices=sorted(ACTION_PROMPTS))
+    parser.add_argument("--label-protocol", choices=sorted(LABEL_PROTOCOLS), default="averitec4")
     parser.add_argument("--split", default="train")
     destinations = parser.add_mutually_exclusive_group(required=True)
     destinations.add_argument("--output", type=Path)
@@ -109,10 +127,15 @@ def main():
     elif args.split != "train" or any(key.startswith("dev:") for key in ids):
         raise ValueError("V3 development action runner accepts train split only")
 
-    prompt = ACTION_PROMPTS[args.action]
+    if args.label_protocol == "scifact3" and (not args.external_evaluation or datasets != {"SciFact"}):
+        raise ValueError("scifact3 requires --external-evaluation on SciFact only")
+    labels, prompt = resolve_protocol(args.action, args.label_protocol)
     prompt_hash = prompt_sha256(prompt)
     model_hash = sha256_text(args.model)
-    generation = {"decoding": "mean_label_log_probability", "labels": LABELS, "forward_passes": 4}
+    # Preserve the historical four-label generation hash/cache contract.
+    generation = {"decoding": "mean_label_log_probability", "labels": labels, "forward_passes": len(labels)}
+    if args.label_protocol != "averitec4":
+        generation["label_protocol"] = args.label_protocol
     generation_hash = config_hash(generation, length=32)
     run_config = {
         "model": args.model, "model_hash_type": "sha256_model_identifier", "model_hash": model_hash,
@@ -127,7 +150,9 @@ def main():
         "schema_version": 3, "config_id": config_hash(run_config, length=32), "config": run_config,
         "status": "dry_run" if args.dry_run else "running", "output": str(output),
         "requested_rows": len(rows), "completed_rows": 0,
-        "llm_request_definition": "one score_labels call per example; four model forward passes per request",
+        "llm_request_definition": (
+            f"one score_labels call per example; {len(labels)} model forward passes per request"
+        ),
     }
     if manifest_path.exists():
         old_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -147,7 +172,7 @@ def main():
         pending = pending[:args.max_llm_calls]
     manifest["completed_rows"] = len(cached)
     atomic_write_json(manifest_path, manifest)
-    verifier = Qwen3TransformersVerifier(VerifierConfig(args.model, seed=args.seed, label_space=LABELS))
+    verifier = Qwen3TransformersVerifier(VerifierConfig(args.model, seed=args.seed, label_space=labels))
     started = time.perf_counter()
     mode = "a" if args.resume and output.exists() else "w"
     session_rows = 0
@@ -167,7 +192,8 @@ def main():
                 "prompt_sha256": prompt_hash, "model_hash": model_hash,
                 "evidence_hash": evidence_hash, "generation_config_hash": generation_hash,
                 "cache_key": cache_key, "gold_label_accessed": False,
-                "model_forward_passes": 4, "llm_requests": 1,
+                "label_protocol": args.label_protocol,
+                "model_forward_passes": len(labels), "llm_requests": 1,
             })
             target.write(json.dumps(record, ensure_ascii=False) + "\n")
             target.flush()
@@ -178,7 +204,7 @@ def main():
         "status": "complete" if completed == len(rows) else "partial",
         "completed_rows": completed, "session_rows": session_rows,
         "elapsed_seconds": time.perf_counter() - started,
-        "model_forward_passes": completed * 4,
+        "model_forward_passes": completed * len(labels),
     })
     atomic_write_json(manifest_path, manifest)
     print(f"V3_ACTION_DONE status={manifest['status']} completed={completed}/{len(rows)} output={output}")

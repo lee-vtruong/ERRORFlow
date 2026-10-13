@@ -48,6 +48,25 @@ V3_ACTION_PROMPTS = {
 }
 
 
+# Ontology-only SciFact sensitivity prompts. These are intentionally separate
+# from the immutable four-label V3 prompts: SciFact has no CONFLICTING verdict,
+# so mixed support/refutation is resolved to NOT ENOUGH INFO. Results produced
+# with these prompts are not interchangeable with post-hoc label projection.
+SCIFACT_THREE_LABEL_PROMPTS = {
+    "conflict_audit_v1": (
+        "Audit whether the evidence credibly supports or contradicts the same essential claim. "
+        "Choose SUPPORTED when support is established without a credible contradiction, and REFUTED "
+        "when contradiction is established without credible support. Choose NOT ENOUGH INFO when "
+        "neither direction is established or when the available evidence is materially mixed."
+    ),
+    "conflicting_rescue_v1": (
+        "Independently identify the strongest supporting and refuting evidence for the same essential claim. "
+        "Choose SUPPORTED if only material support is established, REFUTED if only material contradiction "
+        "is established, and NOT ENOUGH INFO if neither direction or both directions are established."
+    ),
+}
+
+
 def prompt_sha256(prompt: str) -> str:
     return hashlib.sha256(prompt.encode("utf-8")).hexdigest()
 

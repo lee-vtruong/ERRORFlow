@@ -102,3 +102,15 @@ actions/costs or another design in which cost changes route ordering.
 WP1 is closed as a qualified positive result. The paper-facing claim should be
 restricted to selective memory-conditioned correction under a fixed action,
 while retaining the train-selected limitation from WP0.
+
+## Generated figures
+
+Server generation completed for all five required vector figures:
+
+```text
+outputs/v3/figures/matched_budget/accuracy_vs_forward_passes.pdf
+outputs/v3/figures/matched_budget/macro_f1_vs_forward_passes.pdf
+outputs/v3/figures/matched_budget/net_gain_vs_route_rate.pdf
+outputs/v3/figures/matched_budget/helpful_harmful_by_router.pdf
+outputs/v3/figures/matched_budget/per_class_f1_comparison.pdf
+```
