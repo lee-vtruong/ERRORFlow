@@ -1,7 +1,6 @@
 # CLIMATE-FEVER external validation protocol
 
-Status: **PRIMARY EXTERNAL EVALUATION COMPLETE; PER-CLASS RESULT EXTRACTION
-PENDING**.
+Status: **COMPLETE — LOCKED EXTERNAL FOUR-LABEL EVALUATION**.
 
 ## Dataset reconnaissance
 
@@ -148,3 +147,30 @@ router at matched cost. A3-All remains the strongest quality configuration;
 R6 trades part of its gain for substantially lower compute. Claims about the
 memory mechanism must therefore remain narrower than claims about the action
 itself until additional external matched-budget evidence is available.
+
+## Per-class diagnosis
+
+The quality gain is not driven primarily by correct CONFLICTING predictions.
+B1 has CONFLICTING F1 0.1111, and A3-All reaches only 0.1202. The largest A3
+improvement is instead NOT ENOUGH INFO F1, from 0.3227 to 0.4707, followed by
+REFUTED from 0.4101 to 0.4680 and SUPPORTED from 0.6791 to 0.6982. R6 reaches
+0.1128, 0.3722, 0.4438, and 0.6963 on those four classes, respectively.
+
+The confidence control has the highest CONFLICTING F1 (0.1448) and a higher
+macro-F1 than R6 at the same route count. This reinforces the conclusion that
+the frozen action improves evidence sufficiency and polarity decisions, but
+does not yet solve explicit conflict recognition. The method should be
+described as conflict-oriented residual correction rather than a strong
+CONFLICTING-label detector.
+
+Direct A3-All versus R6 evaluation gives 75 A3-only-correct and 53
+R6-only-correct examples. Accuracy favors A3 by 1.43 points, but exact McNemar
+is borderline (`p=0.06301`) and the bootstrap accuracy interval touches zero
+(`[0.0000, 0.0287]`). Macro-F1 favors A3 by 3.30 points with a strictly positive
+bootstrap interval (`[0.0178, 0.0482]`). Thus selective R6 saves roughly 40%
+of model forward passes relative to A3-All, but its macro-level quality loss is
+measurable.
+
+Artifact accounting closed successfully: the evaluation contains 7,675
+example-policy prediction rows and five route records, exactly matching 1,535
+examples across five evaluated policies.

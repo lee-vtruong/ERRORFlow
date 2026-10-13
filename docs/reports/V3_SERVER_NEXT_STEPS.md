@@ -1,5 +1,15 @@
 # ERRORFlow V3 server handoff — bounded Phase 1 pilot
 
+> Current checkpoint (2026-10-13): the historical Phase 1 instructions below
+> are complete. WP3 CLIMATE-FEVER is also complete: 1,535-example frozen
+> four-label evaluation, full cached B1/A3 inference, source-only R6,
+> matched-route controls, paired significance, and per-class diagnosis. The
+> authoritative results are in `CLIMATE_FEVER_PROTOCOL.md` and
+> `V3_CROSS_DOMAIN_VALIDATION.md`. Do not rerun or tune on CLIMATE-FEVER; it is
+> now a consumed locked external benchmark. The next research operation must
+> use a predeclared WP4 evidence-condition protocol or proceed to the paper
+> package without target-specific tuning.
+
 ## Pull and verify
 
 ```bash

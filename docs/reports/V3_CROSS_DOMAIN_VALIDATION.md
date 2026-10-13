@@ -142,3 +142,11 @@ similarity-only router (52.83%, 39.23) but that difference is also not
 significant. Thus CLIMATE-FEVER independently supports the conflict-rescue
 action and the usefulness of selective intervention, but does not establish
 source error memory as the uniquely effective routing signal.
+
+Per-class analysis further narrows the claim. A3-All raises NOT ENOUGH INFO F1
+from 0.3227 to 0.4707 and REFUTED F1 from 0.4101 to 0.4680, whereas
+CONFLICTING F1 changes only from 0.1111 to 0.1202. Therefore the external gain
+is real but is mostly evidence-sufficiency and polarity correction rather than
+successful direct detection of disputed claims. A3-All also exceeds R6 by
+3.30 macro-F1 points with a positive bootstrap interval, while its 1.43-point
+accuracy advantage is borderline under McNemar (`p=0.06301`).
