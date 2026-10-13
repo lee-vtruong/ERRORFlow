@@ -73,3 +73,25 @@ Both manifests have `external_evaluation=true` and `status=complete`. No
 SciFact outcome has yet been used in routing. The next operation applies the
 already frozen R6 configuration using only the complete AVeriTeC source memory,
 then performs the predeclared three-label projection and paired evaluation.
+
+## SciFact dev result
+
+The frozen source-only R6 routed 34/300 examples (11.33%) and required an
+average of 4.453 model forward passes per example. Under the predeclared
+three-label projection, B1 achieved 60.67% accuracy and 55.96 macro-F1; R6
+achieved 63.67% accuracy and 60.52 macro-F1. The deltas are therefore +3.00
+accuracy points and +4.56 macro-F1 points.
+
+The projected paired comparison contains 11 candidate-only-correct and 2
+baseline-only-correct examples. Exact McNemar gives `p=0.02246`. A 5,000-sample
+paired bootstrap gives a 95% interval of `[0.0067, 0.0533]` for accuracy delta
+and `[0.0172, 0.0774]` for macro-F1 delta. Both intervals exclude zero.
+
+The strict four-label sensitivity result is materially different: before
+mapping `CONFLICTING` to `NOT ENOUGH INFO`, R6 has 9 helpful and 12 harmful
+routes, changes accuracy by -1.00 point, and changes four-label macro-F1 by
++0.13 point. Thus the positive external result is specifically evidence for
+the frozen conflict-aware system plus its predeclared target-label adapter; it
+must not be presented as label-projection-independent improvement. The number
+of projected predictions from each output remains to be copied from the two
+projection command logs.
