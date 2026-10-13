@@ -117,3 +117,32 @@ imperfect lexical evidence and retains a positive macro-F1 signal over B1.
 Always-on A3 remains directionally positive but loses its oracle advantage.
 Accuracy significance and superiority over matched-budget controls are not
 established on 300 examples.
+
+## Retrieval-condition interaction
+
+Post-hoc stratification uses gold rationale IDs only after all predictions and
+routes are frozen. It separates 121 verifiable claims with at least one
+retrieved rationale sentence, 67 verifiable retrieval misses, and 112 NEI
+claims with no gold rationale.
+
+On verifiable hits, B1 is already strong at 78.51% accuracy. A3-All produces a
+net loss of one correct prediction, while R6 makes no net correctness change;
+R6 routes only 10.74% of this group. On verifiable misses, B1 scores 59.70%,
+A3-All loses six net correct predictions and falls to 50.75%, whereas R6 has
+net zero, preserves 59.70% accuracy, and raises within-group macro-F1 from
+0.4435 to 0.4625. The confidence control is harmful on misses (net -7).
+
+The overall positive action signal comes from the 112 NEI claims. B1 accuracy
+is 42.86%; A3-All gains 15 net correct predictions and reaches 56.25%. R6
+routes 25.00%, gains five net correct predictions, and reaches 47.32%.
+Confidence routing gains seven in this group, while similarity routing gains
+one.
+
+Across the three strata, A3's net changes sum to +8 and R6's to +5, matching
+the aggregate accounting exactly. R6 routes less often on verifiable hits
+(10.74%) than on retrieval misses (22.39%) or NEI (25.00%). Although the router
+does not observe gold retrieval success, its frozen uncertainty and memory
+features correlate with weak-evidence conditions. The result supports a
+selective-safety interpretation: R6 captures some NEI benefit while avoiding
+the substantial always-on A3 regression on retrieval misses. It does not show
+that R6 repairs missing evidence.

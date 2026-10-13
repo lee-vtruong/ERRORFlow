@@ -179,3 +179,11 @@ remain nearly stable. Only five A3 outputs require the SciFact projection,
 versus 96 under oracle evidence. This confirms that the earlier very large A3
 oracle gain was mediated by both evidence quality and ontology projection;
 the smaller retrieved-evidence result is the more realistic robustness signal.
+
+Retrieval-stratified analysis locates the mechanism more precisely. A3-All
+gains 15 net correct predictions on 112 NEI claims, but loses one on 121
+verifiable retrieval hits and six on 67 retrieval misses. R6 gains five on NEI
+and has net zero in both verifiable strata. On retrieval misses, R6 preserves
+B1 accuracy while A3-All and confidence routing regress. The current evidence
+therefore supports selective harm avoidance under missing evidence, not
+recovery of facts that retrieval failed to supply.
