@@ -1,8 +1,8 @@
 # ERRORFlow paper draft
 
-`errorflow_v3.tex` is an LNCS manuscript draft generated from the frozen V3
-results through WP4. It intentionally leaves authors, affiliations, funding,
-and references as explicit TODOs rather than inventing them.
+`errorflow_v3.tex` is the full LNCS research manuscript generated from the
+frozen V3 results through WP5. Author, affiliation, and funding fields remain
+anonymous placeholders rather than invented metadata.
 
 The user-provided LNCS package remains under `Template-Paper/` and is not
 tracked or modified by this draft. To compile locally from `paper/`, make the
@@ -14,18 +14,16 @@ cd paper
 TEXINPUTS=../Template-Paper: pdflatex errorflow_v3.tex
 ```
 
-The bibliography will remain unresolved until a verified `references.bib` is
-added. External result PDFs are generated on the server under
-`outputs/v3/figures/external/`; matched-budget PDFs are under
-`outputs/v3/figures/matched_budget/`.
+The repository includes a verified bibliography, a frozen numeric snapshot,
+vector-figure generator, claim ledger, and reproducibility guide. Raw V3
+prediction artifacts remain server-side because `outputs/` is ignored.
 
 Before submission:
 
 1. replace author and affiliation placeholders;
-2. add and verify primary-source references;
-3. copy selected vector PDFs into the submission bundle and add figure calls;
-4. reconcile page limits with the target venue;
-5. run LaTeX compilation and inspect the rendered PDF page by page.
+2. reconcile page limits with the target venue;
+3. export a checksum-addressed server artifact archive;
+4. pin model/tokenizer revisions and the Python environment.
 
 ## Draft build checkpoint
 
@@ -37,5 +35,5 @@ class into `output/pdf/errorflow_v3_draft.pdf`.
 - LaTeX log: no overfull/underfull box or unresolved-reference warnings;
 - visual QA: all 5 rendered pages inspected; no clipping, overlap, or table
   overflow observed;
-- scope: research draft only, because verified references, author metadata,
-  and selected result figures remain pending.
+- scope: full anonymous research draft; author metadata and external artifact
+  release remain pending.

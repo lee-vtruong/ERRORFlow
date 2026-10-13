@@ -1,0 +1,40 @@
+{
+  "averitec": {
+    "n": 3068,
+    "protocol": "five-fold claim-group-excluded internal evaluation at token-Jaccard 0.90",
+    "systems": {
+      "B1": {"accuracy": 0.7402216428, "macro_f1": 0.5460199747, "route_rate": 0.0, "passes": 4.0},
+      "A3-All": {"accuracy": 0.7359843546, "macro_f1": 0.5558539, "route_rate": 1.0, "passes": 8.0, "helpful": 192, "harmful": 205},
+      "R6": {"accuracy": 0.7552151239, "macro_f1": 0.5577058837, "route_rate": 0.1117992177, "passes": 4.4471968709, "helpful": 90, "harmful": 44}
+    }
+  },
+  "climate_fever": {
+    "n": 1535,
+    "systems": {
+      "B1": {"accuracy": 0.521173, "macro_f1": 0.380751, "route_rate": 0.0, "passes": 4.0},
+      "A3-All": {"accuracy": 0.551792, "macro_f1": 0.439273, "route_rate": 1.0, "passes": 8.0, "helpful": 128, "harmful": 81},
+      "R6": {"accuracy": 0.537459, "macro_f1": 0.406288, "route_rate": 0.1993, "passes": 4.797, "helpful": 53, "harmful": 28}
+    }
+  },
+  "scifact_oracle_projected": {
+    "n": 300,
+    "systems": {
+      "B1": {"accuracy": 0.6066666667, "macro_f1": 0.5595707915, "route_rate": 0.0, "passes": 4.0},
+      "A3-All": {"accuracy": 0.8166666667, "macro_f1": 0.7822, "route_rate": 1.0, "passes": 8.0},
+      "R6": {"accuracy": 0.6366666667, "macro_f1": 0.6051992372, "route_rate": 0.1133333333, "passes": 4.4533333333, "helpful": 11, "harmful": 2}
+    }
+  },
+  "scifact_bm25_projected": {
+    "n": 300,
+    "systems": {
+      "B1": {"accuracy": 0.61, "macro_f1": 0.577790, "route_rate": 0.0, "passes": 4.0},
+      "A3-All": {"accuracy": 0.6366666667, "macro_f1": 0.615747, "route_rate": 1.0, "passes": 8.0, "helpful": 22, "harmful": 14},
+      "R6": {"accuracy": 0.6266666667, "macro_f1": 0.603547, "route_rate": 0.1866666667, "passes": 4.7466666667, "helpful": 9, "harmful": 4}
+    },
+    "strata": {
+      "NEI/no gold rationale": {"n": 112, "B1": 0.428571, "A3-All": 0.5625, "R6": 0.473214, "A3_net": 15, "R6_net": 5},
+      "verifiable hit": {"n": 121, "B1": 0.785124, "A3-All": 0.776860, "R6": 0.785124, "A3_net": -1, "R6_net": 0},
+      "verifiable miss": {"n": 67, "B1": 0.597015, "A3-All": 0.507463, "R6": 0.597015, "A3_net": -6, "R6_net": 0}
+    }
+  }
+}

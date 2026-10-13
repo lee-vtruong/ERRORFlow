@@ -7,6 +7,8 @@
 \usepackage{booktabs}
 \usepackage{multirow}
 \usepackage{url}
+\usepackage{amsmath}
+\usepackage{microtype}
 
 \title{ERRORFlow: Training-Free Selective Residual Correction for Fact Verification}
 \titlerunning{ERRORFlow}
@@ -84,22 +86,33 @@ The main contributions are:
 \section{Related Work}
 
 \paragraph{Fact verification.}
-% TODO: cite FEVER, AVeriTeC, SciFact, and CLIMATE-FEVER primary papers.
-Prior work combines evidence retrieval with natural-language inference or
-large language model reasoning. Direct leaderboard comparisons are outside our
-scope because our evidence conditions and frozen verifier differ across
-benchmarks.
+FEVER established large-scale claim verification over Wikipedia
+\cite{thorne2018fever}; subsequent benchmarks test scientific claims
+\cite{wadden2020scifact}, climate claims \cite{diggelmann2020climate},
+multi-hop evidence \cite{jiang2020hover}, and real-world web evidence
+\cite{schlichtkrull2024averitec}. Robustness work demonstrates that verifiers
+can exploit evidence artifacts \cite{schuster2021vitaminc}, while structured
+systems target faithful entailment \cite{krishna2022proofver}. Direct
+leaderboard comparison is inappropriate when evidence, labels, training, or
+metrics differ.
 
-\paragraph{Test-time correction and compute.}
-% TODO: cite self-refinement, critique, verifier, and test-time compute work.
-Repeated inference and critique can improve reasoning, but uniform application
-obscures regressions and compute cost. ERRORFlow treats correction as a
-selective action evaluated against matched inference budgets.
+\paragraph{Test-time correction and adaptive compute.}
+Iterative critique can improve model outputs
+\cite{madaan2023selfrefine,gao2023rarr,dhuliawala2024coverification}, but
+intrinsic self-correction can fail without reliable feedback
+\cite{huang2024cannot}. Selective QA and adaptive retrieval instead make
+computation input-dependent
+\cite{kamath2020selective,jiang2023active,jeong2024adaptiverag,asai2024selfrag}.
+ERRORFlow evaluates a frozen second pass against matched inference budgets.
 
-\paragraph{Non-parametric memory.}
-% TODO: cite case-based reasoning, retrieval memory, and error-driven systems.
-Our memory stores observed action outcomes rather than model parameters. It is
-supervised by labeled source outcomes and is therefore not label-free.
+\paragraph{Non-parametric memory and retrieval robustness.}
+Retrieval augmentation \cite{lewis2020rag}, case-based reasoning
+\cite{das2021case}, and verbal memory \cite{shinn2023reflexion} motivate
+non-parametric reuse. Cross-domain retrieval \cite{thakur2021beir}, long
+contexts \cite{liu2024lost}, and noisy evidence \cite{fang2024noise} expose
+important robustness limits. Our memory stores observed correction outcomes,
+including regressions; it is supervised by source labels and is therefore
+training-free in parameters, not label-free.
 
 \section{Method}
 
@@ -129,13 +142,33 @@ target label enters a route decision. For source evaluation, records from the
 query's complete grouped fold are excluded. For external evaluation, the
 complete frozen AVeriTeC train memory is used.
 
-Memory retrieval combines claim token Jaccard similarity, B1 label-score
-distribution similarity, and evidence-length similarity. R6 retrieves five
-compatible records, requires support from at least two, subtracts a fixed
-action-cost penalty of 0.1, and routes only when estimated utility is positive.
+For query $q$ and memory record $i$, retrieval similarity is
+\begin{equation}
+S(q,i)=0.35J(T_q,T_i)+0.50\left(1-\tfrac12\lVert p_q-p_i\rVert_1\right)
++0.15\left(1+|e_q-e_i|/100\right)^{-1},
+\end{equation}
+where $J$ is set-token Jaccard similarity, $p$ a softmax-normalized B1 score
+vector, and $e$ the whitespace evidence-token count. Records must match the
+B1 prediction and action. Let $w_i=S(q,i)$, and let $r_i$, $g_i$, and $c_i$
+denote recovery, regression, and normalized cost. With $W=\sum_iw_i$,
+\begin{equation}
+\widehat R=\frac{\sum_iw_ir_i+1}{W+2},\quad
+\widehat G=\frac{\sum_iw_ig_i+1}{W+2},\quad
+\widehat C=\frac{\sum_iw_ic_i}{W},
+\end{equation}
+and utility is $U=\widehat R-\widehat G-0.1\widehat C$. R6 retrieves five
+compatible records, requires at least two, and routes iff $U>0$.
 With one constant-cost action, this penalty cannot change ordering at a fixed
 budget; our experiments therefore validate residual outcome-memory routing,
 not an independent heterogeneous-cost mechanism.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/architecture.pdf}
+\caption{ERRORFlow inference. B1 and A3 are immutable instructions over the
+same frozen label scorer; memory affects routing, not model parameters.}
+\label{fig:architecture}
+\end{figure}
 
 \subsection{Controls and Cost}
 
@@ -220,6 +253,14 @@ Evaluation & System & Accuracy & Macro-F1 & Route rate & Avg. passes \\
 \end{tabular}
 \end{table*}
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/quality_cost.pdf}
+\caption{Quality versus average model forward passes. Dataset annotations are
+placed at each R6 operating point.}
+\label{fig:qualitycost}
+\end{figure}
+
 \subsection{Source-Domain Routing}
 
 Under conservative token-Jaccard 0.90 grouping, R6 improves AVeriTeC accuracy
@@ -238,6 +279,14 @@ intervals are positive. R6 is not significantly different from the
 confidence-only router at the same route count. Per-class analysis further
 shows that CONFLICTING F1 changes only from 0.1111 to 0.1202 under A3-All;
 most improvement occurs for NOT ENOUGH INFO and REFUTED.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/helpful_harmful.pdf}
+\caption{Helpful and harmful prediction changes. Always-on correction exposes
+more gains but also more regressions.}
+\label{fig:flips}
+\end{figure}
 
 \subsection{SciFact Ontology Sensitivity}
 
@@ -260,6 +309,44 @@ A3-All loses six net correct predictions, while R6 preserves B1 accuracy. On
 112 NEI claims, A3-All gains 15 and R6 gains five. R6 therefore provides
 selective harm avoidance rather than recovery of missing facts.
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/retrieval_strata.pdf}
+\caption{SciFact BM25 accuracy by retrieval condition. R6 preserves B1 on
+verifiable misses, where A3-All regresses.}
+\label{fig:strata}
+\end{figure}
+
+\subsection{Cross-Domain Summary}
+
+Figure~\ref{fig:delta} summarizes R6's change over B1. All point estimates are
+positive, but interpretation differs: AVeriTeC is train-selected; SciFact
+oracle is projection-sensitive; CLIMATE-FEVER has no independent retrieval;
+and SciFact BM25 accuracy is statistically inconclusive. The replicated
+pattern is efficient macro-F1 improvement, not universal accuracy gain or
+router superiority.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/cross_domain_delta.pdf}
+\caption{R6 change over B1. Bars are descriptive; paired intervals and
+protocol qualifications remain necessary.}
+\label{fig:delta}
+\end{figure}
+
+\section{Reproducibility and Audit}
+
+All inference uses one frozen Qwen3-4B-Instruct-2507 identifier, BF16 on CUDA,
+deterministic mean label log probability, and seed 2026. B1 and A3 instruction
+SHA-256 values are \texttt{700ebdc1...decf7} and
+\texttt{09e187ec...aaf}. These identify instruction strings; the reported
+model hash identifies the model name, not weight files. Exact replay found
+zero route and prediction mismatches, and rotating target gold labels did not
+alter routes. Group exclusion removes the validation fold from usable memory;
+it does not prove absence of shared evidence or semantic paraphrases. Large
+experimental JSONL files remain server-side and are represented by an
+artifact ledger rather than committed to Git.
+
 \section{Limitations}
 
 The experiments use one base-model checkpoint. Source results are
@@ -271,6 +358,14 @@ retriever is only a lexical baseline. Several external matched-router
 comparisons remain statistically inconclusive. Finally, CONFLICTING-class
 performance is weak, and constant action cost prevents an independent test of
 heterogeneous cost-aware ranking.
+
+\paragraph{Ethics and broader impact.}
+Selective correction can reduce unnecessary computation, but automated
+verdicts should not replace human fact-checking. Memory may encode source
+annotation choices and transfer them unevenly. Deployment should expose
+evidence, abstain under unsupported retrieval, and monitor topic-specific
+regressions. AVeriTeC is CC BY-NC 4.0; CLIMATE-FEVER is not redistributed by
+this repository because its official repository declares no license.
 
 \section{Conclusion}
 
@@ -290,8 +385,37 @@ The authors have no competing interests to declare that are relevant to the
 content of this article.
 \end{credits}
 
-% TODO: add verified primary references before submission, then uncomment:
-% \bibliographystyle{splncs04}
-% \bibliography{references}
+\appendix
+\section{Prompt and Scoring Details}
+The rendered prompt is plain text, not a chat template. Evidence order is
+preserved and only evidence text is included. Each candidate is tokenized as a
+leading space plus the literal label. Candidate-token log probabilities are
+averaged; four candidates require four independent forward passes. Exact ties
+follow label order: SUPPORTED, REFUTED, NOT ENOUGH INFO, CONFLICTING. Reported
+confidence is a softmax over mean label scores, not a calibrated sequence
+probability. Although A3 asks to list evidence directions, label scoring does
+not generate a rationale.
+
+\section{Statistical Detail and Negative Findings}
+For grouped AVeriTeC, R6 changes 90 errors to correct and 44 correct predictions
+to errors (McNemar $p=8.75\times10^{-5}$); bootstrap 95\% intervals are
+$[0.00750,0.02249]$ for accuracy and $[0.00009,0.02393]$ for macro-F1.
+Against the strongest matched non-memory router, the macro-F1 interval crosses
+zero after multiplicity-aware analysis. On CLIMATE-FEVER, R6 versus B1 has
+$p=.00728$, but matched confidence and similarity comparisons are
+inconclusive. On SciFact BM25, R6's macro-F1 interval is positive, while
+accuracy and direct matched-router intervals cross zero. The oracle raw
+four-label R6 comparison is null ($\Delta$accuracy $=-.0100$, $p=.664$), so
+the projected gain is adapter-mediated.
+
+\section{Evidence-Regime Separation}
+AVeriTeC uses human question--answer evidence and internal fold exclusion.
+CLIMATE-FEVER uses five official candidates. SciFact oracle joins official
+gold rationales; SciFact BM25 retrieves five sentences from all 5,183
+abstracts without cited-document IDs, rationales, or labels. These conditions
+must not be pooled into a single leaderboard claim.
+
+\bibliographystyle{splncs04}
+\bibliography{references}
 
 \end{document}
