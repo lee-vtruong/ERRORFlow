@@ -1,6 +1,6 @@
 # ERRORFlow V3 reproducibility and leakage audit
 
-Status: **CODE-PROVENANCE AUDIT COMPLETE; SERVER ARTIFACT AUDIT PENDING**.
+Status: **ARTIFACT REPLAY PASSED; NEAR-DUPLICATE GROUPING SENSITIVITY PENDING**.
 
 ## Scope and audit anchor
 
@@ -99,3 +99,25 @@ recomputed statistics match the stored significance artifact.
 - Marked the AVeriTeC R6 estimate as train-selected rather than untouched OOF.
 - Added artifact hashes, deterministic replay, target-gold invariance, duplicate
   checks, evidence overlap, metric reproduction, McNemar, and paired bootstrap.
+
+## Server artifact audit result
+
+The artifact audit completed at commit `a065427` in 123.7 seconds and returned
+`hard_checks_pass=true`. It reproduced 3,068 examples, 357 routes, 99 helpful
+and 41 harmful flips, net +58, accuracy delta +0.0189048, macro-F1 delta
++0.0154565, and 4.46545 average forward passes. The resulting classification
+is `VERIFIED_BUT_TRAIN_SELECTED`.
+
+All 60 exact normalized-claim duplicate groups remain within one fold. The
+lexical audit nevertheless found 40 cross-fold claim pairs with normalized
+set-token Jaccard at least 0.90. This is not automatically leakage: reordered
+or templated claims can share tokens while expressing different propositions.
+It does require a robustness analysis because memory similarity can exploit
+near-identical wording.
+
+The post-audit sensitivity evaluator rebuilds folds from connected components
+at Jaccard thresholds 0.85, 0.90, and 0.95, rewrites fold provenance only in
+new in-memory copies, replays R6, and writes new run IDs. Shared evidence text
+or source identifiers are reported but are not used for grouping because doing
+so could collapse legitimate multi-claim sources and create an unrealistic
+domain split.
