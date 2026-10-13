@@ -140,6 +140,10 @@ routing regress.
 
 Existing matched-budget PDFs under `outputs/v3/figures/matched_budget/` can be
 used for the internal ablation section after checking labels and captions.
+The reproducible external plotting entrypoint is
+`scripts/plot_v3_external_results.py`; it generates five PDFs directly from
+the frozen CLIMATE-FEVER, SciFact retrieved, and retrieval-stratification JSON
+artifacts.
 
 ## Suggested paper structure
 
