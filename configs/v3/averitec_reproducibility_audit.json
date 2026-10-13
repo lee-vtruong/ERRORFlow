@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "audit_id": "averitec_v3_reproducibility_wp0",
+  "code_provenance_anchor": "41106e9",
+  "result_provenance_anchor": "102a74c",
+  "dataset": "AVeriTeC",
+  "split": "train",
+  "expected_examples": 3068,
+  "folds": 5,
+  "seed": 2026,
+  "baseline": "conflict_audit_v1",
+  "action": "conflicting_rescue_v1",
+  "router": {
+    "top_k": 5,
+    "min_support": 2,
+    "cost_weight": 0.1,
+    "utility_threshold": 0.0
+  },
+  "bootstrap_samples": 5000,
+  "near_duplicate_token_jaccard": 0.9,
+  "expected_artifacts": {
+    "gold": "data/processed/v2/averitec/train_all.jsonl",
+    "baseline_records": "outputs/v3/averitec/development/baseline_scores.jsonl",
+    "candidate": "outputs/v3/averitec/full_actions/conflicting_rescue_v1.jsonl",
+    "memory": "outputs/v3/averitec/full_actions/conflicting_rescue_v1_memory.jsonl",
+    "materialized": "outputs/v3/averitec/full_actions/r6_utility_predictions.jsonl",
+    "reported_significance": "outputs/v3/averitec/full_actions/r6_utility_significance.json"
+  },
+  "classification_if_all_hard_checks_pass": "VERIFIED_BUT_TRAIN_SELECTED",
+  "classification_reason": "Outer-fold memory exclusion is replay-verified, but A3 was selected on an AVeriTeC train screen and nested selection was not used."
+}
