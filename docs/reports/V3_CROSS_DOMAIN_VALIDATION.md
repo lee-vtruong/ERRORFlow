@@ -1,6 +1,6 @@
 # ERRORFlow V3 cross-domain validation
 
-Status: **PROTOCOL FROZEN; SCIFACT DEV PREPARED; MODEL EXECUTION PENDING**.
+Status: **PROTOCOL FROZEN; SCIFACT B1 AND A3 INFERENCE COMPLETE; ROUTING/EVALUATION PENDING**.
 
 ## Frozen source system
 
@@ -54,3 +54,22 @@ the dev-claims SHA-256 is
 `86f0435d08fdb65d1aa41d1472684f57e6e71930626497bdf4d7a9ec1a632217`.
 NEI examples have no official gold rationale and therefore carry empty oracle
 evidence. This is dataset semantics, not a preprocessing failure.
+
+## Frozen inference checkpoint
+
+Both model passes completed over all 300 SciFact dev examples with the same
+model, input artifact, decoding rule, label set, and seed. The input SHA-256
+recorded by both manifests is
+`c93d71875903d6fead298c2600cf706080a0a1d7fffb810617c5cd62b34e25bd`.
+
+- B1 `conflict_audit_v1`: 300/300 rows, prompt SHA-256
+  `700ebdc1b55cb9f04f7524f31b7a5d3bd41813f198e5629fe75ca551333decf7`,
+  1,200 model forward passes, 39.63 seconds;
+- A3 `conflicting_rescue_v1`: 300/300 rows, prompt SHA-256
+  `09e187ec063b5e3d572bcb672430167456e046d5665c9c72adb447aeef597aaf`,
+  1,200 model forward passes, 39.78 seconds.
+
+Both manifests have `external_evaluation=true` and `status=complete`. No
+SciFact outcome has yet been used in routing. The next operation applies the
+already frozen R6 configuration using only the complete AVeriTeC source memory,
+then performs the predeclared three-label projection and paired evaluation.
