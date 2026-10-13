@@ -150,13 +150,32 @@ checking gain, label-free learning, or universal cross-domain correction.
 
 ## Required next evidence
 
-1. Replicate on a second external dataset under a separately frozen label and
-   evidence protocol.
-2. Evaluate with retrieved rather than oracle evidence to measure end-to-end
-   behaviour and retrieval/action interactions.
+1. **Completed:** CLIMATE-FEVER provides a second locked external dataset with
+   an ontology-aligned four-label protocol and official retrieved candidates.
+2. **Completed:** SciFact open-corpus BM25 retrieval replaces oracle rationales
+   and measures retrieval/action interactions without target tuning.
 3. Use nested inner-fold policy selection if claiming a generally selected
    router rather than the current frozen configuration.
 4. Compare against confidence-only and random routing under identical realized
    compute budgets in each new domain.
 5. Treat the opened AVeriTeC dev labels as development evidence, not as a new
    untouched holdout.
+
+## Retrieved-evidence update
+
+The frozen SciFact BM25 condition retrieves five sentences from the complete
+5,183-document corpus without cited-document or gold-rationale access. Top-5
+any-rationale recall is 64.36% and complete-rationale recall is 62.77% on 188
+verifiable claims.
+
+Projected B1 scores 61.00% accuracy and 57.78 macro-F1. R6 routes 18.67% and
+scores 62.67%/60.35, while A3-All scores 63.67%/61.57. R6's accuracy gain is
+not significant, but its macro-F1 bootstrap interval over B1 is positive.
+Neither R6 nor A3 is significantly superior to the other, and R6 is not
+significantly above matched-route confidence or similarity controls.
+
+The retrieved condition sharply reduces the oracle A3 result, while B1 and R6
+remain nearly stable. Only five A3 outputs require the SciFact projection,
+versus 96 under oracle evidence. This confirms that the earlier very large A3
+oracle gain was mediated by both evidence quality and ontology projection;
+the smaller retrieved-evidence result is the more realistic robustness signal.

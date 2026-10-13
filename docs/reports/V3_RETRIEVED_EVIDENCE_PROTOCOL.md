@@ -1,6 +1,7 @@
 # ERRORFlow V3 retrieved-evidence validation protocol
 
-Status: **PROTOCOL AND RETRIEVAL ARTIFACT VERIFIED; INFERENCE PENDING**.
+Status: **PRIMARY RETRIEVED-EVIDENCE EVALUATION COMPLETE; PER-CLASS EXTRACTION
+PENDING**.
 
 ## Objective
 
@@ -72,3 +73,47 @@ complete-rationale recall is 0.6277, and mean best-rationale coverage is
 are 0.5585, 0.5479, and 0.5532. This fixed, imperfect retrieval condition is
 accepted without parameter tuning and will be compared directly with the
 existing oracle-rationale result.
+
+## Retrieved-evidence result
+
+B1 reaches 61.00% accuracy and 57.78 macro-F1. A3-All reaches 63.67% accuracy
+and 61.57 macro-F1, making 22 helpful and 14 harmful changes (net +8) at eight
+forward passes per example. Its deltas over B1 are +2.67 accuracy points and
++3.80 macro-F1 points, but both paired-bootstrap intervals cross zero and
+McNemar gives `p=0.24298`.
+
+Frozen source-only R6 routes 56/300 examples (18.67%) and requires 4.747
+forward passes per example. It makes nine helpful and four harmful changes
+(net +5), reaching 62.67% accuracy and 60.35 macro-F1. The +1.67-point
+accuracy delta over B1 is not significant (`p=0.26685`, bootstrap interval
+`[-0.0067, 0.0400]`). The +2.58-point macro-F1 delta has a positive bootstrap
+interval `[0.0020, 0.0530]`, with bootstrap probability 0.983 of a positive
+delta.
+
+At the same 56-example route count, confidence and similarity controls both
+remain at 61.00% accuracy, with macro-F1 58.40 and 57.68 respectively. R6 is
+directionally better than both, but the direct paired intervals cross zero.
+A3-All is also not distinguishable from R6: exact McNemar `p=0.67764`, with
+both accuracy and macro-F1 intervals crossing zero. R6 therefore preserves
+most observed A3 quality at substantially lower compute in this 300-example
+condition, but no routing-superiority claim is supported.
+
+## Oracle-versus-retrieved diagnosis
+
+Retrieved B1 is essentially stable relative to oracle B1: accuracy changes
+from 60.67% to 61.00%, while macro-F1 rises from 55.96 to 57.78. R6 changes
+from 63.67%/60.52 to 62.67%/60.35, a small loss. By contrast, A3-All falls
+from the earlier projected oracle result of 81.67%/78.22 to 63.67%/61.57.
+
+This large A3 difference is tied to the label adapter. Under oracle evidence,
+A3 produced 96 CONFLICTING outputs before projection; under retrieved evidence
+it produces only five. Retrieved B1, A3-All, and R6 project only five, five,
+and four predictions respectively. Thus the retrieved result is not driven by
+mass conversion of CONFLICTING to NEI, and it confirms that the very large
+oracle A3 score was evidence-condition and adapter dependent.
+
+The defensible WP4 conclusion is that selective R6 is comparatively robust to
+imperfect lexical evidence and retains a positive macro-F1 signal over B1.
+Always-on A3 remains directionally positive but loses its oracle advantage.
+Accuracy significance and superiority over matched-budget controls are not
+established on 300 examples.
