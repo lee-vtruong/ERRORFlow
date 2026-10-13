@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import heapq
 from dataclasses import asdict, dataclass, field, fields, replace
 from pathlib import Path
 
@@ -83,8 +84,24 @@ class ResidualMemoryStore:
         return cls(record_from_dict(row) for row in read_jsonl(path))
 
     def retrieve(self, query, top_k=10, allowed_splits=None, action=None,
-                 exclude_claim_ids=None, exclude_folds=None, max_records=None):
+                 exclude_claim_ids=None, exclude_folds=None, max_records=None,
+                 similarity_weights=None, selection_mode="ranked", random_seed=2026):
+        """Retrieve compatible residual memories.
+
+        ``similarity_weights`` follows ``(claim, label_score, evidence_length)``
+        and is normalized to sum to one. ``selection_mode='random'`` samples a
+        deterministic query-specific ordering while retaining the computed
+        similarities for downstream utility estimation. This isolates the
+        value of similarity ranking from the value of similarity weighting.
+        """
         scored = []
+        weights = (0.35, 0.50, 0.15) if similarity_weights is None else tuple(similarity_weights)
+        if len(weights) != 3 or any(weight < 0 for weight in weights) or sum(weights) <= 0:
+            raise ValueError("similarity_weights must contain three non-negative values with positive sum")
+        total_weight = sum(weights)
+        weights = tuple(weight / total_weight for weight in weights)
+        if selection_mode not in {"ranked", "random"}:
+            raise ValueError("selection_mode must be 'ranked' or 'random'")
         query_features = query.get("retrieval_features", {})
         baseline_prediction = query_features.get("baseline_prediction")
         records = sorted(self._records.values(), key=lambda record: record.memory_id)
@@ -114,9 +131,15 @@ class ResidualMemoryStore:
             )
             length_delta = abs(float(query_features.get("evidence_tokens", 0)) - float(features.get("evidence_tokens", 0)))
             length_similarity = 1.0 / (1.0 + length_delta / 100.0)
-            score = 0.35 * lexical + 0.50 * score_profile + 0.15 * length_similarity
+            score = weights[0] * lexical + weights[1] * score_profile + weights[2] * length_similarity
             scored.append((record, score))
-        return sorted(scored, key=lambda item: (-item[1], item[0].memory_id))[:top_k]
+        if selection_mode == "random":
+            query_key = str(query.get("example_id", query.get("claim", "")))
+            def random_key(item):
+                payload = f"{random_seed}\x1f{query_key}\x1f{item[0].memory_id}"
+                return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+            return heapq.nsmallest(top_k, scored, key=random_key)
+        return heapq.nsmallest(top_k, scored, key=lambda item: (-item[1], item[0].memory_id))
 
     def __len__(self):
         return len(self._records)
