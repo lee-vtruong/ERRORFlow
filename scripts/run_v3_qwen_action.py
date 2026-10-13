@@ -84,6 +84,7 @@ def main():
     parser.add_argument("--seed", type=int, default=2026)
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--external-evaluation", action="store_true")
     args = parser.parse_args()
     assert_b1_immutable()
     if args.max_samples is not None and args.max_samples < 1:
@@ -99,7 +100,13 @@ def main():
     ids = [str(row["example_id"]) for row in rows]
     if len(ids) != len(set(ids)):
         raise ValueError("Input contains duplicate example IDs")
-    if args.split != "train" or any(key.startswith("dev:") for key in ids):
+    datasets = {row.get("dataset") for row in rows}
+    if args.external_evaluation:
+        if not args.split.startswith("external_"):
+            raise ValueError("External evaluation split must start with external_")
+        if not datasets or not datasets <= {"SciFact", "Climate-FEVER"}:
+            raise ValueError("External evaluation accepts only SciFact or Climate-FEVER")
+    elif args.split != "train" or any(key.startswith("dev:") for key in ids):
         raise ValueError("V3 development action runner accepts train split only")
 
     prompt = ACTION_PROMPTS[args.action]
@@ -114,6 +121,8 @@ def main():
         "generation": generation, "generation_config_hash": generation_hash,
         "max_samples": args.max_samples, "seed": args.seed,
     }
+    if args.external_evaluation:
+        run_config["external_evaluation"] = True
     manifest = {
         "schema_version": 3, "config_id": config_hash(run_config, length=32), "config": run_config,
         "status": "dry_run" if args.dry_run else "running", "output": str(output),

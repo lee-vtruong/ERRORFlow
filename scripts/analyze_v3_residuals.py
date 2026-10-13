@@ -18,19 +18,28 @@ def main():
     parser.add_argument("--folds", type=int, default=5)
     parser.add_argument("--seed", type=int, default=2026)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--external-evaluation", action="store_true")
     args = parser.parse_args()
     gold = list(read_jsonl(args.gold))
     predictions = list(read_jsonl(args.predictions))
     if args.max_samples is not None:
         gold, predictions = gold[:args.max_samples], predictions[:args.max_samples]
-    reject_opened_holdout(gold)
+    if args.external_evaluation:
+        if any(row.get("dataset") == "AVeriTeC" for row in gold):
+            raise ValueError("External evaluation cannot use AVeriTeC rows")
+    else:
+        reject_opened_holdout(gold)
     records = build_residual_records(gold, predictions)
-    folds = assign_grouped_folds(gold, args.folds, args.seed)
+    folds = ({row["example_id"]: None for row in gold} if args.external_evaluation
+             else assign_grouped_folds(gold, args.folds, args.seed))
     for row in records:
         row["outer_fold"] = folds[row["example_id"]]
     summary = summarize_residuals(records)
-    summary.update({"folds": args.folds, "seed": args.seed, "development_split": "train_only",
-                    "opened_holdout_excluded": True, "dry_run": args.dry_run})
+    summary.update({
+        "folds": None if args.external_evaluation else args.folds, "seed": args.seed,
+        "development_split": "external_evaluation" if args.external_evaluation else "train_only",
+        "opened_holdout_excluded": True, "dry_run": args.dry_run,
+    })
     print(json.dumps(summary, indent=2))
     if args.dry_run:
         return

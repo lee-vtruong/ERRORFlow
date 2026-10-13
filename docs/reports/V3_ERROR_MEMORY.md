@@ -1,6 +1,6 @@
 # ERRORFlow V3 structured residual memory
 
-Status: **IMPLEMENTED; TRAIN ARTIFACT PENDING**.
+Status: **IMPLEMENTED; FULL A3 TRAIN ARTIFACT AND SIZE ABLATION COMPLETED**.
 
 The memory stores one versioned action outcome per train example/action. It
 records recovery, regression, cost, provenance, observable applicability
@@ -19,3 +19,20 @@ Implemented operations:
 
 Gold labels, correctness, and error transitions are retained only as offline
 outcome provenance. Retrieval never consumes them.
+
+## Full A3 memory-size ablation
+
+| Memory records | Route rate | Net | Delta accuracy | Delta macro-F1 | Avg passes |
+|---:|---:|---:|---:|---:|---:|
+| 0 | 0.0000 | 0 | 0.00000 | 0.00000 | 4.000 |
+| 25 | 0.1102 | +39 | +0.01271 | -0.00055 | 4.441 |
+| 50 | 0.1848 | +51 | +0.01662 | +0.01094 | 4.739 |
+| 100 | 0.1340 | +63 | +0.02053 | +0.01374 | 4.536 |
+| 200 | 0.1675 | +52 | +0.01695 | +0.00720 | 4.670 |
+| all (3,068) | 0.1164 | +58 | +0.01890 | +0.01546 | 4.465 |
+
+The curve is not monotonic. Fifty records are sufficient for positive deltas
+on both metrics; 100 maximizes accuracy/net, while the full memory maximizes the
+predeclared primary metric macro-F1 and uses fewer passes than the 50- and
+200-record variants. The full memory remains the frozen source configuration;
+100 is an exploratory accuracy-oriented alternative.

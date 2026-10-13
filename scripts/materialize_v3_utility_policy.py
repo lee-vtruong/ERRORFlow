@@ -37,9 +37,10 @@ def materialize(baseline_rows, candidate_rows, store, action, top_k=5,
             "label_scores": row.get("label_scores", {}),
             "evidence_tokens": row.get("evidence_tokens", 0),
         }}
+        outer_fold = row.get("outer_fold")
         neighbors = store.retrieve(
             query, top_k=top_k, action=action, exclude_claim_ids={key},
-            exclude_folds={row.get("outer_fold")},
+            exclude_folds={outer_fold} if outer_fold is not None else None,
         )
         best, estimates = best_memory_action(
             [action], neighbors, cost_weight=cost_weight,
@@ -58,8 +59,10 @@ def materialize(baseline_rows, candidate_rows, store, action, top_k=5,
             "token_count": int(row.get("token_count", 0)) +
                            (int(candidate[key].get("token_count", 0)) if routed else 0),
             "metadata": {
-                "policy": "R6_utility", "outer_fold": row.get("outer_fold"),
-                "memory_fold_excluded": True, "utility_threshold": utility_threshold,
+                "policy": "R6_utility", "outer_fold": outer_fold,
+                "memory_fold_excluded": outer_fold is not None,
+                "external_source_only_memory": outer_fold is None,
+                "utility_threshold": utility_threshold,
                 "top_k": top_k, "min_support": min_support, "cost_weight": cost_weight,
                 "model_forward_passes": 4 + 4 * int(routed),
                 "llm_requests": 1 + int(routed),
