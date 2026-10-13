@@ -34,3 +34,8 @@ Paired analysis now supports the train-internal R6 gain: accuracy delta CI95
 `[+0.00346, +0.02745]`, and exact McNemar `p=1.03e-6`. R6 produces 99 helpful
 versus 41 harmful discordant outcomes while routing 11.64% of examples. External
 validation and fold-level stability remain required.
+
+Fold-level stability is now confirmed on train: all 5/5 folds improve accuracy
+and macro-F1, with route rates from 10.44% to 12.72%. The minimum fold deltas
+are +0.01305 accuracy and +0.00503 macro-F1. Memory-size ablation and external
+validation remain pending.

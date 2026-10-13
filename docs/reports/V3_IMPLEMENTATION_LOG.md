@@ -56,6 +56,9 @@ Status: **FUNCTIONALLY IMPLEMENTED; experimental evidence pending**.
   tooling. Statistical execution is complete: net +58, McNemar `p=1.03e-6`,
   accuracy delta CI95 `[0.01108, 0.02673]`, and macro-F1 delta CI95
   `[0.00346, 0.02745]`.
+- Fold stability is complete: 5/5 outer folds improve both metrics. Class-level
+  analysis shows the gain is concentrated in NEI and REFUTED; CONFLICTING F1
+  improves only from 0.08230 to 0.08730.
 - Added versioned/deactivatable residual action memory and fold-safe retrieval.
 - Added R0–R6 cached-action evaluation at population-weighted matched budgets.
 - Nested inner-fold selection, Architecture B, and cross-domain validation remain

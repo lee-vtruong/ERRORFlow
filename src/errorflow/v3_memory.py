@@ -57,6 +57,7 @@ def smoothed_utility(recovery_count, regression_count, support, alpha=1.0, beta=
 class ResidualMemoryStore:
     def __init__(self, records=()):
         self._records = {}
+        self._ranked_cache = None
         for record in records:
             self.upsert(record)
 
@@ -65,12 +66,14 @@ class ResidualMemoryStore:
         if current and record.version < current.version:
             raise ValueError("Cannot replace a memory with an older version")
         self._records[record.memory_id] = record
+        self._ranked_cache = None
 
     def deactivate(self, memory_id, reason):
         record = self._records[memory_id]
         provenance = dict(record.provenance)
         provenance["deactivation_reason"] = reason
         self._records[memory_id] = replace(record, active=False, provenance=provenance)
+        self._ranked_cache = None
 
     def save(self, path):
         write_jsonl(path, (self._records[key].to_dict() for key in sorted(self._records)))
@@ -86,10 +89,12 @@ class ResidualMemoryStore:
         baseline_prediction = query_features.get("baseline_prediction")
         records = sorted(self._records.values(), key=lambda record: record.memory_id)
         if max_records is not None:
-            records = sorted(
-                records,
-                key=lambda record: (-(abs(record.estimated_net_utility or 0.0)), record.memory_id),
-            )[:max_records]
+            if self._ranked_cache is None:
+                self._ranked_cache = sorted(
+                    self._records.values(),
+                    key=lambda record: (-(abs(record.estimated_net_utility or 0.0)), record.memory_id),
+                )
+            records = self._ranked_cache[:max_records]
         allowed_splits = {"train"} if allowed_splits is None else allowed_splits
         for record in records:
             if not record.active or record.source_split not in allowed_splits:

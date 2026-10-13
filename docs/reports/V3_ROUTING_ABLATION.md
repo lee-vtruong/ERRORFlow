@@ -83,3 +83,25 @@ With 5,000 paired bootstrap samples, the 95% interval for accuracy delta is
 This supports a train-internal, fold-excluded benefit over B1. It does not
 remove adaptivity from earlier action screening, replace nested inner-fold
 selection, or establish independent-domain generalization.
+
+## Fold and class stability
+
+R6 routes 357/3,068 examples (11.64%), with 99 helpful and 41 harmful flips.
+All five grouped outer folds improve in both metrics. Fold accuracy deltas span
+`[+0.01305, +0.02769]`; fold macro-F1 deltas span
+`[+0.00503, +0.03458]`. Route rates remain between 10.44% and 12.72%, and every
+fold has positive net correction.
+
+Per-class F1 changes relative to B1 are:
+
+| Label | B1 F1 | R6 F1 | Delta |
+|---|---:|---:|---:|
+| CONFLICTING | 0.08230 | 0.08730 | +0.00500 |
+| NOT ENOUGH INFO | 0.53571 | 0.56075 | +0.02503 |
+| REFUTED | 0.81631 | 0.83813 | +0.02182 |
+| SUPPORTED | 0.74975 | 0.75972 | +0.00998 |
+
+The gain is broad across folds but not a substantive solution to CONFLICTING:
+only 11/195 CONFLICTING examples are correct under R6 versus 10/195 under B1.
+The defensible description is selective residual correction, not conflicting-
+evidence resolution.

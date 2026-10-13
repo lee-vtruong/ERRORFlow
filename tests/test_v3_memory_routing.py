@@ -74,3 +74,18 @@ def test_utility_router_and_budget_are_deterministic():
     assert best.utility > 0
     assert select_budget(["a", "b", "c", "d"], {"a": 4, "b": 3, "c": 2, "d": 1}, 0.5) == {"a", "b"}
     assert select_weighted_budget(["a", "b"], {"a": 2, "b": 1}, {"a": 1, "b": 9}, 0.1) == {"a"}
+
+
+def test_memory_size_ranking_cache_is_invalidated_on_update():
+    records = build_action_memories([residual()], [("audit", [candidate()])])
+    store = ResidualMemoryStore(records)
+    query = {"claim": "alpha", "retrieval_features": {
+        "baseline_prediction": "REFUTED", "label_scores": {"REFUTED": -1, "SUPPORTED": -2},
+        "evidence_tokens": 5,
+    }}
+    assert len(store.retrieve(query, max_records=1)) == 1
+    second = build_action_memories(
+        [residual("train:2")], [("audit", [candidate("train:2")])]
+    )[0]
+    store.upsert(second)
+    assert len(store.retrieve(query, max_records=2)) == 2
