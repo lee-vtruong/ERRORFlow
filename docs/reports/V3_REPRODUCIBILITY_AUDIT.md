@@ -1,6 +1,6 @@
 # ERRORFlow V3 reproducibility and leakage audit
 
-Status: **ARTIFACT REPLAY PASSED; NEAR-DUPLICATE GROUPING SENSITIVITY PENDING**.
+Status: **WP0 COMPLETE — REPRODUCIBLE AND FOLD-ISOLATED, BUT TRAIN-SELECTED**.
 
 ## Scope and audit anchor
 
@@ -121,3 +121,40 @@ new in-memory copies, replays R6, and writes new run IDs. Shared evidence text
 or source identifiers are reported but are not used for grouping because doing
 so could collapse legitimate multi-claim sources and create an unrealistic
 domain split.
+
+## Near-duplicate grouping result
+
+All three conservative grouping thresholds preserve a positive result:
+
+| Token-Jaccard threshold | Routes | Helpful | Harmful | Delta accuracy | Delta macro-F1 | McNemar p |
+|---:|---:|---:|---:|---:|---:|---:|
+| 0.85 | 336 | 86 | 41 | +0.01467 | +0.01198 | 8.06e-5 |
+| 0.90 | 343 | 90 | 44 | +0.01499 | +0.01169 | 8.75e-5 |
+| 0.95 | 336 | 92 | 35 | +0.01858 | +0.01432 | 4.36e-7 |
+
+Every accuracy and macro-F1 bootstrap interval remains above zero. The strictest
+macro-F1 lower bound occurs at threshold 0.90 and is still positive
+(`0.000086`). Route-set Jaccard relative to the historical split is only
+0.582–0.612, yet net correction remains positive. This shows the gain is not
+explained by the 40 detected cross-fold near-duplicate pairs.
+
+The artifact audit also reports 11 repeated normalized evidence texts and 171
+shared source identifiers across folds. These are not direct router inputs:
+memory retrieval uses claim text, B1 score profile, evidence length, and B1
+prediction, but not evidence text, URL, title, or target gold. Grouping every
+claim that shares a source would over-collapse legitimate multi-claim sources.
+They are retained as a documented correlation risk rather than classified as
+direct leakage.
+
+## WP0 gate decision
+
+- Direct target-ID/fold leakage: not found.
+- Target-gold use in routing: not found; permutation invariance passed.
+- Policy reproducibility: exact replay, zero route/prediction mismatches.
+- Metric/statistic reproducibility: exact stored-result match.
+- Exact and near-duplicate sensitivity: passed.
+- Historical AVeriTeC R6 status: `VERIFIED_BUT_TRAIN_SELECTED`.
+- Historical S0/B1 same-train comparison: `DESCRIPTIVE_ONLY`.
+
+WP1 may proceed, but paper tables must retain the train-selection qualifier
+unless a nested or genuinely independent confirmation replaces it.
