@@ -7,7 +7,15 @@ from pathlib import Path
 
 from errorflow.evaluation_v2 import accuracy, macro_f1
 from errorflow.io import atomic_write_json, read_jsonl
-from scripts.evaluate_scifact_retrieval import gold_groups
+
+
+def gold_groups(claim):
+    return [
+        {(str(doc_id), int(sentence_id)) for sentence_id in rationale.get("sentences", [])}
+        for doc_id, rationale_sets in (claim.get("evidence") or {}).items()
+        for rationale in rationale_sets
+        if rationale.get("sentences")
+    ]
 
 
 def retrieval_group(claim, retrieved):
