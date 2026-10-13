@@ -8,7 +8,7 @@ ERRORFlow V3 is a training-free, post-hoc residual correction framework for
 fact verification. A frozen base verifier first predicts a verdict. A second
 frozen action prompt is available as a counterfactual correction. A
 non-parametric source error memory estimates whether the action is likely to
-help, and a cost-aware router invokes it selectively. No model weights are
+help, and a utility router invokes it selectively. No model weights are
 updated.
 
 The defensible contribution is **selective residual correction under a frozen
@@ -30,8 +30,13 @@ Suggested title:
 3. Residual memory stores AVeriTeC train action outcomes and observable B1
    features. It does not update model parameters.
 4. R6 retrieves compatible source memories and routes only when estimated net
-   utility after action cost is positive.
+   utility after a fixed action-cost penalty is positive.
 5. Matched-route confidence and similarity routers control for extra compute.
+
+With one action and one constant cost, `R-Memory` and R6 induce identical
+rankings at a fixed route budget. The current experiments validate residual
+outcome-memory routing and explicit compute accounting, not an independent
+benefit from cost-aware ranking.
 
 Frozen R6 parameters are `top_k=5`, `min_support=2`, `cost_weight=0.1`, and
 utility threshold `>0`. All external target labels are read only for final
@@ -41,8 +46,8 @@ evaluation.
 
 | Evaluation | System | Accuracy | Macro-F1 | Route rate | Avg. forward passes | Interpretation |
 |---|---|---:|---:|---:|---:|---|
-| AVeriTeC train, fold-excluded internal | B1 | 0.7402 | 0.5460 | 0.000 | 4.000 | Train-selected source baseline |
-| AVeriTeC train, fold-excluded internal | R6 | 0.7591 | 0.5615 | 0.116 | 4.465 | +1.89 accuracy, +1.55 F1; not independent holdout |
+| AVeriTeC train, grouped fold-excluded internal | B1 | 0.7402 | 0.5460 | 0.000 | 4.000 | Train-selected source baseline |
+| AVeriTeC train, grouped fold-excluded internal | R6 | 0.7552 | 0.5577 | 0.112 | 4.447 | Conservative near-duplicate grouping; not independent holdout |
 | CLIMATE-FEVER official candidates | B1 | 0.5212 | 0.3808 | 0.000 | 4.000 | Locked four-label external baseline |
 | CLIMATE-FEVER official candidates | A3-All | 0.5518 | 0.4393 | 1.000 | 8.000 | Significant +3.06 accuracy, +5.85 F1 |
 | CLIMATE-FEVER official candidates | R6 | 0.5375 | 0.4063 | 0.199 | 4.797 | Significant versus B1; not above confidence control |
@@ -55,9 +60,10 @@ evaluation.
 
 ## Statistical findings
 
-- AVeriTeC internal R6: +0.01890 accuracy and +0.01546 macro-F1; exact McNemar
-  `p=1.03e-6`; both bootstrap intervals positive. The result remains
-  train-selected despite fold exclusion.
+- AVeriTeC grouped internal R6: +0.01499 accuracy and +0.01169 macro-F1; exact
+  McNemar `p=8.75e-5`; both bootstrap intervals positive. The historical
+  exact-duplicate-fold estimate is +0.01890/+0.01546 and is retained only as a
+  sensitivity result. Both estimates remain train-selected.
 - CLIMATE-FEVER A3-All versus B1: exact McNemar `p=0.00140`; accuracy delta CI
   `[0.0124, 0.0489]`; macro-F1 delta CI `[0.0355, 0.0825]`.
 - CLIMATE-FEVER R6 versus B1: exact McNemar `p=0.00728`; accuracy delta CI
@@ -118,6 +124,8 @@ routing regress.
 7. External samples are modest, and several matched-router comparisons are
    statistically inconclusive.
 8. CONFLICTING-class performance is weak across the four-label datasets.
+9. Constant action cost makes R-Memory and R6 equivalent at a fixed budget;
+   heterogeneous-cost routing has not been demonstrated.
 
 ## Recommended paper tables and figures
 
