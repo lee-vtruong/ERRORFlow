@@ -11,7 +11,10 @@ from errorflow.io import atomic_write_json, read_jsonl
 from errorflow.v3_folds import assign_grouped_folds, normalized_claim
 from errorflow.v3_memory import ResidualMemoryStore
 from errorflow.v3_statistics import mcnemar_exact, paired_bootstrap, percentile
-from scripts.materialize_v3_utility_policy import materialize, summarize
+try:
+    from scripts.materialize_v3_utility_policy import materialize, summarize
+except ModuleNotFoundError:  # Direct `python scripts/...py` execution.
+    from materialize_v3_utility_policy import materialize, summarize
 
 
 def sha256_file(path):
