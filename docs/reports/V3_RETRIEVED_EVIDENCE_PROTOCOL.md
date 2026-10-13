@@ -1,6 +1,6 @@
 # ERRORFlow V3 retrieved-evidence validation protocol
 
-Status: **PROTOCOL FROZEN; RETRIEVAL ARTIFACT PENDING**.
+Status: **PROTOCOL AND RETRIEVAL ARTIFACT VERIFIED; INFERENCE PENDING**.
 
 ## Objective
 
@@ -56,3 +56,19 @@ The corpus already exists on the server. The implementation creates only a
 300-row retrieved JSONL artifact and small metrics/prediction files. No model,
 embedding index, or external knowledge store is downloaded, which is required
 while the server has approximately 9.7 GiB free.
+
+## Retrieval checkpoint
+
+The frozen retriever produced 300 unique examples and exactly five sentences
+per example from 5,183 corpus documents. The corpus and claim hashes reproduce
+the earlier oracle experiment. All 1,500 evidence records have source
+`scifact_open_bm25`; the manifest confirms no use of cited document IDs, gold
+rationales, or labels for ranking. The artifact occupies 900 KiB, leaving 9.7
+GiB free on the server.
+
+Among 188 verifiable claims, top-5 any-rationale sentence recall is 0.6436,
+complete-rationale recall is 0.6277, and mean best-rationale coverage is
+0.6356. At top 1 these metrics are 0.3936, 0.3777, and 0.3856; at top 3 they
+are 0.5585, 0.5479, and 0.5532. This fixed, imperfect retrieval condition is
+accepted without parameter tuning and will be compared directly with the
+existing oracle-rationale result.

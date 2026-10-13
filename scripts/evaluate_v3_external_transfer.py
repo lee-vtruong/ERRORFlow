@@ -102,10 +102,12 @@ def per_class(gold, predicted):
     return result
 
 
-def evaluate(ids, gold_rows, baseline, candidate, selected):
+def evaluate(ids, gold_rows, baseline, candidate, selected, projection=None):
+    projection = projection or {}
     gold = [gold_rows[key]["label"] for key in ids]
-    before = [baseline[key]["prediction"] for key in ids]
-    after = [candidate[key]["prediction"] if key in selected else baseline[key]["prediction"] for key in ids]
+    before = [projection.get(baseline[key]["prediction"], baseline[key]["prediction"]) for key in ids]
+    raw_after = [candidate[key]["prediction"] if key in selected else baseline[key]["prediction"] for key in ids]
+    after = [projection.get(prediction, prediction) for prediction in raw_after]
     helpful = sum(b != g and a == g for g, b, a in zip(gold, before, after))
     harmful = sum(b == g and a != g for g, b, a in zip(gold, before, after))
     latencies = [
@@ -145,6 +147,7 @@ def main():
     parser.add_argument("--utility-threshold", type=float, default=0.0)
     parser.add_argument("--samples", type=int, default=5000)
     parser.add_argument("--seed", type=int, default=2026)
+    parser.add_argument("--project-conflicting-to-nei", action="store_true")
     args = parser.parse_args()
     gold_rows = indexed(read_jsonl(args.gold), "gold")
     baseline = indexed(read_jsonl(args.baseline), "baseline")
@@ -157,9 +160,10 @@ def main():
         args.top_k, args.min_support, args.cost_weight, args.utility_threshold,
     )
     # Route selection above has no access to gold_rows. Gold is opened only for evaluation.
+    projection = {"CONFLICTING": "NOT ENOUGH INFO"} if args.project_conflicting_to_nei else {}
     results, predictions = {}, {}
     for policy, selected in routes.items():
-        result, output = evaluate(ids, gold_rows, baseline, candidate, selected)
+        result, output = evaluate(ids, gold_rows, baseline, candidate, selected, projection)
         results[policy] = result
         predictions[policy] = output
     expected = [gold_rows[key]["label"] for key in ids]
@@ -173,9 +177,14 @@ def main():
     rows = []
     for policy, selected in routes.items():
         for key, prediction in zip(ids, predictions[policy]):
+            raw_prediction = (
+                candidate[key]["prediction"] if key in selected else baseline[key]["prediction"]
+            )
             rows.append({
                 "example_id": key, "policy": policy, "routed": key in selected,
-                "prediction": prediction, "gold_label": gold_rows[key]["label"],
+                "prediction": prediction, "pre_projection_prediction": raw_prediction,
+                "projection_applied": raw_prediction != prediction,
+                "gold_label": gold_rows[key]["label"],
             })
     summary = {
         "evaluation": "locked_external_four_label_source_only_matched_route_count",
@@ -185,6 +194,8 @@ def main():
             "cost_weight": args.cost_weight, "utility_threshold": args.utility_threshold,
             "seed": args.seed, "confidence_and_similarity_matched_to_r6_route_count": True,
             "target_labels_used_for_routing": False,
+            "evaluation_label_projection": projection,
+            "routing_uses_pre_projection_predictions": True,
         },
         "results": results, "comparisons": comparisons,
         "input_artifacts": {

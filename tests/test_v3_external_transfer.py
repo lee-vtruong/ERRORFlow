@@ -40,3 +40,15 @@ def test_evaluation_accounts_for_helpful_and_harmful_flips():
     assert result["helpful"] == 1
     assert result["harmful"] == 1
     assert result["net"] == 0
+
+
+def test_evaluation_projects_only_metric_predictions():
+    ids = ["a"]
+    gold = {"a": {"label": "NOT ENOUGH INFO"}}
+    baseline = {"a": row("a", "CONFLICTING")}
+    candidate = {"a": row("a", "SUPPORTED")}
+    result, predictions = evaluate(
+        ids, gold, baseline, candidate, set(), {"CONFLICTING": "NOT ENOUGH INFO"}
+    )
+    assert predictions == ["NOT ENOUGH INFO"]
+    assert result["accuracy"] == 1.0
