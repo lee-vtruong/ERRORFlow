@@ -166,6 +166,7 @@ def main():
     comparisons = {
         "R6_vs_B1": comparison(expected, predictions["B1"], predictions["R6"], args.samples, args.seed),
         "A3-All_vs_B1": comparison(expected, predictions["B1"], predictions["A3-All"], args.samples, args.seed),
+        "A3-All_vs_R6": comparison(expected, predictions["R6"], predictions["A3-All"], args.samples, args.seed),
         "R6_vs_R-Confidence": comparison(expected, predictions["R-Confidence"], predictions["R6"], args.samples, args.seed),
         "R6_vs_R-Similarity": comparison(expected, predictions["R-Similarity"], predictions["R6"], args.samples, args.seed),
     }
