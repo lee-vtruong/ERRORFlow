@@ -1,7 +1,6 @@
 # ERRORFlow V3 retrieved-evidence validation protocol
 
-Status: **PRIMARY RETRIEVED-EVIDENCE EVALUATION COMPLETE; PER-CLASS EXTRACTION
-PENDING**.
+Status: **COMPLETE — FROZEN RETRIEVED-EVIDENCE VALIDATION**.
 
 ## Objective
 
@@ -146,3 +145,17 @@ features correlate with weak-evidence conditions. The result supports a
 selective-safety interpretation: R6 captures some NEI benefit while avoiding
 the substantial always-on A3 regression on retrieval misses. It does not show
 that R6 repairs missing evidence.
+
+## Per-class result
+
+Under retrieved evidence, B1 obtains F1 0.5275 for NOT ENOUGH INFO, 0.4960 for
+REFUTED, and 0.7099 for SUPPORTED. R6 improves all three to 0.5579, 0.5385,
+and 0.7143. A3-All produces the strongest NEI F1 (0.6087), while R6 produces
+the strongest REFUTED (0.5385) and SUPPORTED (0.7143) F1 among the reported
+systems. Confidence routing reaches 0.5528/0.5042/0.6950, and similarity
+routing reaches 0.5326/0.4878/0.7099.
+
+The class-level pattern agrees with the retrieval stratification: always-on A3
+primarily increases abstention/NEI recall, whereas selective R6 provides a more
+balanced improvement across evidence sufficiency, refutation, and support.
+WP4 is closed without retrieval, prompt, projection, or routing retuning.

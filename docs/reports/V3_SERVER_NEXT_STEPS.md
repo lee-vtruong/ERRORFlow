@@ -9,6 +9,10 @@
 > now a consumed locked external benchmark. The next research operation must
 > use a predeclared WP4 evidence-condition protocol or proceed to the paper
 > package without target-specific tuning.
+>
+> WP4 is now complete. The next active deliverable is WP5 paper packaging;
+> see `V3_PAPER_PACKAGE.md`. Any new model, retriever, prompt, or router is a
+> separately versioned follow-up experiment and must not overwrite V3 results.
 
 ## Pull and verify
 
