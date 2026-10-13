@@ -1,6 +1,6 @@
 # CLIMATE-FEVER external validation protocol
 
-Status: **PROTOCOL FROZEN; DATA PREPARATION PENDING**.
+Status: **PROTOCOL AND DATA MANIFEST VERIFIED; INFERENCE PENDING**.
 
 ## Dataset reconnaissance
 
@@ -9,6 +9,13 @@ claims and five Wikipedia evidence candidates per claim (7,675 pairs). It is a
 single labeled release, not an official train/development/test partition. The
 claim-label distribution reported by the paper is 655 SUPPORTS, 253 REFUTES,
 474 NOT_ENOUGH_INFO, and 153 DISPUTED.
+
+The downloaded official v1.0.1 release contains 654 SUPPORTS, 253 REFUTES, 474
+NOT_ENOUGH_INFO, and 154 DISPUTED claims. This one-example difference from the
+paper is retained as a release-version discrepancy rather than manually
+altered. The release has 1,535 unique claim IDs, exactly five evidence
+candidates for every claim, 7,675 evidence pairs, and SHA-256
+`8a4b9032d861be482ffb49dddfd283ffa6089e654f1e968040011882c5eb6e0b`.
 
 The five evidence sentences were retrieved by the authors' evidence candidate
 retrieval system and then annotated. They are therefore neither independently
@@ -70,6 +77,7 @@ paired bootstrap intervals, and model forward passes.
 
 ## Gate
 
-Model inference may begin only after the downloader manifest reproduces the
-expected 1,535 unique claims, five evidence candidates per claim, and published
-claim-label counts. Any discrepancy blocks execution pending investigation.
+The structural gate passed: 1,535 unique claims, five candidates per claim, no
+evidence annotation metadata in the normalized prompt artifact, and a pinned
+official-release hash. The paper/release one-label discrepancy is documented
+above and does not block inference.

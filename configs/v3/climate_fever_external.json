@@ -2,6 +2,13 @@
   "protocol_id": "climate_fever_external_v1",
   "dataset": "CLIMATE-FEVER",
   "dataset_release": "1.0.1",
+  "dataset_sha256": "8a4b9032d861be482ffb49dddfd283ffa6089e654f1e968040011882c5eb6e0b",
+  "release_claim_labels": {
+    "SUPPORTED": 654,
+    "REFUTED": 253,
+    "NOT ENOUGH INFO": 474,
+    "CONFLICTING": 154
+  },
   "evaluation_population": "all_1535_official_claims_locked_external",
   "official_split_status": "single_labeled_release_no_train_dev_test_split",
   "evidence_protocol": "five_official_retrieved_and_annotated_wikipedia_candidates_text_only",

@@ -187,6 +187,7 @@ def main():
             ).to_dict()
             record["example_id"] = record.pop("claim_id")
             record["dataset"] = row.get("dataset")
+            texts = evidence_texts(row)
             record["metadata"].update({
                 "instruction_profile": args.action, "decoding_mode": "label-score",
                 "prompt_sha256": prompt_hash, "model_hash": model_hash,
@@ -194,6 +195,9 @@ def main():
                 "cache_key": cache_key, "gold_label_accessed": False,
                 "label_protocol": args.label_protocol,
                 "model_forward_passes": len(labels), "llm_requests": 1,
+                "claim_tokens": len(str(row["claim"]).split()),
+                "evidence_count": len(texts),
+                "evidence_tokens": sum(len(text.split()) for text in texts),
             })
             target.write(json.dumps(record, ensure_ascii=False) + "\n")
             target.flush()
