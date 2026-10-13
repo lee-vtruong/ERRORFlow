@@ -1,0 +1,297 @@
+\documentclass[runningheads]{llncs}
+
+\usepackage[T1]{fontenc}
+\usepackage{newtxtext}
+\usepackage[varvw]{newtxmath}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{url}
+
+\title{ERRORFlow: Training-Free Selective Residual Correction for Fact Verification}
+\titlerunning{ERRORFlow}
+
+% TODO: replace author and affiliation placeholders before submission.
+\author{Anonymous Author(s)}
+\authorrunning{Anonymous Author(s)}
+\institute{Anonymous Institution}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Large language model fact verifiers can benefit from a second inference pass,
+but applying correction prompts uniformly increases compute and may regress
+already-correct predictions. We introduce ERRORFlow, a training-free residual
+correction framework that stores source-domain action outcomes in a
+non-parametric error memory and selectively invokes a frozen corrective prompt
+when similar residual patterns indicate positive utility. ERRORFlow updates no
+model weights and explicitly measures the quality--cost trade-off. Using
+Qwen3-4B-Instruct-2507, conservative grouped evaluation on AVeriTeC shows that
+memory-conditioned routing improves accuracy by 1.50 points and macro-F1 by
+1.17 points while routing 11.18\% of examples. On the locked four-label
+CLIMATE-FEVER evaluation, always-on correction improves accuracy and macro-F1
+by 3.06 and 5.85 points, while selective ERRORFlow obtains smaller significant
+gains at 19.93\% routing. On SciFact with open-corpus BM25 evidence, ERRORFlow
+routes 18.67\%, improving macro-F1 by 2.58 points with a positive paired
+bootstrap interval, although its accuracy interval crosses zero. Retrieval
+stratification shows that selection avoids regressions caused by always-on
+correction when relevant evidence is missed. Matched-budget comparisons do not
+establish superiority over simple confidence routing across external domains,
+and conflicting-evidence classification remains weak.
+\keywords{Fact verification \and Training-free inference \and Error memory
+\and Selective routing \and Retrieval-augmented verification}
+\end{abstract}
+
+\section{Introduction}
+
+Fact verification systems must jointly reason over a claim and imperfect
+evidence while deciding among support, refutation, insufficient evidence, and
+in some datasets conflicting evidence. A second-pass critique can repair some
+first-pass errors, but applying it to every example doubles label-scoring work
+and can change correct predictions into incorrect ones. The central question
+is therefore not only which corrective prompt to use, but when its expected
+benefit justifies its cost.
+
+We study this question without updating model parameters. ERRORFlow first
+executes a frozen verifier, then retrieves compatible residual outcomes from a
+versioned source memory. A selective router invokes one frozen correction
+action only when neighboring source outcomes indicate positive utility. The
+method records helpful and harmful changes, route rate, and model forward
+passes, enabling matched-budget comparisons against confidence, similarity,
+label-conditional, static, and random routers.
+
+Our experiments emphasize claim boundaries and reproducibility. Source-domain
+evaluation excludes the complete query fold from memory and includes
+near-duplicate grouping sensitivity. External target labels are not used for
+routing or model selection. We evaluate an ontology-aligned four-label setting
+on CLIMATE-FEVER, an adapter-sensitive oracle-rationale setting on SciFact,
+and an open-corpus BM25 SciFact condition that exposes retrieval failures.
+
+The main contributions are:
+\begin{itemize}
+  \item a training-free residual correction pipeline with immutable prompts,
+  versioned outcome memory, deterministic routing, and explicit compute
+  accounting;
+  \item leakage-audited source evaluation with exact policy replay and
+  near-duplicate-group sensitivity;
+  \item matched-budget controls that separate corrective-action quality from
+  routing quality; and
+  \item cross-domain and retrieved-evidence analyses that identify both
+  transfer gains and failure modes.
+\end{itemize}
+
+\section{Related Work}
+
+\paragraph{Fact verification.}
+% TODO: cite FEVER, AVeriTeC, SciFact, and CLIMATE-FEVER primary papers.
+Prior work combines evidence retrieval with natural-language inference or
+large language model reasoning. Direct leaderboard comparisons are outside our
+scope because our evidence conditions and frozen verifier differ across
+benchmarks.
+
+\paragraph{Test-time correction and compute.}
+% TODO: cite self-refinement, critique, verifier, and test-time compute work.
+Repeated inference and critique can improve reasoning, but uniform application
+obscures regressions and compute cost. ERRORFlow treats correction as a
+selective action evaluated against matched inference budgets.
+
+\paragraph{Non-parametric memory.}
+% TODO: cite case-based reasoning, retrieval memory, and error-driven systems.
+Our memory stores observed action outcomes rather than model parameters. It is
+supervised by labeled source outcomes and is therefore not label-free.
+
+\section{Method}
+
+\subsection{Frozen Base Verifier}
+
+Given claim $c$, evidence set $E$, and label set $\mathcal{Y}$, B1 computes the
+mean token log probability of each candidate label under a fixed instruction:
+\begin{equation}
+s_y = \frac{1}{|y|}\sum_{t=1}^{|y|}\log p(y_t\mid c,E,y_{<t}).
+\end{equation}
+The predicted label is $\hat{y}=\arg\max_y s_y$. Four model forward passes are
+used for four-label datasets. We use Qwen3-4B-Instruct-2507 with deterministic
+label scoring and seed 2026.
+
+\subsection{Corrective Action}
+
+A3 is a second immutable instruction, \texttt{conflicting\_rescue\_v1}, that
+asks the same model to reconsider evidence coverage, polarity, and potential
+conflict. A3 uses the same candidate-label scoring rule as B1. Always-on A3
+therefore adds four model forward passes per example.
+
+\subsection{Residual Outcome Memory}
+
+Each source-memory record contains the source claim, B1 prediction and score
+profile, evidence-length features, the A3 outcome, and observed utility. No
+target label enters a route decision. For source evaluation, records from the
+query's complete grouped fold are excluded. For external evaluation, the
+complete frozen AVeriTeC train memory is used.
+
+Memory retrieval combines claim token Jaccard similarity, B1 label-score
+distribution similarity, and evidence-length similarity. R6 retrieves five
+compatible records, requires support from at least two, subtracts a fixed
+action-cost penalty of 0.1, and routes only when estimated utility is positive.
+With one constant-cost action, this penalty cannot change ordering at a fixed
+budget; our experiments therefore validate residual outcome-memory routing,
+not an independent heterogeneous-cost mechanism.
+
+\subsection{Controls and Cost}
+
+We compare B1, A3-All, confidence-only, similarity-only, and R6 in every
+external evaluation. Source ablations additionally include random, margin,
+label-conditional, static-pattern, and outcome-memory routers. Selective
+controls receive exactly the realized R6 route count. Average model forward
+passes equal $4+4r$, where $r$ is the route rate.
+
+\section{Experimental Protocol}
+
+\subsection{Datasets and Evidence Conditions}
+
+\begin{table}[t]
+\caption{Evaluation settings. External target labels are used only for final
+metrics.}
+\label{tab:settings}
+\centering
+\small
+\begin{tabular}{llll}
+\toprule
+Dataset & $N$ & Labels & Evidence condition \\
+\midrule
+AVeriTeC train & 3068 & 4 & Human QA evidence; grouped internal evaluation \\
+CLIMATE-FEVER & 1535 & 4 & Five official retrieved/annotated candidates \\
+SciFact dev & 300 & 3 & Official gold-rationale oracle \\
+SciFact dev & 300 & 3 & Open-corpus BM25 top-5 sentences \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The CLIMATE-FEVER release is evaluated as one locked external population. Its
+DISPUTED label maps directly to CONFLICTING. SciFact has no CONFLICTING label;
+the predeclared primary adapter maps CONFLICTING predictions to NOT ENOUGH
+INFO. We retain raw four-label sensitivity and projection counts.
+
+The SciFact retriever ranks all 5,183 corpus documents with BM25 over title and
+abstract, retains five documents, and then ranks their sentences to retain
+five. It does not inspect cited document IDs, rationale indices, or labels.
+Among 188 verifiable claims, top-5 any-rationale recall is 64.36\% and complete
+rationale recall is 62.77\%.
+
+\subsection{Metrics and Statistical Tests}
+
+We report accuracy, macro-F1, per-class F1, helpful and harmful prediction
+changes, route rate, and average forward passes. Paired comparisons use exact
+two-sided McNemar tests and 5,000-sample paired bootstrap confidence intervals.
+Source matched-router comparisons additionally apply Holm correction.
+
+\section{Results}
+
+\begin{table*}[t]
+\caption{Main quality--cost results. AVeriTeC uses the conservative
+near-duplicate-grouped internal protocol. SciFact results use the predeclared
+three-label projection.}
+\label{tab:main}
+\centering
+\small
+\begin{tabular}{llrrrr}
+\toprule
+Evaluation & System & Accuracy & Macro-F1 & Route rate & Avg. passes \\
+\midrule
+\multirow{2}{*}{AVeriTeC grouped internal}
+ & B1 & 0.7402 & 0.5460 & 0.000 & 4.000 \\
+ & R6 & 0.7552 & 0.5577 & 0.112 & 4.447 \\
+\midrule
+\multirow{3}{*}{CLIMATE-FEVER}
+ & B1 & 0.5212 & 0.3808 & 0.000 & 4.000 \\
+ & A3-All & 0.5518 & 0.4393 & 1.000 & 8.000 \\
+ & R6 & 0.5375 & 0.4063 & 0.199 & 4.797 \\
+\midrule
+\multirow{3}{*}{SciFact oracle}
+ & B1 & 0.6067 & 0.5596 & 0.000 & 4.000 \\
+ & A3-All & 0.8167 & 0.7822 & 1.000 & 8.000 \\
+ & R6 & 0.6367 & 0.6052 & 0.113 & 4.453 \\
+\midrule
+\multirow{3}{*}{SciFact BM25}
+ & B1 & 0.6100 & 0.5778 & 0.000 & 4.000 \\
+ & A3-All & 0.6367 & 0.6157 & 1.000 & 8.000 \\
+ & R6 & 0.6267 & 0.6035 & 0.187 & 4.747 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{Source-Domain Routing}
+
+Under conservative token-Jaccard 0.90 grouping, R6 improves AVeriTeC accuracy
+by 1.50 points and macro-F1 by 1.17 points while routing 11.18\%. Both paired
+bootstrap intervals are positive and exact McNemar gives $p=8.75\times
+10^{-5}$. However, the action and router were selected on AVeriTeC train, so
+this result is train-selected rather than an independent generalization
+estimate. At the matched budget, R6 does not obtain a Holm-significant
+macro-F1 advantage over the strongest label-conditional control.
+
+\subsection{External Four-Label Transfer}
+
+On CLIMATE-FEVER, A3-All improves B1 by 3.06 accuracy points and 5.85 macro-F1
+points. R6 routes 19.93\% and improves B1 by 1.63 and 2.55 points; both paired
+intervals are positive. R6 is not significantly different from the
+confidence-only router at the same route count. Per-class analysis further
+shows that CONFLICTING F1 changes only from 0.1111 to 0.1202 under A3-All;
+most improvement occurs for NOT ENOUGH INFO and REFUTED.
+
+\subsection{SciFact Ontology Sensitivity}
+
+With oracle rationales, projected R6 improves accuracy by 3.00 points and
+macro-F1 by 4.56 points. The raw four-label comparison is null. Moreover, A3
+produces 96 CONFLICTING outputs under oracle evidence, and projection converts
+90 additional examples to correct predictions. This result is therefore
+adapter-mediated and cannot support projection-independent transfer.
+
+\subsection{Retrieved-Evidence Robustness}
+
+With open BM25 evidence, R6 improves B1 macro-F1 by 2.58 points with a positive
+bootstrap interval, while its 1.67-point accuracy interval crosses zero.
+A3-All and R6 are not significantly different. Only five A3 predictions are
+projected, so this condition is not driven by mass ontology conversion.
+
+Stratification reveals the mechanism. On 121 verifiable retrieval hits, B1 is
+already strong and R6 has net zero correctness change. On 67 retrieval misses,
+A3-All loses six net correct predictions, while R6 preserves B1 accuracy. On
+112 NEI claims, A3-All gains 15 and R6 gains five. R6 therefore provides
+selective harm avoidance rather than recovery of missing facts.
+
+\section{Limitations}
+
+The experiments use one base-model checkpoint. Source results are
+train-selected, and source memory uses labeled outcomes; training-free denotes
+the absence of weight updates, not the absence of supervision. SciFact oracle
+results depend strongly on label projection. CLIMATE-FEVER uses official
+retrieved candidates rather than ERRORFlow retrieval, while the open SciFact
+retriever is only a lexical baseline. Several external matched-router
+comparisons remain statistically inconclusive. Finally, CONFLICTING-class
+performance is weak, and constant action cost prevents an independent test of
+heterogeneous cost-aware ranking.
+
+\section{Conclusion}
+
+ERRORFlow shows that a frozen corrective action can be invoked selectively
+using non-parametric source residual outcomes. The method reduces second-pass
+compute and can improve a frozen verifier, but its strongest defensible effect
+is selective harm avoidance under imperfect evidence. External results do not
+establish universal superiority over simple confidence routing, and ontology
+adaptation must be reported explicitly.
+
+\begin{credits}
+\subsubsection{Acknowledgments}
+% TODO: add funding and acknowledgments.
+
+\subsubsection{Disclosure of Interests}
+The authors have no competing interests to declare that are relevant to the
+content of this article.
+\end{credits}
+
+% TODO: add verified primary references before submission, then uncomment:
+% \bibliographystyle{splncs04}
+% \bibliography{references}
+
+\end{document}
