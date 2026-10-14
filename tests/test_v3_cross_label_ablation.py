@@ -63,6 +63,14 @@ def test_contribution_decomposition_and_quota_are_explicit():
     )
     assert suppressed["score"] == float("-inf")
     assert suppressed["support"] == 0
+    controlled = module.neutralize_cross_label_outcomes(same + cross, "SUPPORTED")
+    controlled_bundle = module.estimate_bundle(
+        controlled, "audit", "SUPPORTED", min_support=2, cost_weight=0.1
+    )
+    assert controlled_bundle["support"] == bundle["support"]
+    assert controlled_bundle["cross_label_similarity_mass"] == bundle["cross_label_similarity_mass"]
+    assert controlled_bundle["cross_label_utility_contribution"] == 0.0
+    assert controlled_bundle["same_label_utility_contribution"] == bundle["same_label_utility_contribution"]
 
 
 def test_cross_label_cli_writes_mechanistic_and_paired_artifacts(tmp_path, monkeypatch):
@@ -109,8 +117,8 @@ def test_cross_label_cli_writes_mechanistic_and_paired_artifacts(tmp_path, monke
     report = json.loads((output / "summary.json").read_text(encoding="utf-8"))
     mechanism = list(read_jsonl(output / "mechanistic.jsonl"))
     assert report["evaluation"] == "grouped_fold_excluded_cross_label_memory_mechanism"
-    assert len(report["primary_results"]) == 18
-    assert len(report["matched_significance_nb0_minus_variant"]) == 8
+    assert len(report["primary_results"]) == 20
+    assert len(report["matched_significance_nb0_minus_variant"]) == 9
     assert report["nb4_stochastic_aggregate"]["natural"]["seeds"] == 2
     assert len(mechanism) == 8
     required = {

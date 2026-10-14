@@ -17,6 +17,7 @@ from memory.
 | NB5 | Same-label priority; use cross-label records only if fewer than five same-label records remain |
 | NB6 | Multiply cross-label similarity by 0.5 before top-5 selection |
 | NB7 | Limit the top-5 to at most one or two cross-label records; quota two is primary and quota one is sensitivity |
+| NB8 | Same-label outcome / global-support control: keep the exact NB0 global top-5, similarity mass, cost, support count, and abstention gate, but set cross-label recovery/regression outcomes to zero |
 
 NB4 uses seed 2026 for paired inference and seeds 2026--2045 for variability.
 The shuffle keeps same-label outcomes and neighbor similarities unchanged.
@@ -85,14 +86,18 @@ wc -l outputs/v3/averitec/cross_label_ablation/*.jsonl
 cat outputs/v3/averitec/cross_label_ablation/RESULTS_FOR_CODEX.txt
 ```
 
-Expected: 3,068 mechanistic rows, nine primary configurations (NB7 has quota
-one and quota two), 18 natural/matched primary results, and eight matched
+Expected after the P0 extension: 3,068 mechanistic rows, ten primary configurations (NB7 has quota
+one and quota two), 20 natural/matched primary results, and nine matched
 comparisons against NB0. Send `RESULTS_FOR_CODEX.txt` back for the paper update.
 
 ## Interpretation rules
 
 - NB3 differs from HardLabel because it never backfills the NLF top-5 after
   suppressing cross-label records.
+- NB8 is the strict support/abstention control. It retains every global NLF
+  slot and its similarity/cost contribution but neutralizes only cross-label
+  outcomes. Therefore NB0--NB8 isolates observed cross-label outcome signal;
+  it must not be described as ordinary same-label retrieval.
 - A gain from NB0 over NB3 isolates the utility contribution of cross-label
   outcomes within the same retrieved neighborhood.
 - A gain over NB4 supports cross-label instance--outcome association, not only
@@ -100,7 +105,8 @@ comparisons against NB0. Send `RESULTS_FOR_CODEX.txt` back for the paper update.
 - NB5 may coincide with HardLabel when at least five fold-safe same-label
   records exist; that equality is a valid mechanistic result.
 - Natural and matched-budget results must both be reported. Holm correction is
-  applied to the eight primary NB0-versus-control accuracy tests.
+  applied to the nine primary NB0-versus-control accuracy tests after NB8 is
+  added; historical eight-test adjusted values remain labeled historical.
 
 ## Completed canonical result
 

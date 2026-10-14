@@ -12,6 +12,7 @@ import json
 import math
 import statistics
 import time
+from dataclasses import replace
 from pathlib import Path
 
 from errorflow.io import atomic_write_json, read_jsonl, write_jsonl
@@ -49,6 +50,7 @@ PRIMARY_VARIANTS = (
     "NB6_soft_label_penalty",
     "NB7_cross_label_quota1",
     "NB7_cross_label_quota2",
+    "NB8_same_label_outcomes_global_support",
 )
 
 
@@ -132,6 +134,32 @@ def quota_neighbors(same, cross, top_k, quota):
         used_cross += int(is_cross)
         if len(output) == top_k:
             break
+    return output
+
+
+def neutralize_cross_label_outcomes(neighbors, query_label):
+    """Hold the NLF neighborhood/support fixed while removing cross-label outcomes.
+
+    Cross-label slots retain their similarity and estimated cost, so the total
+    similarity mass, denominator, support gate, and abstention opportunity are
+    exactly those of the global NLF lookup.  Only their recovery/regression
+    observations are neutralized.  This is the P0 control that NB3 cannot
+    provide because NB3 drops slots and may consequently fail min-support.
+    """
+    output = []
+    for record, score in neighbors:
+        if same_label(record, query_label):
+            output.append((record, score))
+            continue
+        provenance = dict(record.provenance)
+        provenance["cross_label_outcome_neutralized"] = True
+        output.append((replace(
+            record,
+            recovery_count=0,
+            regression_count=0,
+            estimated_net_utility=0.0,
+            provenance=provenance,
+        ), score))
     return output
 
 
@@ -285,6 +313,9 @@ def main():
             ),
             "NB7_cross_label_quota1": quota_neighbors(same, cross, args.top_k, 1),
             "NB7_cross_label_quota2": quota_neighbors(same, cross, args.top_k, 2),
+            "NB8_same_label_outcomes_global_support": neutralize_cross_label_outcomes(
+                nlf, row["prediction"]
+            ),
         }
         for variant, neighbors in variants.items():
             bundles[variant][key] = estimate_bundle(
@@ -302,6 +333,7 @@ def main():
             "NB6_soft_label_penalty": same_latency_ms + cross_latency_ms,
             "NB7_cross_label_quota1": same_latency_ms + cross_latency_ms,
             "NB7_cross_label_quota2": same_latency_ms + cross_latency_ms,
+            "NB8_same_label_outcomes_global_support": nlf_latency_ms,
         }
         for variant, latency in variant_latencies.items():
             bundles[variant][key]["routing_latency_ms"] = latency
@@ -515,12 +547,14 @@ def main():
             "utility_contributions": "Same/cross weighted (recovery-regression) numerators divided by W+2; the constant cost penalty is reported separately.",
             "NB5": "Take same-label neighbors first and use cross-label neighbors only when fewer than top-k same-label records remain.",
             "NB6": "Multiply cross-label similarities by the fixed soft-label-penalty before top-k selection.",
+            "NB8": "Keep the exact global NLF top-k, similarity mass, estimated cost, support count, and min-support decision, but set cross-label recovery/regression outcomes to zero. This isolates cross-label outcome information from candidate-pool and abstention effects.",
         },
         "integrity_notes": [
             "Routing uses no target gold label.",
             "Every lookup excludes the target claim and its grouped outer fold.",
             "NB4 seed 2026 is used for paired inference; all declared seeds are summarized for variability.",
             "NB7 quota 2 is the primary quota control; quota 1 is reported as sensitivity.",
+            "NB8 is the preregistered same-label-outcome/global-support control; it must not be described as ordinary HardLabel retrieval.",
         ],
     }
     args.output_dir.mkdir(parents=True, exist_ok=True)
