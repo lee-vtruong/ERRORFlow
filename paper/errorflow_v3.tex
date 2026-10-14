@@ -595,32 +595,83 @@ accuracy advantage ranges from 0.52 to 1.50 points. Thus similarity ranking
 adds information beyond random compatible memories, whereas the current
 manual mixture is not established as optimal.
 
-\subsection{Budget and Memory Sensitivity}
+\subsection{Outcome-Memory and Utility Ablations}
+\label{sec:memory-ablation}
 
-The frozen historical exact-fold sweep in Table~\ref{tab:budget} shows that
-R6 gains emerge by 5--10\% routing and saturate at its natural positive-utility
-set. Budgets above 11.64\% do not force non-positive routes. These values are a
-development-fold sensitivity analysis, not an externally tuned operating
-curve and not a replacement for the conservative grouped primary result.
+Table~\ref{tab:memory-ablation} isolates three questions central to ERRORFlow:
+whether historical outcomes matter, whether instance-level neighbors add value
+beyond class-level rates, and whether explicitly penalizing regressions is
+necessary. Except for B0, all rows use the same 343-route (11.18\%) correction
+budget. B1 and B14 report means over 20 deterministic seeds; their inferential
+tests use only the predeclared seed 2026 and are not tests of the displayed
+means.
 
-\begin{table}[t]
-\caption{Historical exact-fold R6 budget sweep on AVeriTeC development folds.}
-\label{tab:budget}
+\begin{table*}[t]
+\caption{Outcome-memory and utility ablations under a matched correction
+budget on grouped AVeriTeC. B1 and B14 are 20-seed means; deterministic rows
+are single frozen evaluations. B0 performs no correction.}
+\label{tab:memory-ablation}
 \centering\small
-\begin{tabular}{rrrrr}
+\begin{tabular}{lllrr}
 \toprule
-Budget & Actual route & $\Delta$Acc. & $\Delta$F1 & Passes \\
+ID & Configuration & Routed & Accuracy (\%) $\uparrow$ & Macro-F1 (\%) $\uparrow$ \\
 \midrule
-0\% & .000 & .0000 & .0000 & 4.000 \\
-5\% & .050 & .0137 & .0102 & 4.199 \\
-10\% & .100 & .0163 & .0123 & 4.399 \\
-20\% & .116 & .0189 & .0155 & 4.465 \\
-35\% & .116 & .0189 & .0155 & 4.465 \\
-50\% & .116 & .0189 & .0155 & 4.465 \\
-100\% & .116 & .0189 & .0155 & 4.465 \\
+B0 & No memory (B1 only) & 0 & 74.02 & 54.60 \\
+B1 & Random compatible memory$\dagger$ & 343 & 74.66 & 54.87 \\
+B14 & Stratified outcome shuffle$\dagger$ & 343 & 74.34 & 54.51 \\
+B15 & Class-conditional utility & 343 & 75.42 & 54.63 \\
+B10 & Recovery-only utility & 343 & \textbf{75.62} & 55.63 \\
+B9 & Full outcome memory & 343 & 75.52 & \textbf{55.77} \\
 \bottomrule
+\multicolumn{5}{l}{\footnotesize $\dagger$Mean over 20 seeds; seed 2026 is used for paired tests.} \\
 \end{tabular}
-\end{table}
+\end{table*}
+
+\paragraph{Outcome memory matters.}
+Destroying the association between retrieval features and observed outcomes
+(B14) reduces mean accuracy and macro-F1 relative to B9. At seed 2026, B9
+exceeds B14 by 1.40 accuracy and 1.71 macro-F1 points; the correctness
+comparison remains significant after Holm correction ($p=.00258$). Random
+compatible memory (B1) also underperforms B9 on average, separating useful
+neighbor retrieval from merely having access to memory records.
+
+\paragraph{Instance-level versus class-level memory.}
+B9 exceeds the class-conditional estimator B15 by 0.10 accuracy and 1.14
+macro-F1 points. The Holm-adjusted correctness test is null ($p=1.0$), so this
+is evidence of a possible class-balance benefit rather than confirmed overall
+superiority. The earlier B5 and B15 implementations call the same
+class-conditional estimator and produce identical outputs; B5 is therefore
+retained only in the artifact.
+
+\paragraph{Regression-aware utility.}
+Removing the regression term (B10) raises matched-budget accuracy by 0.10
+points but lowers macro-F1 by 0.14 points relative to B9; neither paired
+difference is established. More importantly, B10's natural $U>0$ rule routes
+all 3,068 claims and reproduces the harmful always-on regime, whereas B9
+routes 343. The experiment therefore supports regression modeling as a
+mechanism for selective abstention, but does not show that it improves quality
+after the route count is fixed.
+
+\subsection{Budget and Memory-Composition Sensitivity}
+
+Figure~\ref{fig:memory-budget} compares full outcome memory with error-only
+memory under exactly matched route counts. Error-only memory is stronger at
+5\%, 10\%, and 11.18\%, including 75.72\% accuracy and 56.28\% macro-F1 at
+343 routes. Full memory becomes more accurate at every tested budget from
+15\% through 40\%. Thus no memory population dominates across the cost
+frontier: excluding correct controls can concentrate recovery evidence at low
+budgets, while retaining harmful outcomes becomes more useful as intervention
+coverage grows. Detailed values and paired tests appear in
+Appendix~\ref{sec:memory-appendix}.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/memory_budget_tradeoff.pdf}
+\caption{AVeriTeC grouped-internal accuracy at matched correction budgets.
+Error-only memory is stronger at low budgets; full outcome memory is stronger
+from 15\% onward among the tested points.}
+\label{fig:memory-budget}
+\end{figure}
 
 Memory-size ablation is non-monotonic: 25, 50, 100, 200, and all available
 records yield accuracy changes of +.0127, +.0166, +.0205, +.0169, and +.0189,
@@ -631,12 +682,10 @@ retune the frozen policy. Near-duplicate grouping sensitivity at thresholds
 This supports robustness to grouping, while also showing route membership is
 not identical across thresholds.
 
-The component-removal study covers claim-only, label-score-only,
-evidence-length-only, uniform weights, and random-neighbor selection. A
-no-outcome-memory variant and explicit removal of the regression term remain
-unexecuted. Likewise, no frozen grid over top-$k$, minimum support, or
-continuous similarity weights is available. We do not tune these choices on
-CLIMATE-FEVER or SciFact after observing target results.
+Size-matched full and outcome-stratified memories are evaluated over 20 seeds
+in Appendix~\ref{sec:memory-appendix}. A frozen grid over top-$k$, minimum
+support, and continuous similarity weights remains unavailable. We do not tune
+these choices on CLIMATE-FEVER or SciFact after observing target results.
 
 \subsection{Compute and Runtime Accounting}
 
@@ -707,6 +756,14 @@ Holm correction, and constant action cost makes R6 equivalent to outcome-only
 memory ranking at a fixed budget. Accordingly, ERRORFlow is described as
 memory-guided selection of a fixed corrective action, not as learning reusable
 correction strategies or heterogeneous cost-aware planning.
+
+The memory ablations sharpen this interpretation. Shuffling outcomes degrades
+both metrics and is rejected by the multiplicity-corrected correctness test,
+showing that the feature--outcome association contains routing information.
+However, recovery-only utility is statistically indistinguishable from B9 at
+343 routes, and error-only memory is stronger at low budgets. Harmful outcomes
+therefore help define selective coverage and the higher-budget frontier, but
+their inclusion is not uniformly beneficial at every operating point.
 
 The ablation results do not establish that every similarity component is
 individually necessary or that manually assigned weights outperform uniform
@@ -860,6 +917,80 @@ For matched-budget A8, A0's mean advantage across 20 seeds is .00859 accuracy
 and .00900 macro-F1; the ranges are [.00522,.01499] and [.00061,.01671]. Seed
 2026 is the predeclared member of the Holm family and must not be conflated
 with the 20-seed mean.
+
+\section{Outcome-Memory Ablation Detail}
+\label{sec:memory-appendix}
+
+Table~\ref{tab:memory-appendix} reports controls omitted from the main table.
+All rows except B17 use 343 routes. B12 and B13 are 20-seed means over memories
+of 797 records, matching the size of B7; B17 selects fold-specific thresholds
+from source-inner folds and routes 382 claims, so it is not a matched-budget
+comparison. B4 is implementation-equivalent to B14: both permute outcomes
+within outer-fold and predicted-label strata. B5 is implementation-equivalent
+to B15, while the constant global prior B6 remains artifact-only.
+
+\begin{table*}[t]
+\caption{Additional outcome-memory controls on grouped AVeriTeC. $\dagger$
+denotes a 20-seed mean; $\ddagger$ denotes nested calibration with 382 routes.
+All other rows use the matched 343-route budget.}
+\label{tab:memory-appendix}
+\centering\small
+\begin{tabular}{lllrr}
+\toprule
+ID & Configuration & Routed & Accuracy (\%) & Macro-F1 (\%) \\
+\midrule
+B2 & Claim-nearest memory & 343 & 74.51 & 54.59 \\
+B3 & Score-nearest memory & 343 & 75.36 & 55.06 \\
+B7 & Error-only memory & 343 & \textbf{75.72} & \textbf{56.28} \\
+B8 & Correct-only memory & 343 & 73.83 & 54.44 \\
+B11 & Regression-only utility & 343 & 73.92 & 54.48 \\
+B12 & Size-matched full memory$\dagger$ & 343 & 75.16 & 55.31 \\
+B13 & Size-matched mixed memory$\dagger$ & 343 & 75.12 & 55.37 \\
+B16 & Uniform outcome weights & 343 & 75.49 & 55.75 \\
+B17 & Calibrated utility$\ddagger$ & 382 & 75.49 & 55.94 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+B7 is deliberately retained despite outperforming B9 at the primary matched
+budget. It changes the memory population by excluding all correct controls,
+thereby removing direct evidence about regression risk. This selection bias
+helps at low budgets but reverses as more claims are routed. B11 provides the
+opposite extreme: low-regression ranking alone is significantly worse than B9
+($\Delta$accuracy $=1.60$ points, Holm $p<.001$). B16 is nearly identical to
+B9, so the current evidence does not establish a benefit from similarity
+weighting outcomes after the top-five neighbors have been selected. B17's
+nested calibration modestly raises macro-F1 but changes the route count and is
+therefore reported as sensitivity rather than a same-budget win.
+
+\begin{table*}[t]
+\caption{Full versus error-only memory across matched correction budgets.
+Values are percentages; each row uses exactly the same routed-claim count for
+both memory populations.}
+\label{tab:memory-budget-detail}
+\centering\small
+\begin{tabular}{rrrrrr}
+\toprule
+Budget & Routes & Full Acc. & Error-only Acc. & Full F1 & Error-only F1 \\
+\midrule
+5\% & 153 & 74.97 & \textbf{75.36} & 55.35 & \textbf{56.08} \\
+10\% & 307 & 75.46 & \textbf{75.78} & 55.69 & \textbf{56.28} \\
+11.18\% & 343 & 75.52 & \textbf{75.72} & 55.77 & \textbf{56.28} \\
+15\% & 460 & \textbf{75.62} & 75.49 & \textbf{56.24} & 55.79 \\
+20\% & 614 & \textbf{75.62} & 75.39 & \textbf{56.30} & 55.89 \\
+25\% & 767 & \textbf{75.59} & 75.03 & \textbf{56.26} & 55.67 \\
+30\% & 920 & \textbf{75.39} & 75.00 & \textbf{56.21} & 55.76 \\
+35\% & 1,074 & \textbf{75.33} & 74.97 & \textbf{56.19} & 56.03 \\
+40\% & 1,227 & \textbf{75.33} & 74.90 & \textbf{56.20} & 56.00 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+At 11.18\%, B9--B7 accuracy and macro-F1 intervals both cross zero. From
+15\% onward B9 has higher point-estimate accuracy at every tested budget, but
+the paired accuracy intervals against B7 continue to cross zero. The budget
+curve therefore supports a population--budget interaction, not a claim that
+either memory population is universally or significantly superior.
 
 \section{Evidence-Regime Separation}
 AVeriTeC uses human question--answer evidence and internal fold exclusion.
