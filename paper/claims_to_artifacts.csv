@@ -6,6 +6,8 @@ AV_BUDGET,"Historical exact-fold R6 budget sweep and natural-route saturation",d
 AV_MEMORY_SIZE,"Memory-size sweep at 25/50/100/200/all records",docs/reports/V3_ERROR_MEMORY.md,server_aggregate_not_committed,server_verified
 AV_GROUP_SENS,"Near-duplicate grouping thresholds .85/.90/.95",docs/reports/V3_REPRODUCIBILITY_AUDIT.md,outputs/v3/audits/averitec_v3_reproducibility.json,server_verified
 AV_REPLAY,"Zero policy replay mismatch and target-gold invariance",docs/reports/V3_REPRODUCIBILITY_AUDIT.md,outputs/v3/audits/averitec_v3_reproducibility.json,server_verified
+AV_COMPONENTS,"A0-A8 natural and 343-route matched-budget similarity-component ablation",docs/reports/V3_COMPONENT_ABLATION_RESULTS.md,outputs/v3/ablations/component_removal_grouped090/summary.json,server_verified
+AV_COMPONENT_SIG,"Paired bootstrap, exact McNemar, Holm family of eight, and five-fold component analysis",docs/reports/V3_COMPONENT_ABLATION_RESULTS.md,outputs/v3/ablations/component_removal_grouped090/paired_analysis/significance.json,server_verified
 CF_PRIMARY,"CLIMATE-FEVER B1/A3/R6 quality-cost results",docs/reports/CLIMATE_FEVER_PROTOCOL.md,outputs/v3/climate_fever/external_eval/summary.json,server_verified
 CF_PER_CLASS,"CLIMATE-FEVER B1/A3/R6 per-class F1",docs/reports/CLIMATE_FEVER_PROTOCOL.md,outputs/v3/climate_fever/external_eval/summary.json,server_verified
 SF_ORACLE,"SciFact oracle raw/projected adapter audit",docs/reports/V3_SCIFACT_ADAPTER_AUDIT.md,outputs/v3/scifact/adapter_audit/summary.json,server_verified

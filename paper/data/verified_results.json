@@ -8,6 +8,19 @@
       "R6": {"accuracy": 0.7552151239, "macro_f1": 0.5577058837, "route_rate": 0.1117992177, "passes": 4.4471968709, "helpful": 90, "harmful": 44}
     },
     "r6_ci95": {"accuracy": [0.0074967405, 0.0224902216], "macro_f1": [0.0000862172, 0.0239327035]},
+    "component_ablation_matched_budget": {
+      "route_count": 343,
+      "A0_full_r6": {"accuracy": 0.7552151239, "macro_f1": 0.5577058837, "holm_p": null},
+      "A1_without_claim": {"accuracy": 0.754563, "macro_f1": 0.559525, "holm_p": 1.0},
+      "A2_without_label_score": {"accuracy": 0.751956, "macro_f1": 0.563967, "holm_p": 1.0},
+      "A3_without_evidence_length": {"accuracy": 0.753259, "macro_f1": 0.545214, "holm_p": 1.0},
+      "A4_label_score_only": {"accuracy": 0.753585, "macro_f1": 0.550615, "holm_p": 1.0},
+      "A5_claim_only": {"accuracy": 0.745111, "macro_f1": 0.545906, "holm_p": 0.0510682},
+      "A6_evidence_length_only": {"accuracy": 0.738919, "macro_f1": 0.547352, "holm_p": 0.000149649},
+      "A7_uniform_weights": {"accuracy": 0.753911, "macro_f1": 0.564538, "holm_p": 1.0},
+      "A8_random_neighbors_seed2026": {"accuracy": 0.744785, "macro_f1": 0.540993, "holm_p": 0.0336061},
+      "A8_random_neighbors_20_seed_mean": {"accuracy": 0.746626, "macro_f1": 0.548708}
+    },
     "historical_exact_fold_per_class": {
       "B1": {"CONFLICTING": 0.08230, "NOT ENOUGH INFO": 0.53571, "REFUTED": 0.81631, "SUPPORTED": 0.74975},
       "R6": {"CONFLICTING": 0.08730, "NOT ENOUGH INFO": 0.56075, "REFUTED": 0.83813, "SUPPORTED": 0.75972}
