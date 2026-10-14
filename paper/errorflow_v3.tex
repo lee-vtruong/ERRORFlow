@@ -31,16 +31,16 @@ when similar residual patterns indicate positive utility. ERRORFlow updates no
 model weights and explicitly measures the quality--cost trade-off. Using
 Qwen3-4B-Instruct-2507, train-selected conservative grouped development on
 AVeriTeC shows that the revised no-label-filter router (R6-NLF) improves
-accuracy by 1.92 points and macro-F1 by 2.10 points while routing 12.58\% of
+accuracy by 1.83 points and macro-F1 by 2.05 points while routing 12.22\% of
 examples. It also reduces harmful corrections relative to the historical
-hard-label router. This revision was selected only from source development
-ablations and frozen before renewed target evaluation. The previous
-hard-label external results on CLIMATE-FEVER and SciFact are retained as
-historical controls; R6-NLF external numbers are not substituted until the
-frozen reruns complete. Component ablations show that the compatibility rule
-and neighborhood size materially affect the quality--cost frontier, while no
-single similarity metric is uniformly superior. Conflicting-evidence
-classification remains weak.
+hard-label router. Frozen external evaluation improves B1 macro-F1 by 3.09
+points on CLIMATE-FEVER, 3.55 points on SciFact oracle evidence, and 2.97
+points on SciFact BM25 evidence; paired bootstrap intervals are positive,
+although the BM25 accuracy interval crosses zero. Same-budget comparisons do
+not establish universal superiority over HardLabel or confidence-only routing.
+Component ablations show that the compatibility rule and neighborhood size
+materially affect the quality--cost frontier, while no single similarity
+metric is uniformly superior. Conflicting-evidence classification remains weak.
 \keywords{Fact verification \and Training-free inference \and Error memory
 \and Selective routing \and Retrieval-augmented verification}
 \end{abstract}
@@ -334,9 +334,10 @@ Source matched-router comparisons additionally apply Holm correction.
 
 \begin{table*}[t]
 \caption{Main quality--cost results. R6-NLF is the revised main method selected
-on grouped AVeriTeC development. External NLF cells remain pending until the
-frozen rerun; historical values belong to R6-HardLabel and are not relabeled.
-SciFact results use the predeclared three-label projection.}
+on grouped AVeriTeC development. Confidence is matched to the natural NLF
+route count and is therefore a controlled-budget comparator rather than a
+separately tuned natural policy. SciFact uses the predeclared three-label
+projection.}
 \label{tab:main}
 \centering
 \small
@@ -344,49 +345,51 @@ SciFact results use the predeclared three-label projection.}
 \toprule
 Evaluation & System & Accuracy & Macro-F1 & Route rate & Avg. passes \\
 \midrule
-\multirow{4}{*}{AVeriTeC grouped internal}
+\multirow{5}{*}{AVeriTeC grouped internal}
  & B1 & 0.7402 & 0.5460 & 0.000 & 4.000 \\
  & A3-All & 0.7360 & 0.5559 & 1.000 & 8.000 \\
- & R6-HardLabel & 0.7552 & 0.5567 & 0.113 & 4.452 \\
- & R6-NLF & \textbf{0.7595} & \textbf{0.5670} & 0.126 & 4.503 \\
+ & Confidence@NLF budget & 0.7405 & 0.5514 & 0.122 & 4.489 \\
+ & R6-HardLabel & 0.7552 & 0.5577 & 0.112 & 4.447 \\
+ & R6-NLF & \textbf{0.7585} & \textbf{0.5666} & 0.122 & 4.489 \\
 \midrule
-\multirow{4}{*}{CLIMATE-FEVER}
+\multirow{5}{*}{CLIMATE-FEVER}
  & B1 & 0.5212 & 0.3808 & 0.000 & 4.000 \\
  & A3-All & 0.5518 & 0.4393 & 1.000 & 8.000 \\
+ & Confidence@NLF budget & 0.5355 & 0.4159 & 0.190 & 4.761 \\
  & R6-HardLabel & 0.5375 & 0.4063 & 0.199 & 4.797 \\
- & R6-NLF & -- & -- & -- & -- \\
+ & R6-NLF & 0.5368 & 0.4117 & 0.190 & 4.761 \\
 \midrule
-\multirow{4}{*}{SciFact oracle}
+\multirow{5}{*}{SciFact oracle}
  & B1 & 0.6067 & 0.5596 & 0.000 & 4.000 \\
  & A3-All & 0.8167 & 0.7822 & 1.000 & 8.000 \\
- & R6-HardLabel & 0.6367 & 0.6052 & 0.113 & 4.453 \\
- & R6-NLF & -- & -- & -- & -- \\
+ & Confidence@NLF budget & 0.6267 & 0.5814 & 0.080 & 4.320 \\
+ & R6-HardLabel & 0.6300 & 0.5931 & 0.087 & 4.347 \\
+ & R6-NLF & 0.6300 & 0.5951 & 0.080 & 4.320 \\
 \midrule
-\multirow{4}{*}{SciFact BM25}
+\multirow{5}{*}{SciFact BM25}
  & B1 & 0.6100 & 0.5778 & 0.000 & 4.000 \\
  & A3-All & 0.6367 & 0.6157 & 1.000 & 8.000 \\
+ & Confidence@NLF budget & 0.6067 & 0.5811 & 0.207 & 4.827 \\
  & R6-HardLabel & 0.6267 & 0.6035 & 0.187 & 4.747 \\
- & R6-NLF & -- & -- & -- & -- \\
+ & R6-NLF & 0.6300 & 0.6075 & 0.207 & 4.827 \\
 \bottomrule
 \end{tabular}
 \end{table*}
 
 \begin{table*}[t]
-\caption{Router change over B1 with paired 95\% bootstrap intervals. A positive
-point estimate is not treated as established when its interval crosses zero.
-External rows are historical R6-HardLabel results pending the frozen R6-NLF
-rerun. SciFact oracle uses the predeclared post-routing label projection.}
+\caption{Natural R6-NLF change over B1 with paired 95\% bootstrap intervals.
+A positive point estimate is not treated as established when its interval
+crosses zero. SciFact uses the predeclared post-routing label projection.}
 \label{tab:delta-ci}
 \centering\small
 \begin{tabular}{lrrrr}
 \toprule
 Condition & $\Delta$Accuracy & 95\% CI & $\Delta$Macro-F1 & 95\% CI \\
 \midrule
-AVeriTeC R6-NLF & +.01923 & pending & +.02100 & pending \\
-CLIMATE-FEVER HardLabel$\dagger$ & +.01629 & [.00521,.02801] & +.02554 & [.00700,.04507] \\
-SciFact oracle HardLabel$\dagger$ & +.03000 & [.00667,.05333] & +.04563 & [.01717,.07738] \\
-SciFact BM25 HardLabel$\dagger$ & +.01667 & [-.00667,.04000] & +.02576 & [.00199,.05298] \\
-\multicolumn{5}{l}{\footnotesize $\dagger$Historical comparator; not the revised main router.} \\
+AVeriTeC grouped & +.01825 & [.01076,.02575] & +.02055 & [.00865,.03337] \\
+CLIMATE-FEVER candidates & +.01564 & [.00456,.02736] & +.03091 & [.01378,.04892] \\
+SciFact oracle projected & +.02333 & [.00333,.04667] & +.03553 & [.01089,.06457] \\
+SciFact BM25 projected & +.02000 & [-.00333,.04333] & +.02967 & [.00434,.05728] \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -403,12 +406,14 @@ point is reported in Table~\ref{tab:main}.}
 \subsection{Source-Domain Routing}
 
 Under conservative token-Jaccard 0.90 grouping, the development-selected
-R6-NLF policy improves AVeriTeC accuracy by 1.92 points and macro-F1 by 2.10
-points while routing 12.58\%. It produces 96 helpful and 37 harmful changes
-(net $+59$), compared with 90/44 (net $+46$) for R6-HardLabel at 11.31\%
-routing. These are source-development results, not an independent
-generalization estimate. The frozen rerun reports both routers at their
-natural thresholds and at exactly matched route counts.
+R6-NLF policy improves AVeriTeC accuracy by 1.83 points and macro-F1 by 2.05
+points while routing 12.22\%. It produces 94 helpful and 38 harmful changes
+(net $+56$), compared with 90/44 (net $+46$) for R6-HardLabel at 11.18\%
+routing. At the NLF budget, NLF exceeds confidence-only by 1.79 accuracy and
+1.52 macro-F1 points; both paired intervals are positive. Compared with
+HardLabel at the same budget, the differences are +0.23 and +0.43 points and
+both intervals cross zero. These are source-development results, not an
+independent generalization estimate.
 
 \begin{table*}[t]
 \caption{Historical AVeriTeC matched-budget routing at the natural grouped
@@ -468,12 +473,12 @@ HardLabel $-$ Static pattern & +.0026 & +.0126 & .9935 & crosses zero & positive
 \subsection{External Four-Label Transfer}
 
 On CLIMATE-FEVER, A3-All improves B1 by 3.06 accuracy points and 5.85 macro-F1
-points. Historical R6-HardLabel routes 19.93\% and improves B1 by 1.63 and
-2.55 points; both paired intervals are positive
-(Table~\ref{tab:delta-ci}). R6-HardLabel is not significantly different from the
-confidence-only router at the same route count. Per-class analysis further
-shows that CONFLICTING F1 changes only from 0.1111 to 0.1202 under A3-All;
-most improvement occurs for NOT ENOUGH INFO and REFUTED.
+points. R6-NLF routes 19.02\% and improves B1 by 1.56 accuracy and 3.09
+macro-F1 points; both paired bootstrap intervals are positive
+(Table~\ref{tab:delta-ci}). At the same budget, its differences from HardLabel
+and confidence-only are inconclusive. NLF raises CONFLICTING F1 from 0.1111 to
+0.1373, but this class remains weak; most absolute performance still comes
+from SUPPORTED.
 
 \begin{figure}[t]
 \centering
@@ -485,25 +490,29 @@ more gains but also more regressions.}
 
 \subsection{SciFact Ontology Sensitivity}
 
-With oracle rationales, projected historical R6-HardLabel improves accuracy by 3.00 points and
-macro-F1 by 4.56 points, with positive paired intervals
-(Table~\ref{tab:delta-ci}). The raw four-label comparison is null. Moreover, A3
+With oracle rationales, projected R6-NLF improves accuracy by 2.33 points and
+macro-F1 by 3.55 points, with positive paired bootstrap intervals
+(Table~\ref{tab:delta-ci}); the exact accuracy McNemar test is weaker
+($p=.065$). NLF and HardLabel have identical natural accuracy and no confirmed
+paired difference. The raw four-label comparison is null. Moreover, A3
 produces 96 CONFLICTING outputs under oracle evidence, and projection converts
 90 additional examples to correct predictions. This result is therefore
 adapter-mediated and cannot support projection-independent transfer.
 
 \subsection{Retrieved-Evidence Robustness}
 
-With open BM25 evidence, historical R6-HardLabel improves B1 macro-F1 by 2.58 points with a positive
-bootstrap interval, while its 1.67-point accuracy interval crosses zero.
-A3-All and R6-HardLabel are not significantly different. Only five A3 predictions are
+With open BM25 evidence, R6-NLF improves B1 macro-F1 by 2.97 points with a
+positive bootstrap interval, while its 2.00-point accuracy interval crosses
+zero. At the NLF budget, NLF is 1.00 accuracy and 1.03 macro-F1 points above
+HardLabel, but the small-sample paired tests do not confirm superiority.
+Only five A3 predictions are
 projected, so this condition is not driven by mass ontology conversion.
 
-Stratification reveals the mechanism. On 121 verifiable retrieval hits, B1 is
-already strong and R6-HardLabel has net zero correctness change. On 67 retrieval misses,
-A3-All loses six net correct predictions, while R6-HardLabel preserves B1 accuracy. On
-112 NEI claims, A3-All gains 15 and R6-HardLabel gains five. The historical router therefore provides
-selective harm avoidance rather than recovery of missing facts.
+The earlier retrieval-stratum audit used HardLabel. On 121 verifiable hits it
+had net zero correctness change; on 67 misses it preserved B1 while A3-All
+lost six net correct predictions; on 112 NEI claims it gained five. The new
+NLF aggregate gains are consistent with selective harm avoidance, but a fresh
+NLF stratum analysis was not used for model selection and is not inferred.
 
 \begin{figure}[t]
 \centering
@@ -516,20 +525,20 @@ verifiable misses, where A3-All regresses.}
 
 \subsection{Cross-Domain Summary}
 
-Figure~\ref{fig:delta} and Table~\ref{tab:delta-ci} summarize the historical
-R6-HardLabel change over
-B1. All point estimates are
-positive, but interpretation differs: AVeriTeC is train-selected; SciFact
-oracle is projection-sensitive; CLIMATE-FEVER has no independent retrieval;
-and SciFact BM25 accuracy is statistically inconclusive. The replicated
-pattern motivates, but does not substitute for, the frozen R6-NLF rerun.
+Table~\ref{tab:delta-ci} summarizes frozen R6-NLF change over B1. Macro-F1
+intervals are positive in all four protocols, but interpretation differs:
+AVeriTeC is train-selected; SciFact oracle is projection-sensitive;
+CLIMATE-FEVER has supplied candidates rather than open retrieval; and SciFact
+BM25 accuracy is statistically inconclusive. Direct NLF--HardLabel and
+NLF--confidence comparisons are mostly inconclusive, so the evidence supports
+NLF as a competitive transferred router rather than a universally superior one.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/cross_domain_delta.pdf}
-\caption{Historical R6-HardLabel change over B1 with paired 95\% bootstrap intervals. The vertical
-line marks zero change. The SciFact oracle condition is explicitly
-adapter-sensitive; an interval crossing zero does not establish a gain.}
+\caption{Historical R6-HardLabel plot retained for artifact continuity. The
+updated R6-NLF estimates and intervals are in Table~\ref{tab:delta-ci}; this
+figure must be regenerated before camera-ready use.}
 \label{fig:delta}
 \end{figure}
 
@@ -538,28 +547,38 @@ adapter-sensitive; an interval crossing zero does not establish a gain.}
 \subsection{Per-Class Behavior}
 
 Table~\ref{tab:per-class} confirms that aggregate gains do not solve
-CONFLICTING recognition. Historical CLIMATE-FEVER R6-HardLabel improves REFUTED, NEI, and SUPPORTED
-over B1, but CONFLICTING remains essentially unchanged. The available
-AVeriTeC class breakdown belongs to the historical exact-fold sensitivity
-(357 routes), not the conservative 0.90-grouped primary result (343 routes);
-we label it explicitly rather than substituting it for missing grouped values.
+CONFLICTING recognition. R6-NLF improves every AVeriTeC class over B1, but
+CONFLICTING F1 remains only .1012. On CLIMATE-FEVER it improves REFUTED, NEI,
+SUPPORTED, and CONFLICTING over B1, while A3-All remains stronger on NEI.
 
 \begin{table*}[t]
-\caption{Per-class F1. $\dagger$ denotes the historical exact-fold AVeriTeC
-sensitivity; conservative grouped R6 per-class values require the server
-matched-budget summary and are not inferred.}
+\caption{Per-class F1 under each evidence protocol. SciFact has no
+CONFLICTING target class after the predeclared projection.}
 \label{tab:per-class}
 \centering\small
 \begin{tabular}{llrrrr}
 \toprule
 Dataset/protocol & Method & SUPPORTED & REFUTED & NEI & CONFLICTING \\
 \midrule
-AVeriTeC exact-fold$\dagger$ & B1 & .7498 & .8163 & .5357 & .0823 \\
-AVeriTeC exact-fold$\dagger$ & R6-HardLabel & .7597 & .8381 & .5608 & .0873 \\
+AVeriTeC grouped & B1 & .7497 & .8163 & .5357 & .0823 \\
+AVeriTeC grouped & A3-All & .7394 & .8276 & .5506 & .1059 \\
+AVeriTeC grouped & R6-HardLabel & .7614 & .8333 & .5498 & .0863 \\
+AVeriTeC grouped & R6-NLF & .7630 & .8354 & .5667 & .1012 \\
 \midrule
 CLIMATE-FEVER candidates & B1 & .6791 & .4101 & .3227 & .1111 \\
 CLIMATE-FEVER candidates & A3-All & .6982 & .4680 & .4707 & .1202 \\
 CLIMATE-FEVER candidates & R6-HardLabel & .6963 & .4438 & .3722 & .1128 \\
+CLIMATE-FEVER candidates & R6-NLF & .6920 & .4509 & .3665 & .1373 \\
+\midrule
+SciFact oracle & B1 & .7015 & .4522 & .5250 & -- \\
+SciFact oracle & A3-All & .8249 & .6346 & .8870 & -- \\
+SciFact oracle & R6-HardLabel & .7085 & .4959 & .5750 & -- \\
+SciFact oracle & R6-NLF & .7044 & .5042 & .5767 & -- \\
+\midrule
+SciFact BM25 & B1 & .7099 & .4960 & .5275 & -- \\
+SciFact BM25 & A3-All & .7007 & .5378 & .6087 & -- \\
+SciFact BM25 & R6-HardLabel & .7143 & .5385 & .5579 & -- \\
+SciFact BM25 & R6-NLF & .7143 & .5426 & .5654 & -- \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -660,6 +679,25 @@ change only the compatibility rule. Source-fold tuned weights and a trained
 logistic router do not improve on C0 significantly and are reported in the
 appendix. R6-NLF is frozen before renewed external evaluation; no external
 target labels enter this selection.
+
+An implementation audit found that the broad Group-C harness tokenized claim
+Jaccard with \texttt{\textbackslash w+}, whereas the established R6 memory
+implementation preserves apostrophes and hyphens with
+\texttt{[\textbackslash w'-]+}. We therefore use the latter canonical
+implementation for all main and external numbers. Its grouped replay routes
+343 HardLabel and 375 NLF examples (rather than 347/386 in the sweep) and
+retains the same direction: NLF improves natural accuracy/macro-F1 by
+0.33/0.89 points over HardLabel; the accuracy interval crosses zero while the
+macro-F1 interval is positive. Thus the sweep motivated the compatibility
+change, but it is not substituted for the canonical main result.
+
+Across the four frozen settings, 11.0--19.7\% of queries retrieve at least one
+cross-label neighbor and 30.8--37.5\% of naturally routed NLF queries do so.
+At natural thresholds, NLF-only versus HardLabel-only routes have net changes
+of $+7/-3$ on AVeriTeC, $+1/+2$ on CLIMATE-FEVER, $0/0$ on SciFact oracle,
+and $+1/0$ on SciFact BM25. These counts explain where the relaxed
+compatibility rule changes behavior without implying that every cross-label
+neighbor is causally helpful.
 
 \subsection{Outcome-Memory and Utility Ablations}
 \label{sec:memory-ablation}
@@ -765,7 +803,7 @@ one label-scoring call; each four-label request performs four model forwards.}
 Component & Per-example work & Available measurement & Claim boundary \\
 \midrule
 B1 & 1 request / 4 forwards & cached component latency & not fresh end-to-end \\
-Memory lookup & CPU scan + top-5 sort & not benchmarked separately & no latency claim \\
+Memory lookup & CPU scan + top-5 sort & fresh mean/p95 lookup time & single-process CPU only \\
 R6 arithmetic & weighted estimates & not benchmarked separately & no latency claim \\
 A3 when routed & +1 request / +4 forwards & cached component latency & incurred only on routes \\
 Input volume & claim + evidence reprocessed & whitespace-token proxy & not tokenizer tokens \\
@@ -774,11 +812,15 @@ Full pipeline & $4+4r$ forwards & no synchronized wall clock & forward-pass effi
 \end{tabular}
 \end{table*}
 
-The full A3 cache processed 3,068 examples in 366.998 seconds on one RTX 5090,
-but this batch run excludes the online memory/router path and is not reported
-as end-to-end latency. The defensible efficiency claim is therefore fewer
-model forward passes than A3-All, not a demonstrated proportional wall-clock
-or monetary reduction.
+Fresh single-process lookup timing gives NLF means of 35.3, 45.9, 41.2, and
+40.3 ms on AVeriTeC, CLIMATE-FEVER, SciFact oracle, and SciFact BM25; p95 is
+44.4--58.5 ms. HardLabel means are 15.1--18.1 ms because its compatibility
+filter reduces scoring work. These measurements exclude B1, A3, GPU
+synchronization, and process warm-up controls, so they quantify retrieval
+overhead but not end-to-end latency. The full A3 cache processed 3,068 examples
+in 366.998 seconds on one RTX 5090, but that batch also excludes the online
+router path. The defensible efficiency claim remains fewer model forward
+passes than A3-All, not proportional wall-clock or monetary reduction.
 
 \section{Discussion}
 
@@ -799,13 +841,13 @@ not comparable under the cited protocol, not a score of zero.}
 \toprule
 Work & Dataset/split & Evidence source & Backbone & Training & Verdict acc. & Official score & Comparable? \\
 \midrule
-ERRORFlow R6-NLF & AVeriTeC train grouped & human QA evidence & Qwen3-4B & no weight update & .7595 & -- & internal only \\
+ERRORFlow R6-NLF & AVeriTeC train grouped & human QA evidence & Qwen3-4B & no weight update & .7585 & -- & internal only \\
 AVeriTeC task \cite{schlichtkrull2024averitec} & official dev/test & web retrieval + QA & varied & varied & -- & AVeriTeC score & no \\
-ERRORFlow HardLabel$\dagger$ & CLIMATE-FEVER all & five official candidates & Qwen3-4B & no weight update & .5375 & -- & protocol-specific \\
+ERRORFlow R6-NLF & CLIMATE-FEVER all & five official candidates & Qwen3-4B & no weight update & .5368 & -- & protocol-specific \\
 CLIMATE-FEVER \cite{diggelmann2020climate} & official release & supplied candidates & dataset baselines & supervised & -- & paper metrics & context only \\
-ERRORFlow HardLabel$\dagger$ & SciFact dev oracle & gold rationales & Qwen3-4B & no weight update & .6367 & -- & adapter-sensitive \\
+ERRORFlow R6-NLF & SciFact dev oracle & gold rationales & Qwen3-4B & no weight update & .6300 & -- & adapter-sensitive \\
 SciFact \cite{wadden2020scifact} & official dev/test & corpus retrieval/rationales & trained verifier & supervised & -- & task metrics & no \\
-ERRORFlow HardLabel$\dagger$ & SciFact dev BM25 & open corpus top-5 & Qwen3-4B & no weight update & .6267 & -- & closest internal condition \\
+ERRORFlow R6-NLF & SciFact dev BM25 & open corpus top-5 & Qwen3-4B & no weight update & .6300 & -- & closest internal condition \\
 \bottomrule
 \end{tabular}}
 \end{table*}
@@ -816,10 +858,13 @@ Outcome memory is useful because it estimates both recovery and regression of
 the same fixed A3 action in nearby source cases. This differs from uncertainty
 routing, which ranks ambiguity without observing whether A3 historically
 helped that type of input. The matched-budget evidence supports improvement
-over B1, random, confidence-only, and similarity-only routing. It does not
-establish a secure macro-F1 advantage over label-conditional routing after
-Holm correction, and constant action cost makes R6 equivalent to outcome-only
-memory ranking at a fixed budget. Accordingly, ERRORFlow is described as
+over B1, random, confidence-only, and similarity-only routing on source
+development. On external settings, NLF is not significantly better than
+matched confidence or HardLabel; its transfer evidence is primarily the
+paired improvement over B1. It does not establish a secure macro-F1 advantage
+over label-conditional routing after Holm correction, and constant action cost
+makes R6 equivalent to outcome-only memory ranking at a fixed budget.
+Accordingly, ERRORFlow is described as
 memory-guided selection of a fixed corrective action, not as learning reusable
 correction strategies or heterogeneous cost-aware planning.
 
@@ -852,6 +897,11 @@ it does not prove absence of shared evidence or semantic paraphrases. Large
 experimental JSONL files remain server-side and are represented by an
 artifact ledger rather than committed to Git.
 
+The frozen NLF evaluation manifests have configuration IDs
+\texttt{bdac31d1...5625b} for grouped AVeriTeC and
+\texttt{19542dc4...b523} for each external protocol; input hashes in each
+manifest distinguish the external datasets despite the shared policy ID.
+
 \section{Limitations}
 
 The experiments use one base-model checkpoint. Source results are
@@ -863,7 +913,10 @@ retriever is only a lexical baseline. Several external matched-router
 comparisons remain statistically inconclusive. Finally, CONFLICTING-class
 performance is weak, and constant action cost prevents an independent test of
 heterogeneous cost-aware ranking. The hand-set similarity weights are not
-validated as optimal, and component signals may be redundant.
+validated as optimal, component signals may be redundant, and the Group-C
+development harness used a slightly different token boundary from the
+canonical memory implementation. We report both rather than treating their
+route counts as interchangeable.
 
 \paragraph{Ethics and broader impact.}
 Selective correction can reduce unnecessary computation, but automated
@@ -880,9 +933,11 @@ using non-parametric source residual outcomes. Development ablations select
 R6-NLF, which admits cross-label neighbors while retaining the fixed action,
 similarity function, and signed utility rule. The method reduces second-pass
 compute and can improve a frozen verifier, but its strongest defensible effect
-is selective harm avoidance under imperfect evidence. Frozen external NLF
-reruns are required before claiming transfer beyond the historical HardLabel
-results; ontology adaptation must be reported explicitly.
+is selective harm avoidance under imperfect evidence. Frozen external reruns
+show positive macro-F1 intervals over B1 under supplied candidates, oracle
+rationales, and open BM25 evidence, but do not establish universal superiority
+over simpler matched-budget routers; ontology adaptation must be reported
+explicitly.
 
 \begin{credits}
 \subsubsection{Acknowledgments}
@@ -940,16 +995,22 @@ auditable. We defer printing claim text until the server export is available;
 no synthetic claim is presented as an observed case.
 
 \section{Statistical Detail and Negative Findings}
-For grouped AVeriTeC, historical R6-HardLabel changes 90 errors to correct and 44 correct predictions
-to errors (McNemar $p=8.75\times10^{-5}$); bootstrap 95\% intervals are
-$[0.00750,0.02249]$ for accuracy and $[0.00009,0.02393]$ for macro-F1.
-Against the strongest matched non-memory router, the macro-F1 interval crosses
-zero after multiplicity-aware analysis. On CLIMATE-FEVER, R6-HardLabel versus B1 has
-$p=.00728$, but matched confidence and similarity comparisons are
-inconclusive. On SciFact BM25, R6-HardLabel's macro-F1 interval is positive, while
-accuracy and direct matched-router intervals cross zero. The oracle raw
-four-label R6-HardLabel comparison is null ($\Delta$accuracy $=-.0100$, $p=.664$), so
-the projected gain is adapter-mediated.
+For grouped AVeriTeC, R6-NLF changes 94 errors to correct and 38 correct
+predictions to errors (McNemar $p=1.19\times10^{-6}$). At the same 375-route
+budget, NLF versus HardLabel has $\Delta$accuracy $=.00228$ ($p=.324$) and
+$\Delta$macro-F1 $=.00435$, with both intervals crossing zero; versus
+confidence it has $\Delta$accuracy $=.01793$ ($p=5.29\times10^{-5}$) and
+$\Delta$macro-F1 $=.01515$, with both intervals positive. Natural NLF versus
+HardLabel has a positive macro-F1 interval but inconclusive accuracy.
+
+On CLIMATE-FEVER, NLF versus B1 has McNemar $p=.00791$, while its matched
+comparisons with HardLabel and confidence are null. On SciFact oracle, the
+bootstrap intervals over B1 are positive but exact McNemar is $p=.0654$; all
+direct matched-router comparisons are inconclusive. On SciFact BM25, NLF's
+macro-F1 interval over B1 is positive while accuracy crosses zero; at the NLF
+budget its +.0100 accuracy difference over HardLabel has $p=.25$. The oracle
+raw four-label HardLabel comparison remains null, so projected SciFact gains
+must still be interpreted as adapter-mediated.
 
 \section{Component-Ablation Detail}
 
