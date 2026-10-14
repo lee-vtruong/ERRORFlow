@@ -101,3 +101,42 @@ comparisons against NB0. Send `RESULTS_FOR_CODEX.txt` back for the paper update.
   records exist; that equality is a valid mechanistic result.
 - Natural and matched-budget results must both be reported. Holm correction is
   applied to the eight primary NB0-versus-control accuracy tests.
+
+## Completed canonical result
+
+The run completed with 3,068 grouped AVeriTeC examples and a matched NB0 route
+count of 375. Cross-label records appear in the NLF top five for 339 queries
+(11.05%) and for 123 of the 375 naturally routed queries (32.8%). Ninety
+natural route decisions differ between NB0 and HardLabel.
+
+| Variant | Natural routes | Natural accuracy | Natural Macro-F1 | Matched accuracy | Matched Macro-F1 | Holm accuracy p vs NB0 |
+|---|---:|---:|---:|---:|---:|---:|
+| NB0 Full NLF | 375 | .7585 | .5666 | .7585 | .5666 | -- |
+| NB1 HardLabel | 343 | .7552 | .5577 | .7562 | .5622 | 1.000 |
+| NB2 Cross-label only | 1,128 | .7317 | .5508 | .7379 | .5471 | 8.83e-7 |
+| NB3 Cross-label suppression | 330 | .7585 | .5660 | .7581 | .5664 | 1.000 |
+| NB4 Cross-label outcome shuffle, seed 2026 | 358 | .7568 | .5640 | .7565 | .5652 | 1.000 |
+| NB5 Same-label priority | 343 | .7552 | .5577 | .7562 | .5622 | 1.000 |
+| NB6 Soft penalty 0.5 | 343 | .7552 | .5577 | .7562 | .5622 | 1.000 |
+| NB7 Quota 1 | 370 | .7559 | .5603 | .7555 | .5606 | .381 |
+| NB7 Quota 2 | 371 | .7565 | .5639 | .7559 | .5634 | .270 |
+
+NB4 is stable over 20 seeds: its matched accuracy is .7575 +/- .0009 and
+matched Macro-F1 is .5663 +/- .0014 (population standard deviations). The
+seed-2026 paired intervals against NB0 cross zero for both metrics.
+
+The mechanism result is deliberately narrower than a claim that cross-label
+outcomes are necessary. NB2 is strongly worse, so cross-label memory is not a
+standalone substitute for same-label evidence. However, NB3 suppresses direct
+cross-label outcome contributions while preserving the original NLF top-five
+competition; it matches NB0 natural accuracy with 45 fewer routes, and its
+matched differences are negligible. NB4 likewise does not show a confirmed
+degradation. Thus the present evidence supports cross-label records as a
+candidate-pool competition and selective-pruning mechanism, but does not
+establish that their instance-specific corrective outcomes cause the gain.
+
+NB5 and NB6 reproduce HardLabel exactly in this run: fold-safe same-label
+memory is sufficient to fill top five, and a 0.5 penalty prevents cross-label
+records from entering the selected neighborhood. Quotas interpolate between
+HardLabel and NLF, but their multiplicity-corrected exact accuracy tests remain
+inconclusive despite paired bootstrap intervals favoring NB0.

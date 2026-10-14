@@ -40,7 +40,10 @@ although the BM25 accuracy interval crosses zero. Same-budget comparisons do
 not establish universal superiority over HardLabel or confidence-only routing.
 Component ablations show that the compatibility rule and neighborhood size
 materially affect the quality--cost frontier, while no single similarity
-metric is uniformly superior. Conflicting-evidence classification remains weak.
+metric is uniformly superior. Cross-label mechanism controls are consistent
+with candidate-pool competition and selective pruning, but do not establish
+that cross-label outcomes themselves cause the gain. Conflicting-evidence
+classification remains weak.
 \keywords{Fact verification \and Training-free inference \and Error memory
 \and Selective routing \and Retrieval-augmented verification}
 \end{abstract}
@@ -609,63 +612,57 @@ competitive reduced control: its matched differences from NA0 are
 inconclusive, motivating the budget analysis below rather than a claim of
 uniform dominance.
 
-\subsection{Component Substitution and Design Selection}
+\subsection{Final-NLF Similarity Components}
 \label{sec:group-c-ablation}
 
-Group C substitutes similarity metrics, aggregation rules, neighborhood
-sizes, utility estimators, and compatibility constraints while replaying the
-same B1/A3 predictions. The original broad sweep revealed the no-label-filter
-candidate, but used a different token boundary from the established R6
-retriever. We therefore retain that exploratory sweep only in the appendix
-and use canonical replay for the main comparison.
+The earlier Group-C sweep selected no-label-filter retrieval. We now ablate
+the similarity function directly under that final NLF candidate space, using
+the canonical \texttt{[\textbackslash w'-]+} token boundary. This distinction
+matters because removing the hard label filter changes both the candidate pool
+and top-five neighborhood; historical HardLabel removals are not treated as
+proofs about the final router. Table~\ref{tab:nc-main} fixes every variant to
+the same 375-route budget and compares it with NC0.
 
 \begin{table*}[t]
-\caption{Canonical Group-C design comparison on grouped AVeriTeC. Natural
-mode uses each variant's positive-utility boundary; matched mode fixes the
-C0 route count of 343. Accuracy Holm tests against C0 are null for all rows.}
-\label{tab:group-c-main}
+\caption{Similarity-component ablations for final R6-NLF on grouped
+AVeriTeC. All rows route 375 claims. Holm $p$ compares matched accuracy with
+NC0 across NC1--NC8.}
+\label{tab:nc-main}
 \centering\small
-\begin{tabular}{lrrrrr}
+\begin{tabular}{llrrr}
 \toprule
-Variant & Natural routes & Natural Acc. & Natural F1 & Matched Acc. & Matched F1 \\
+ID & Variant & Accuracy (\%) $\uparrow$ & Macro-F1 (\%) $\uparrow$ & Holm $p_{\rm Acc}$ \\
 \midrule
-C0 R6-HardLabel & 343 & 75.52 & 55.77 & 75.52 & 55.77 \\
-C2-4 Hellinger & 327 & 75.65 & 56.21 & 75.59 & 56.13 \\
-C4-1 Uniform weights & 353 & 75.39 & 56.28 & 75.39 & 56.45 \\
-C5-2 Top-3 neighbors & 287 & 75.46 & 56.24 & 75.85 & \textbf{56.89} \\
-C5-4 Top-20 neighbors & 217 & 75.62 & 55.21 & \textbf{76.01} & 55.76 \\
-C7-1 R6-NLF & 375 & \textbf{75.85} & \textbf{56.66} & 75.75 & 56.55 \\
+NC0 & Full NLF similarity & \textbf{75.85} & 56.66 & -- \\
+NC1 & w/o claim Jaccard & 75.52 & 56.12 & .486 \\
+NC2 & w/o label-score similarity & 74.28 & 55.68 & $4.30{\times}10^{-4}$ \\
+NC3 & w/o evidence length & 75.33 & 54.96 & .400 \\
+NC4 & Uniform component weights & 75.26 & \textbf{56.67} & .164 \\
 \bottomrule
 \end{tabular}
 \end{table*}
 
-Canonical natural replay reduces harmful corrections from 44 to 38 and raises
-net corrections from 46 to 56. NLF improves HardLabel by 0.33 accuracy and
-0.89 macro-F1 points; the accuracy interval crosses zero, whereas the
-macro-F1 interval is positive. At the 343-route HardLabel budget, NLF improves
-accuracy/macro-F1 by 0.23/0.78 points; the paired macro-F1 interval remains
-positive, but the Holm-adjusted accuracy test is null. Top-3 has the strongest
-matched macro-F1 (+1.12 points over C0), and Top-20 has the strongest matched
-accuracy (+0.49), yet both naturally route substantially fewer claims and do
-not jointly improve the two natural metrics. NLF is therefore retained as the
-final operating policy because it gives the strongest joint natural result
-and was frozen for external evaluation, not because it wins every matched
-comparison.
+Label-score similarity supplies the clearest independent signal: removing it
+reduces accuracy by 1.56 points, with a positive paired interval
+[.0078,.0231] and a Holm-significant exact test. Removing evidence length has
+a smaller, statistically inconclusive accuracy effect, but lowers macro-F1 by
+1.69 points with a positive NC0-minus-NC3 interval [.0069,.0283]. Removing
+claim Jaccard lowers both point estimates, yet both intervals include zero.
+Uniform weighting slightly exceeds NC0 macro-F1 by .01 point while losing .59
+accuracy point; the corrected accuracy test is null. Thus the evidence does
+not establish that every component is individually necessary or that the
+manual .35/.50/.15 weights outperform uniform weighting. Label-score-only,
+Hellinger, Jensen--Shannon, and TF--IDF substitutions are reported in the
+appendix; NC0 significantly exceeds Hellinger and Jensen--Shannon in corrected
+accuracy, but not TF--IDF claim similarity.
 
-An implementation audit found that the broad Group-C harness tokenized claim
-Jaccard with \texttt{\textbackslash w+}, whereas the established R6 memory
-implementation preserves apostrophes and hyphens with
-\texttt{[\textbackslash w'-]+}. We therefore use the latter canonical
-implementation for all main and external numbers. Its grouped replay routes
-343 HardLabel and 375 NLF examples (rather than 347/386 in the sweep) and
-retains the same direction: NLF improves natural accuracy/macro-F1 by
-0.33/0.89 points over HardLabel; the accuracy interval crosses zero while the
-macro-F1 interval is positive. Thus the sweep motivated the compatibility
-change, but it is not substituted for the canonical main result. The
-main-paper subset is selected by mechanistic relevance: Hellinger tests the
-label-score metric, uniform weighting tests the manual mixture, top-3/top-20
-test neighborhood size, and NLF tests the final compatibility decision. All
-other Group-C variants remain in the appendix.
+The compatibility decision itself remains a design-selection result rather
+than a universal superiority claim. Canonical NLF reduces harmful corrections
+from 44 to 38 and raises net corrections from 46 to 56 relative to natural
+HardLabel. Its accuracy interval against HardLabel crosses zero, while the
+macro-F1 interval is positive. The exploratory Group-C table and tokenizer
+audit remain in the appendix, whereas all final-method claims use the
+canonical NLF replay above.
 
 Across the four frozen settings, 11.0--19.7\% of queries retrieve at least one
 cross-label neighbor and 30.8--37.5\% of naturally routed NLF queries do so.
@@ -674,6 +671,110 @@ of $+7/-3$ on AVeriTeC, $+1/+2$ on CLIMATE-FEVER, $0/0$ on SciFact oracle,
 and $+1/0$ on SciFact BM25. These counts explain where the relaxed
 compatibility rule changes behavior without implying that every cross-label
 neighbor is causally helpful.
+
+\subsection{Cross-Label Memory Mechanism}
+\label{sec:cross-label-mechanism}
+
+Table~\ref{tab:cross-label-mechanism} separates access to a larger candidate
+pool from direct use of cross-label corrective outcomes. NB3 first retrieves
+the unchanged NLF top five and then removes cross-label outcome contributions
+without backfilling; fewer than two remaining records makes the query
+unroutable. NB4 preserves similarities and same-label outcomes but permutes
+cross-label outcomes within source-fold/source-label strata. NB4 reports the
+predeclared seed 2026 in the table and 20 seeds for sensitivity.
+
+\begin{table*}[t]
+\caption{Cross-label mechanism ablations on grouped AVeriTeC. Matched mode
+uses the 375-route NB0 budget. Holm $p$ compares matched accuracy with NB0;
+NB4 inference uses seed 2026.}
+\label{tab:cross-label-mechanism}
+\centering\small
+\begin{tabular}{lrrrrrr}
+\toprule
+Variant & Natural routes & Natural Acc. & Natural F1 & Matched Acc. & Matched F1 & Holm $p_{\rm Acc}$ \\
+\midrule
+NB0 Full NLF & 375 & \textbf{75.85} & \textbf{56.66} & \textbf{75.85} & \textbf{56.66} & -- \\
+NB1 HardLabel & 343 & 75.52 & 55.77 & 75.62 & 56.22 & 1.000 \\
+NB2 Cross-label only & 1,128 & 73.17 & 55.08 & 73.79 & 54.71 & $8.83{\times}10^{-7}$ \\
+NB3 Suppress cross-label outcomes & 330 & \textbf{75.85} & 56.60 & 75.81 & 56.64 & 1.000 \\
+NB4 Shuffle cross-label outcomes & 358 & 75.68 & 56.40 & 75.65 & 56.52 & 1.000 \\
+NB5 Same-label priority & 343 & 75.52 & 55.77 & 75.62 & 56.22 & 1.000 \\
+NB6 Soft penalty (.5) & 343 & 75.52 & 55.77 & 75.62 & 56.22 & 1.000 \\
+NB7 Quota 1 & 370 & 75.59 & 56.03 & 75.55 & 56.06 & .381 \\
+NB7 Quota 2 & 371 & 75.65 & 56.39 & 75.59 & 56.34 & .270 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+Cross-label memory is complementary rather than sufficient. NB2 routes 36.8\%
+of examples naturally but yields net $-26$ corrections and is significantly
+worse than NB0 after Holm correction. Conversely, NB3 matches NB0 natural
+accuracy with 45 fewer routes and differs negligibly at matched budget; both
+paired intervals cross zero. The 20-seed NB4 matched means are
+.7575 accuracy ($\mathrm{sd}=.0009$) and .5663 macro-F1
+($\mathrm{sd}=.0014$), again close to NB0, with null seed-2026 paired tests.
+Therefore these experiments do not establish that instance-specific
+cross-label outcomes directly cause NLF's gain.
+
+The supported mechanism is narrower: cross-label records can displace weaker
+same-label records in the global top five, thereby changing support and
+selective abstention even when their outcomes are suppressed. Cross-label
+neighbors occur for 339/3,068 queries (11.05\%), but for 123/375 naturally
+routed queries (32.8\%); 90 natural route decisions differ from HardLabel.
+NB5 and NB6 exactly reproduce HardLabel because same-label records fill the
+neighborhood and a .5 penalty prevents cross-label entry. Quotas interpolate
+between the endpoints, but their Holm-adjusted exact tests are null despite
+bootstrap intervals favoring NB0. In this mechanism harness, CPU lookup means
+are 39.3 ms for NB0 and 18.4 ms for HardLabel; the dual-pool soft/quota
+implementations require about 42.7 ms. These run-specific routing-only
+measurements are not end-to-end latency.
+
+\subsection{Utility and Decision Ablations}
+\label{sec:utility-ablation}
+
+Table~\ref{tab:utility-ablation} separates utility estimation from neighbor
+retrieval. Matched rows use the 375-route ND0 budget. ND6 is not a matched
+comparison: it selects one threshold per target fold using only the remaining
+source folds and routes 393 claims.
+
+\begin{table*}[t]
+\caption{Final-NLF utility and decision ablations on grouped AVeriTeC.
+Natural recovery-only and regression-only scores are positive for every
+claim, so both invoke A3-All; matched columns isolate ranking quality.}
+\label{tab:utility-ablation}
+\centering\small
+\begin{tabular}{llrrrr}
+\toprule
+ID & Utility/decision rule & Natural routes & Natural Acc. & Matched Acc. & Matched F1 \\
+\midrule
+ND0 & Recovery $-$ regression $-$ cost & 375 & \textbf{75.85} & \textbf{75.85} & 56.66 \\
+ND1 & Recovery only & 3,068 & 73.60 & 75.78 & 56.31 \\
+ND2 & Unsmoothed signed outcome & 375 & \textbf{75.85} & \textbf{75.85} & 56.66 \\
+ND3 & Source-prior shrinkage & 375 & \textbf{75.85} & \textbf{75.85} & 56.66 \\
+ND4 & Low regression only & 3,068 & 73.60 & 73.99 & 54.62 \\
+ND6 & Nested calibrated threshold & 393 & \textbf{75.85} & -- & \textbf{56.74}$\dagger$ \\
+\bottomrule
+\multicolumn{6}{l}{\footnotesize $\dagger$Natural nested result; not a 375-route comparison.} \\
+\end{tabular}
+\end{table*}
+
+Symmetric smoothing and source-prior shrinkage produce exactly the same route
+set and final predictions as ND0 at this operating point. ND2 nevertheless
+changes utility ranks for 933 claims, with a maximum absolute shift of 350,
+showing that prediction equality does not imply identical scores. This agrees
+with the algebra in Section~4: symmetric pseudo-counts cancel in the signed
+numerator and mainly rescale it relative to the fixed cost term. Recovery-only
+is indistinguishable from ND0 at matched budget, but its natural rule routes
+all claims and yields net $-13$; the regression term is therefore important
+for abstention, not proven superior for fixed-budget ranking. Regression-only
+is inadequate: ND0 exceeds it by 1.86 accuracy and 2.04 macro-F1 points, with
+Holm $p=4.88\times10^{-6}$ and positive paired intervals.
+
+Threshold sensitivity is locally flat: thresholds $-.05$ and $0$ select the
+same 375 claims. A threshold of $-.10$ routes 452 and yields 75.88 accuracy and
+56.72 macro-F1, while nested calibration routes 393 and preserves accuracy
+with macro-F1 56.74. These are source-internal sensitivities rather than a new
+externally retuned operating policy.
 
 \subsection{Budget and Memory-Composition Sensitivity}
 
@@ -690,19 +791,26 @@ the intervention budget; no single reduced control dominates the complete
 frontier. Detailed values and paired tests appear in
 Appendix~\ref{sec:memory-appendix}.
 
-The historical HardLabel memory-size ablation is non-monotonic: 25, 50, 100, 200, and all available
-records yield accuracy changes of +.0127, +.0166, +.0205, +.0169, and +.0189,
-respectively. The best point at 100 records is exploratory and is not used to
-retune the frozen policy. Near-duplicate grouping sensitivity at thresholds
-.85/.90/.95 yields accuracy changes +.0147/+.0150/+.0186 and macro-F1 changes
-+.0120/+.0117/+.0143, with positive accuracy intervals at all thresholds.
-This supports robustness to grouping, while also showing route membership is
-not identical across thresholds.
+Final-NLF sensitivity supports the frozen operating point without making it
+uniquely optimal. For top-$k=1,3,5,10,20$, natural accuracy is
+74.93/75.49/75.85/75.42/75.36 and macro-F1 is
+55.87/56.30/56.66/55.91/55.78. Top-five gives the strongest joint natural
+result. Minimum support 1/2/3/5 is invariant because every retained top-five
+neighborhood has full support in this population. Exact routing budgets of
+5/10/12.22/15/20/30/40\% yield accuracy
+74.93/75.52/75.85/75.88/75.88/75.55/75.55; quality plateaus near 15--20\%
+and then declines.
 
-Size-matched full and outcome-stratified memories are evaluated over 20 seeds
-in Appendix~\ref{sec:memory-appendix}. A frozen grid over top-$k$, minimum
-support, and continuous similarity weights remains unavailable. We do not tune
-these choices on CLIMATE-FEVER or SciFact after observing target results.
+Memory-size sensitivity samples the total source records before fold exclusion
+over 20 deterministic seeds. Mean accuracy rises from .7409
+($\mathrm{sd}=.0023$) at 25 records to .7516
+($\mathrm{sd}=.0023$) at 1,000; full memory reaches .7585. Mean macro-F1 rises
+from .5474 to .5598 and then .5666 with full memory. Near-duplicate thresholds
+.85/.90/.95 produce accuracy .7559/.7585/.7565 and macro-F1
+.5639/.5666/.5615. Hence the result is not driven by one small favorable
+memory sample or a single grouping threshold, although the canonical .90
+setting remains the best point estimate. No external target is used to choose
+these settings.
 
 \subsection{Robustness and Error Analysis}
 
@@ -747,6 +855,20 @@ The final NLF method is evaluated directly with outcome shuffle,
 class-conditional utility, recovery-only utility, random-neighbor, and uniform
 outcome-weight controls. Historical HardLabel component removals remain in the
 appendix and are not treated as direct proofs about the final router.
+
+\paragraph{Cross-domain source-memory composition.}
+As a post-hoc robustness analysis, we restrict the frozen AVeriTeC memory by
+source predicted or source gold label and rematerialize routes without reading
+target labels. The effects are large but strongly confounded by route rate.
+For example, the full router routes 19.0/8.0/20.7\% on CLIMATE-FEVER, SciFact
+oracle, and SciFact BM25, whereas a 48-record source-predicted-CONFLICTING
+memory routes 74.5/59.7/85.0\%. Its oracle accuracy reaches .7733, but this is
+an exploratory target-observed sensitivity, not a selected method or a
+matched-budget comparison. Across subsets, route rates range from zero to
+85\%, and the best subset differs by evidence protocol. We therefore use NE6
+only to show that source composition can materially alter transfer; it does
+not justify target-specific memory selection. Topic sensitivity is unavailable
+because the source memory contains no verified topic metadata.
 
 \subsection{Compute and Runtime Accounting}
 
@@ -833,13 +955,22 @@ However, recovery-only utility is statistically indistinguishable from NA0 at
 therefore help define selective coverage and the higher-budget frontier, but
 their inclusion is not uniformly beneficial at every operating point.
 
-The historical hard-label ablations do not establish that every similarity component is
-individually necessary or that manually assigned weights outperform uniform
-weighting. In particular, removing claim similarity has negligible effect,
-and both label-score removal and uniform weighting improve macro-F1 slightly.
-These negative results are retained because ablation inclusion is based on
-mechanistic relevance and statistical reliability rather than whether a row
-favors the historical R6-HardLabel reference.
+The NLF mechanism ablation further limits the interpretation. Cross-label-only
+memory is harmful, while suppressing or shuffling cross-label outcomes does
+not significantly reduce matched performance. The current evidence therefore
+supports global candidate-pool competition and outcome-aware pruning, not a
+causal claim that instance-specific outcomes transferred across predicted
+labels are individually necessary. This distinction is retained even though
+NLF has the strongest joint natural AVeriTeC point estimate.
+
+The final-NLF component tests establish a corrected accuracy contribution from
+label-score similarity and a macro-F1 contribution from evidence length, but
+do not establish an independent claim-Jaccard effect or superiority of manual
+weights over uniform weights. Historical HardLabel removals differ---notably,
+label-score removal had a much smaller effect---which confirms that conclusions
+must not be transferred across candidate spaces. These negative results are
+retained because ablation inclusion is based on mechanistic relevance and
+statistical reliability rather than whether a row favors ERRORFlow.
 
 \section{Reproducibility and Audit}
 
@@ -870,10 +1001,12 @@ retriever is only a lexical baseline. Several external matched-router
 comparisons remain statistically inconclusive. Finally, CONFLICTING-class
 performance is weak, and constant action cost prevents an independent test of
 heterogeneous cost-aware ranking. The hand-set similarity weights are not
-validated as optimal, component signals may be redundant, and the Group-C
-development harness used a slightly different token boundary from the
+validated as optimal, component signals may be redundant, and the broad
+Group-C development harness used a slightly different token boundary from the
 canonical memory implementation. We report both rather than treating their
-route counts as interchangeable.
+route counts as interchangeable. Source-memory subset sensitivity is post-hoc
+and severely changes route rate; it cannot support target-specific memory
+selection.
 
 \paragraph{Ethics and broader impact.}
 Selective correction can reduce unnecessary computation, but automated
@@ -968,6 +1101,62 @@ macro-F1 interval over B1 is positive while accuracy crosses zero; at the NLF
 budget its +.0100 accuracy difference over HardLabel has $p=.25$. The oracle
 raw four-label HardLabel comparison remains null, so projected SciFact gains
 must still be interpreted as adapter-mediated.
+
+\section{Final-NLF Similarity and Sensitivity Detail}
+
+Table~\ref{tab:nc-appendix} completes the NC family omitted from the main
+table. All comparisons use the canonical tokenizer and 375 routes. Holm
+correction is over NC1--NC8, not over the historical HardLabel family.
+
+\begin{table*}[t]
+\caption{Additional final-NLF similarity substitutions at matched budget.
+Deltas and corrected tests are evaluated against NC0.}
+\label{tab:nc-appendix}
+\centering\small
+\begin{tabular}{llrrr}
+\toprule
+ID & Variant & Accuracy (\%) & Macro-F1 (\%) & Holm $p_{\rm Acc}$ \\
+\midrule
+NC5 & Label-score only & 75.20 & 55.08 & .299 \\
+NC6 & Hellinger label profile & 75.13 & 55.96 & .019 \\
+NC7 & Jensen--Shannon profile & 74.58 & 55.94 & .00125 \\
+NC8 & TF--IDF claim similarity & 75.55 & 56.17 & .486 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+The Hellinger and Jensen--Shannon substitutions are significantly worse in
+corrected accuracy despite reasonable macro-F1, whereas TF--IDF is
+statistically indistinguishable from canonical Jaccard. Label-score-only
+retrieval loses 1.58 macro-F1 points; its paired macro-F1 interval favors NC0,
+but the corrected accuracy comparison is null. These results support a mixed
+representation while leaving claim representation underdetermined.
+
+\begin{table*}[t]
+\caption{Final-NLF sensitivity summary. Memory-size rows are 20-seed means;
+the full-memory row is deterministic. Values are percentages.}
+\label{tab:ne-appendix}
+\centering\small
+\begin{tabular}{llrrr}
+\toprule
+Axis & Setting & Routes/rate & Accuracy & Macro-F1 \\
+\midrule
+Top-$k$ & 1 / 3 / 5 / 10 / 20 & 157/312/375/233/205 & 74.93/75.49/75.85/75.42/75.36 & 55.87/56.30/56.66/55.91/55.78 \\
+Budget & 5/10/12.22/15/20\% & 153/307/375/460/614 & 74.93/75.52/75.85/75.88/75.88 & 55.60/55.93/56.66/56.72/56.70 \\
+Memory & 25 / 100 / 500 / 1,000 & 9.9/12.6/12.2/12.4\% & 74.09/74.55/74.98/75.16 & 54.74/55.36/55.61/55.98 \\
+Memory & Full & 12.22\% & 75.85 & 56.66 \\
+Grouping & .85 / .90 / .95 & 367/375/368 & 75.59/75.85/75.65 & 56.39/56.66/56.15 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+The memory-size standard deviations for 25/100/500/1,000 records are
+.23/.37/.37/.23 accuracy points and .30/.63/.54/.40 macro-F1 points. The
+utility-margin audit further shows empirical net outcome rates of $-.065$ for
+$U<-.10$, $-.014$ for $-.10\leq U<-.05$, +.126 for
+$.01\leq U<.025$, and +.222 for $U\geq.10$. This directional separation is
+consistent with abstention, while sparse near-zero bins prevent a strong
+calibration claim.
 
 \section{Historical HardLabel Component-Ablation Detail}
 
