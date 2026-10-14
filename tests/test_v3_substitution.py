@@ -61,3 +61,17 @@ def test_zero_similarity_falls_back_to_uniform_weights():
     result = estimate_utility(rows, mode="unsmoothed", cost_weight=0.0)
     assert math.isclose(result["utility"], 0.0)
     assert result["weight"] == 2.0
+
+
+def test_recovery_only_ignores_regression_but_keeps_cost():
+    rows = [(record(recovery=1, cost=1.0), 1.0), (record(regression=1, cost=1.0), 1.0)]
+    result = estimate_utility(rows, mode="recovery_only", cost_weight=0.1)
+    assert math.isclose(result["recovery_rate"], 0.5)
+    assert result["regression_rate"] == 0.0
+    assert math.isclose(result["utility"], 0.4)
+
+
+def test_regression_only_rewards_low_regression_regions():
+    safe = estimate_utility([(record(recovery=1), 1.0)], mode="regression_only", cost_weight=0.0)
+    risky = estimate_utility([(record(regression=1), 1.0)], mode="regression_only", cost_weight=0.0)
+    assert safe["utility"] > risky["utility"]

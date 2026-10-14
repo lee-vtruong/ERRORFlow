@@ -169,6 +169,13 @@ def estimate_utility(neighbors, mode="smoothed", cost_weight=0.1, prior=None):
         pseudo = 1.0 / math.sqrt(max(ess, 1.0))
         recovery_rate = (recovery + pseudo) / (weight + 2.0 * pseudo)
         regression_rate = (regression + pseudo) / (weight + 2.0 * pseudo)
+    elif mode == "recovery_only":
+        recovery_rate = (recovery + 1.0) / (weight + 2.0)
+        regression_rate = 0.0
+    elif mode == "regression_only":
+        # A high score denotes a region with low historical regression risk.
+        recovery_rate = 1.0
+        regression_rate = (regression + 1.0) / (weight + 2.0)
     else:
         raise ValueError(f"Unknown utility estimator: {mode}")
     return {

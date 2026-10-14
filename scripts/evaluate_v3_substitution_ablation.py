@@ -94,6 +94,18 @@ VARIANTS = {
     "C7-2_label_and_confidence_bin": variant(compatibility="label_confidence_bin"),
     "C7-3_soft_label_compatibility": variant(compatibility="soft_label"),
     "C7-4_label_and_margin_bin": variant(compatibility="label_margin_bin"),
+    # Direct similarity-component ablations for the final no-label-filter
+    # method.  These aliases deliberately share the canonical Group-C engine
+    # rather than reimplementing retrieval in a second evaluator.
+    "NC0_full_nlf": variant(compatibility="none"),
+    "NC1_without_claim": variant(weights=(0.0, 0.50, 0.15), compatibility="none"),
+    "NC2_without_label_score": variant(weights=(0.35, 0.0, 0.15), compatibility="none"),
+    "NC3_without_evidence_length": variant(weights=(0.35, 0.50, 0.0), compatibility="none"),
+    "NC4_uniform_weights": variant(weights=(1.0, 1.0, 1.0), compatibility="none"),
+    "NC5_label_score_only": variant(weights=(0.0, 1.0, 0.0), compatibility="none"),
+    "NC6_hellinger": variant(label_metric="hellinger", compatibility="none"),
+    "NC7_jensen_shannon": variant(label_metric="jensen_shannon", compatibility="none"),
+    "NC8_tfidf_claim": variant(claim_metric="tfidf", compatibility="none"),
 }
 
 
@@ -105,6 +117,7 @@ GROUPS = {
     "C5": [name for name in VARIANTS if name.startswith("C5-")],
     "C6": [name for name in VARIANTS if name.startswith("C6-")],
     "C7": [name for name in VARIANTS if name.startswith("C7-")],
+    "NC": [name for name in VARIANTS if name.startswith("NC")],
 }
 
 
@@ -316,10 +329,18 @@ def main():
     parser.add_argument("--memory", required=True, type=Path)
     parser.add_argument("--examples", required=True, type=Path)
     parser.add_argument("--output-dir", required=True, type=Path)
-    parser.add_argument("--groups", nargs="+", choices=sorted(GROUPS), default=sorted(GROUPS))
+    parser.add_argument(
+        "--groups", nargs="+", choices=sorted(GROUPS),
+        default=[name for name in sorted(GROUPS) if name != "NC"],
+    )
     parser.add_argument(
         "--variants", nargs="+", choices=sorted(VARIANTS),
-        help="Run only these variants. Overrides --groups; C0 is always included.",
+        help="Run only these variants. Overrides --groups; the reference is always included.",
+    )
+    parser.add_argument(
+        "--reference-variant", choices=sorted(VARIANTS),
+        default="C0_full_r6_reference",
+        help="Reference used for the natural route count and paired comparisons.",
     )
     parser.add_argument("--sbert-cache", type=Path)
     parser.add_argument("--e5-cache", type=Path)
@@ -347,7 +368,7 @@ def main():
         list(args.variants) if args.variants
         else [name for group in args.groups for name in GROUPS[group]]
     )
-    selected_names = list(dict.fromkeys(["C0_full_r6_reference", *selected_names]))
+    selected_names = list(dict.fromkeys([args.reference_variant, *selected_names]))
     if any(VARIANTS[name]["claim_metric"] == "sbert" or VARIANTS[name]["evidence_metric"] == "sbert" for name in selected_names) and not args.sbert_cache:
         raise ValueError("Selected groups require --sbert-cache")
     if any(VARIANTS[name]["claim_metric"] == "e5" for name in selected_names) and not args.e5_cache:
@@ -359,7 +380,7 @@ def main():
         print(f"VARIANT_START {name}", flush=True)
         scores_by_variant[name], supports_by_variant[name] = engine.score_variant(VARIANTS[name])
 
-    reference_scores = scores_by_variant["C0_full_r6_reference"]
+    reference_scores = scores_by_variant[args.reference_variant]
     reference_natural = {key for key in ids if reference_scores[key] > args.utility_threshold}
     matched_count = len(reference_natural)
     gold = [baseline[key]["gold_label"] for key in ids]
@@ -387,10 +408,10 @@ def main():
                     "outer_fold": baseline[key]["outer_fold"],
                 })
 
-    reference_predictions = prediction_cache[("C0_full_r6_reference", "matched_budget")]
+    reference_predictions = prediction_cache[(args.reference_variant, "matched_budget")]
     comparisons, raw_p = {}, {}
     for name in selected_names:
-        if name == "C0_full_r6_reference":
+        if name == args.reference_variant:
             continue
         predictions = prediction_cache[(name, "matched_budget")]
         test = mcnemar_exact(gold, predictions, reference_predictions)
@@ -421,6 +442,7 @@ def main():
             "soft_label_mismatch_penalty": 0.5,
             "confidence_bin_width": 0.2, "margin_bin_width": 0.1,
             "bayesian_prior_strength": 2.0,
+            "reference_variant": args.reference_variant,
         },
         "grouping": grouping, "baseline": base_metrics,
         "variants": {name: VARIANTS[name] for name in selected_names},
@@ -433,7 +455,7 @@ def main():
             "C4-1 is implementation-equivalent to Group-A A7 under the same grouped protocol.",
             "Dense caches are validated by exact example ordering and an adjacent manifest.",
             "All target examples and their grouped outer folds are excluded from usable memory.",
-            "Natural routing uses utility > 0; matched routing uses the C0 natural route count.",
+            "Natural routing uses utility > 0; matched routing uses the selected reference variant's natural route count.",
             "Claim Jaccard uses the canonical R6 [\\w'-]+ tokenizer.",
         ],
     }
