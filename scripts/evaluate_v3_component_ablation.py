@@ -36,7 +36,8 @@ VARIANTS = {
 
 
 def utility_scores(ids, baseline, records, action, top_k, min_support, cost_weight,
-                   weights, selection_mode="ranked", random_seed=2026):
+                   weights, selection_mode="ranked", random_seed=2026,
+                   compatibility_mode="same_label"):
     store = ResidualMemoryStore(records)
     scores, supports, uniform_fallbacks = {}, {}, {}
     for key in ids:
@@ -59,6 +60,7 @@ def utility_scores(ids, baseline, records, action, top_k, min_support, cost_weig
             similarity_weights=weights,
             selection_mode=selection_mode,
             random_seed=random_seed,
+            compatibility_mode=compatibility_mode,
         )
         best, estimates = best_memory_action(
             [action], neighbors, cost_weight=cost_weight,

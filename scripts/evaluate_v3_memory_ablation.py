@@ -14,6 +14,7 @@ from pathlib import Path
 from errorflow.io import atomic_write_json, read_jsonl, write_jsonl
 from errorflow.v3_memory import ResidualMemoryStore
 from errorflow.v3_routing import best_memory_action, estimate_action
+from errorflow.v3_statistics import mcnemar_exact, paired_bootstrap
 
 try:
     from scripts.evaluate_v3_component_ablation import (
@@ -23,7 +24,12 @@ try:
         top_count,
         utility_scores,
     )
-    from scripts.evaluate_v3_matched_budget import evaluate_selection, indexed, prepare_grouped_artifacts
+    from scripts.evaluate_v3_matched_budget import (
+        evaluate_selection,
+        holm_adjust,
+        indexed,
+        prepare_grouped_artifacts,
+    )
 except ModuleNotFoundError:  # Direct `python scripts/...py` execution.
     from evaluate_v3_component_ablation import (
         evaluate_variant,
@@ -32,7 +38,12 @@ except ModuleNotFoundError:  # Direct `python scripts/...py` execution.
         top_count,
         utility_scores,
     )
-    from evaluate_v3_matched_budget import evaluate_selection, indexed, prepare_grouped_artifacts
+    from evaluate_v3_matched_budget import (
+        evaluate_selection,
+        holm_adjust,
+        indexed,
+        prepare_grouped_artifacts,
+    )
 
 
 FULL_WEIGHTS = (0.35, 0.50, 0.15)
@@ -159,11 +170,17 @@ def main():
     parser.add_argument("--top-k", type=int, default=5)
     parser.add_argument("--min-support", type=int, default=2)
     parser.add_argument("--cost-weight", type=float, default=0.1)
+    parser.add_argument(
+        "--compatibility-mode", choices=["same_label", "none"],
+        default="same_label",
+        help="Use 'none' for the final R6-NLF router; default reproduces historical HardLabel runs.",
+    )
     parser.add_argument("--utility-threshold", type=float, default=0.0)
     parser.add_argument("--group-threshold", type=float, default=0.90)
     parser.add_argument("--folds", type=int, default=5)
     parser.add_argument("--seed", type=int, default=2026)
     parser.add_argument("--random-seeds", nargs="+", type=int, default=list(range(2026, 2046)))
+    parser.add_argument("--bootstrap-samples", type=int, default=5000)
     args = parser.parse_args()
 
     baseline_rows = list(read_jsonl(args.baseline_records))
@@ -177,16 +194,18 @@ def main():
     if set(baseline) != set(candidate):
         raise ValueError("Baseline and candidate IDs must match exactly")
     ids = sorted(baseline)
+    gold = [baseline[key]["gold_label"] for key in ids]
     base_metrics, _ = evaluate_selection(ids, baseline, candidate, set())
 
     full_scores, full_supports, full_fallbacks = utility_scores(
         ids, baseline, records, args.action, args.top_k, args.min_support,
         args.cost_weight, FULL_WEIGHTS, "ranked", args.seed,
+        args.compatibility_mode,
     )
     full_natural = {key for key in ids if full_scores[key] > args.utility_threshold}
     matched_count = len(full_natural)
 
-    results, routes, prediction_rows = {}, [], []
+    results, routes, prediction_rows, prediction_index = {}, [], [], {}
 
     def record_run(variant, mode, seed, selected, scores, supports, fallbacks,
                    save_predictions=True):
@@ -197,6 +216,7 @@ def main():
         metrics["seed"] = seed
         result_key = f"{variant}:{mode}" + (f":seed={seed}" if seed is not None else "")
         results[result_key] = metrics
+        prediction_index[(variant, mode, seed)] = predictions
         routes.append({
             "variant": variant, "mode": mode, "seed": seed,
             "selected_ids": sorted(selected),
@@ -228,10 +248,12 @@ def main():
         ("B2_claim_nearest", lambda: utility_scores(
             ids, baseline, records, args.action, args.top_k, args.min_support,
             args.cost_weight, (1.0, 0.0, 0.0), "ranked", args.seed,
+            args.compatibility_mode,
         )),
         ("B3_score_nearest", lambda: utility_scores(
             ids, baseline, records, args.action, args.top_k, args.min_support,
             args.cost_weight, (0.0, 1.0, 0.0), "ranked", args.seed,
+            args.compatibility_mode,
         )),
         ("B5_static_class", lambda: static_utility_scores(
             ids, baseline, records, args.action, args.min_support,
@@ -244,12 +266,12 @@ def main():
         ("B7_error_only", lambda: utility_scores(
             ids, baseline, population_records(records, "error_only"), args.action,
             args.top_k, args.min_support, args.cost_weight, FULL_WEIGHTS,
-            "ranked", args.seed,
+            "ranked", args.seed, args.compatibility_mode,
         )),
         ("B8_correct_only", lambda: utility_scores(
             ids, baseline, population_records(records, "correct_only"), args.action,
             args.top_k, args.min_support, args.cost_weight, FULL_WEIGHTS,
-            "ranked", args.seed,
+            "ranked", args.seed, args.compatibility_mode,
         )),
     ]
     for index, (variant, job) in enumerate(deterministic_jobs, 1):
@@ -274,11 +296,13 @@ def main():
         random_scores = utility_scores(
             ids, baseline, records, args.action, args.top_k, args.min_support,
             args.cost_weight, FULL_WEIGHTS, "random", seed,
+            args.compatibility_mode,
         )
         shuffled_records = shuffle_outcomes(records, seed)
         shuffled_scores = utility_scores(
             ids, baseline, shuffled_records, args.action, args.top_k,
             args.min_support, args.cost_weight, FULL_WEIGHTS, "ranked", seed,
+            args.compatibility_mode,
         )
         for variant, (scores, supports, fallbacks) in (
             ("B1_random_memory", random_scores),
@@ -310,6 +334,31 @@ def main():
         key: value for key, value in results.items()
         if "seed=" not in key or key.endswith(f"seed={args.seed}")
     }
+    reference = prediction_index[("B9_full_outcome_memory", "matched_budget", None)]
+    comparison_predictions = {
+        "B0_no_memory": prediction_index[("B0_no_memory", "matched_budget", None)],
+        "B1_random_memory": prediction_index[("B1_random_memory", "matched_budget", args.seed)],
+        "B2_claim_nearest": prediction_index[("B2_claim_nearest", "matched_budget", None)],
+        "B3_score_nearest": prediction_index[("B3_score_nearest", "matched_budget", None)],
+        "B4_outcome_shuffled": prediction_index[("B4_outcome_shuffled", "matched_budget", args.seed)],
+        "B5_static_class": prediction_index[("B5_static_class", "matched_budget", None)],
+        "B6_static_global": prediction_index[("B6_static_global", "matched_budget", None)],
+        "B7_error_only": prediction_index[("B7_error_only", "matched_budget", None)],
+        "B8_correct_only": prediction_index[("B8_correct_only", "matched_budget", None)],
+    }
+    primary_comparisons, raw_p = {}, {}
+    for variant, predictions in comparison_predictions.items():
+        report = {
+            "orientation": "B9_minus_variant",
+            "mcnemar_exact": mcnemar_exact(gold, predictions, reference),
+            "paired_bootstrap": paired_bootstrap(
+                gold, predictions, reference, args.bootstrap_samples, args.seed,
+            ),
+        }
+        primary_comparisons[variant] = report
+        raw_p[variant] = report["mcnemar_exact"]["exact_two_sided_p"]
+    for variant, adjusted in holm_adjust(raw_p).items():
+        primary_comparisons[variant]["holm_adjusted_mcnemar_p"] = adjusted
     report = {
         "evaluation": "grouped_fold_excluded_outcome_memory_ablation",
         "configuration": {
@@ -322,8 +371,10 @@ def main():
             "folds": args.folds,
             "seed": args.seed,
             "random_seeds": args.random_seeds,
+            "bootstrap_samples": args.bootstrap_samples,
             "matched_route_count": matched_count,
             "matched_route_rate": matched_count / len(ids),
+            "compatibility_mode": args.compatibility_mode,
             "outcome_shuffle_strata": ["outer_fold", "baseline_prediction"],
         },
         "grouping": grouping,
@@ -337,6 +388,7 @@ def main():
         "primary_results": primary_results,
         "all_results": results,
         "stochastic_aggregate": stochastic_aggregate,
+        "primary_matched_comparisons_b9_minus_variant": primary_comparisons,
         "limitations": [
             "Development-fold ablation only; no external target result is used for selection.",
             "B7/B8 deliberately alter the memory population and therefore expose selection bias.",

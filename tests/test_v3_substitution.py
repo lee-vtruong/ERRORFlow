@@ -6,6 +6,7 @@ from errorflow.v3_substitution import (
     bm25_prepare,
     bm25_score,
     estimate_utility,
+    jaccard,
     label_similarity,
 )
 
@@ -34,6 +35,11 @@ def test_bm25_prefers_overlapping_document():
     assert bm25_score("alpha", counts[0], idf, average, k1, b) > bm25_score(
         "alpha", counts[1], idf, average, k1, b
     )
+
+
+def test_claim_jaccard_uses_canonical_apostrophe_and_hyphen_tokens():
+    assert jaccard("state-of-the-art can't", "state-of-the-art can't") == 1.0
+    assert jaccard("state-of-the-art", "state of the art") == 0.0
 
 
 def test_multiplicative_aggregation_penalizes_zero_component():

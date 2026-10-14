@@ -1,4 +1,5 @@
 from dataclasses import replace
+import json
 
 from scripts.evaluate_v3_memory_controls import (
     estimate_neighbors,
@@ -101,8 +102,8 @@ def test_extended_controls_cli_smoke_writes_all_artifacts(tmp_path, monkeypatch)
     from scripts.evaluate_v3_memory_controls import main
 
     baseline_rows = [
-        baseline("a", False, 0), baseline("b", False, 0, "REFUTED"),
-        baseline("c", True, 1), baseline("d", True, 1, "REFUTED"),
+        baseline("a", False, 0), baseline("b", False, 0),
+        baseline("c", True, 1), baseline("d", True, 1),
     ]
     candidate_rows = [
         candidate("a", "SUPPORTED"), candidate("b", "SUPPORTED"),
@@ -130,9 +131,12 @@ def test_extended_controls_cli_smoke_writes_all_artifacts(tmp_path, monkeypatch)
         "--size-match-count", "2",
         "--budgets", "0.0",
         "--bootstrap-samples", "10",
+        "--compatibility-mode", "none",
     ])
     main()
     assert (output / "summary.json").is_file()
     assert (output / "routes.jsonl").is_file()
     assert (output / "predictions.jsonl").is_file()
     assert (output / "budget_predictions.jsonl").is_file()
+    report = json.loads((output / "summary.json").read_text(encoding="utf-8"))
+    assert report["configuration"]["compatibility_mode"] == "none"

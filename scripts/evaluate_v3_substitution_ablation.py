@@ -317,6 +317,10 @@ def main():
     parser.add_argument("--examples", required=True, type=Path)
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--groups", nargs="+", choices=sorted(GROUPS), default=sorted(GROUPS))
+    parser.add_argument(
+        "--variants", nargs="+", choices=sorted(VARIANTS),
+        help="Run only these variants. Overrides --groups; C0 is always included.",
+    )
     parser.add_argument("--sbert-cache", type=Path)
     parser.add_argument("--e5-cache", type=Path)
     parser.add_argument("--action", default="conflicting_rescue_v1")
@@ -339,7 +343,10 @@ def main():
     if set(baseline) != set(candidate) or set(baseline) != set(examples):
         raise ValueError("Baseline, candidate, and examples IDs must match exactly")
     ids = sorted(baseline)
-    selected_names = [name for group in args.groups for name in GROUPS[group]]
+    selected_names = (
+        list(args.variants) if args.variants
+        else [name for group in args.groups for name in GROUPS[group]]
+    )
     selected_names = list(dict.fromkeys(["C0_full_r6_reference", *selected_names]))
     if any(VARIANTS[name]["claim_metric"] == "sbert" or VARIANTS[name]["evidence_metric"] == "sbert" for name in selected_names) and not args.sbert_cache:
         raise ValueError("Selected groups require --sbert-cache")
@@ -405,7 +412,10 @@ def main():
             "action": args.action, "cost_weight": args.cost_weight,
             "utility_threshold": args.utility_threshold, "group_threshold": args.group_threshold,
             "folds": args.folds, "seed": args.seed,
-            "groups": args.groups, "matched_route_count": matched_count,
+            "groups": args.groups if not args.variants else None,
+            "requested_variants": args.variants,
+            "claim_tokenizer": r"[\w'-]+",
+            "matched_route_count": matched_count,
             "matched_route_rate": matched_count / len(ids),
             "rrf_constant": 60,
             "soft_label_mismatch_penalty": 0.5,
@@ -424,6 +434,7 @@ def main():
             "Dense caches are validated by exact example ordering and an adjacent manifest.",
             "All target examples and their grouped outer folds are excluded from usable memory.",
             "Natural routing uses utility > 0; matched routing uses the C0 natural route count.",
+            "Claim Jaccard uses the canonical R6 [\\w'-]+ tokenizer.",
         ],
     }
     args.output_dir.mkdir(parents=True, exist_ok=True)

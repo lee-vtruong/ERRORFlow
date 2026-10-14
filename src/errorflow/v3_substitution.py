@@ -13,7 +13,10 @@ from collections import Counter
 from .error_memory import score_distribution
 
 
-TOKEN_RE = re.compile(r"\w+", re.UNICODE)
+# Keep substitution studies bit-for-bit aligned with the established R6
+# memory retriever.  The earlier exploratory Group-C runner used ``\w+`` and
+# therefore split apostrophes/hyphens differently from production retrieval.
+TOKEN_RE = re.compile(r"[\w'-]+", re.UNICODE)
 LABELS = ("SUPPORTED", "REFUTED", "NOT ENOUGH INFO", "CONFLICTING")
 
 

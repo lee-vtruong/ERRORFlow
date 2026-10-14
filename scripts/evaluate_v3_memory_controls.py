@@ -149,7 +149,8 @@ def estimate_neighbors(neighbors, action, cost_weight, utility_mode="full",
 
 
 def memory_scores(ids, baseline, records, action, top_k, min_support, cost_weight,
-                  utility_mode="full", uniform_outcome_weights=False):
+                  utility_mode="full", uniform_outcome_weights=False,
+                  compatibility_mode="same_label"):
     store = ResidualMemoryStore(records)
     scores, supports, fallbacks, estimates = {}, {}, {}, {}
     for key in ids:
@@ -170,6 +171,7 @@ def memory_scores(ids, baseline, records, action, top_k, min_support, cost_weigh
             exclude_claim_ids={key},
             exclude_folds={row["outer_fold"]},
             similarity_weights=FULL_WEIGHTS,
+            compatibility_mode=compatibility_mode,
         )
         utility, support, fallback, estimate = estimate_neighbors(
             neighbors, action, cost_weight, utility_mode, uniform_outcome_weights,
@@ -236,7 +238,7 @@ def choose_threshold(ids, baseline, candidate, scores):
 
 
 def calibrated_selection(ids, baseline, candidate, records, action, top_k,
-                         min_support, cost_weight):
+                         min_support, cost_weight, compatibility_mode="same_label"):
     folds = sorted({baseline[key]["outer_fold"] for key in ids})
     selected, diagnostics = set(), []
     for target_fold in folds:
@@ -247,7 +249,7 @@ def calibrated_selection(ids, baseline, candidate, records, action, top_k,
         calibration_ids = [key for key in ids if baseline[key]["outer_fold"] != target_fold]
         scores, _, _, _ = memory_scores(
             calibration_ids, baseline, source_records, action, top_k,
-            min_support, cost_weight,
+            min_support, cost_weight, compatibility_mode=compatibility_mode,
         )
         threshold, calibration_metrics = choose_threshold(
             calibration_ids, baseline, candidate, scores,
@@ -255,6 +257,7 @@ def calibrated_selection(ids, baseline, candidate, records, action, top_k,
         target_ids = [key for key in ids if baseline[key]["outer_fold"] == target_fold]
         target_scores, _, _, _ = memory_scores(
             target_ids, baseline, records, action, top_k, min_support, cost_weight,
+            compatibility_mode=compatibility_mode,
         )
         selected.update(key for key in target_ids if target_scores[key] > threshold)
         diagnostics.append({
@@ -339,6 +342,11 @@ def main():
     parser.add_argument("--top-k", type=int, default=5)
     parser.add_argument("--min-support", type=int, default=2)
     parser.add_argument("--cost-weight", type=float, default=0.1)
+    parser.add_argument(
+        "--compatibility-mode", choices=["same_label", "none"],
+        default="same_label",
+        help="Use 'none' for final R6-NLF; default reproduces historical HardLabel controls.",
+    )
     parser.add_argument("--utility-threshold", type=float, default=0.0)
     parser.add_argument("--group-threshold", type=float, default=0.90)
     parser.add_argument("--folds", type=int, default=5)
@@ -379,7 +387,7 @@ def main():
     print("MEMORY_CONTROLS_COMPUTE reference=B9", flush=True)
     b9_scores = memory_scores(
         ids, baseline, records, args.action, args.top_k, args.min_support,
-        args.cost_weight,
+        args.cost_weight, compatibility_mode=args.compatibility_mode,
     )
     b9_natural = {key for key in ids if b9_scores[0][key] > args.utility_threshold}
     matched_count = len(b9_natural)
@@ -426,10 +434,12 @@ def main():
         ("B10_recovery_only", lambda: memory_scores(
             ids, baseline, records, args.action, args.top_k, args.min_support,
             args.cost_weight, utility_mode="recovery_only",
+            compatibility_mode=args.compatibility_mode,
         )),
         ("B11_regression_only", lambda: memory_scores(
             ids, baseline, records, args.action, args.top_k, args.min_support,
             args.cost_weight, utility_mode="regression_only",
+            compatibility_mode=args.compatibility_mode,
         )),
         ("B15_class_conditional", lambda: class_conditional_scores(
             ids, baseline, records, args.action, args.min_support, args.cost_weight,
@@ -437,6 +447,7 @@ def main():
         ("B16_uniform_outcome_weights", lambda: memory_scores(
             ids, baseline, records, args.action, args.top_k, args.min_support,
             args.cost_weight, uniform_outcome_weights=True,
+            compatibility_mode=args.compatibility_mode,
         )),
     ]
     for index, (variant, job) in enumerate(deterministic_jobs, 1):
@@ -456,6 +467,7 @@ def main():
     b7_bundle = memory_scores(
         ids, baseline, error_records, args.action, args.top_k, args.min_support,
         args.cost_weight,
+        compatibility_mode=args.compatibility_mode,
     )
     stochastic_rows = {variant: {"natural": [], "matched_budget": []}
                        for variant in STOCHASTIC_VARIANTS}
@@ -476,14 +488,17 @@ def main():
             "B12_size_matched_full": memory_scores(
                 ids, baseline, sampled_full, args.action, args.top_k,
                 args.min_support, args.cost_weight,
+                compatibility_mode=args.compatibility_mode,
             ),
             "B13_size_matched_mixed_outcome": memory_scores(
                 ids, baseline, sampled_mixed, args.action, args.top_k,
                 args.min_support, args.cost_weight,
+                compatibility_mode=args.compatibility_mode,
             ),
             "B14_stratified_outcome_shuffle": memory_scores(
                 ids, baseline, shuffled, args.action, args.top_k,
                 args.min_support, args.cost_weight,
+                compatibility_mode=args.compatibility_mode,
             ),
         }
         for variant, bundle in bundles.items():
@@ -510,7 +525,7 @@ def main():
     print("MEMORY_CONTROLS_COMPUTE calibrated=B17", flush=True)
     b17_selected, calibration = calibrated_selection(
         ids, baseline, candidate, records, args.action, args.top_k,
-        args.min_support, args.cost_weight,
+        args.min_support, args.cost_weight, args.compatibility_mode,
     )
     b17_metrics, b17_predictions = record_run(
         "B17_calibrated_utility", "nested_calibrated", None, b17_selected,
@@ -614,6 +629,7 @@ def main():
             "size_match_count": size_match_count,
             "error_memory_observed_count": len(error_records),
             "matched_route_count": matched_count,
+            "compatibility_mode": args.compatibility_mode,
             "matched_route_rate": matched_count / len(ids),
             "budgets": args.budgets,
             "b11_score": "1 - estimated_regression - cost_weight * estimated_cost",
@@ -638,6 +654,7 @@ def main():
             "B12 samples uniformly from full memory at the B7/error-memory size.",
             "B13 samples recovery, regression, and neutral outcomes proportionally at the same size.",
             "All thresholds and routing decisions are computed without external evaluation labels.",
+            "Compatibility mode is explicit; 'none' denotes the final R6-NLF router.",
             "Holm correction is applied to one B10--B17 family and separately within each budget family.",
         ],
     }
