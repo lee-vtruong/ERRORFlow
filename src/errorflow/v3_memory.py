@@ -85,7 +85,8 @@ class ResidualMemoryStore:
 
     def retrieve(self, query, top_k=10, allowed_splits=None, action=None,
                  exclude_claim_ids=None, exclude_folds=None, max_records=None,
-                 similarity_weights=None, selection_mode="ranked", random_seed=2026):
+                 similarity_weights=None, selection_mode="ranked", random_seed=2026,
+                 compatibility_mode="same_label"):
         """Retrieve compatible residual memories.
 
         ``similarity_weights`` follows ``(claim, label_score, evidence_length)``
@@ -93,6 +94,8 @@ class ResidualMemoryStore:
         deterministic query-specific ordering while retaining the computed
         similarities for downstream utility estimation. This isolates the
         value of similarity ranking from the value of similarity weighting.
+        ``compatibility_mode='same_label'`` preserves the historical R6 hard
+        baseline-label filter; ``'none'`` is the frozen R6-NLF revision.
         """
         scored = []
         weights = (0.35, 0.50, 0.15) if similarity_weights is None else tuple(similarity_weights)
@@ -102,6 +105,8 @@ class ResidualMemoryStore:
         weights = tuple(weight / total_weight for weight in weights)
         if selection_mode not in {"ranked", "random"}:
             raise ValueError("selection_mode must be 'ranked' or 'random'")
+        if compatibility_mode not in {"same_label", "none"}:
+            raise ValueError("compatibility_mode must be 'same_label' or 'none'")
         query_features = query.get("retrieval_features", {})
         baseline_prediction = query_features.get("baseline_prediction")
         records = sorted(self._records.values(), key=lambda record: record.memory_id)
@@ -123,7 +128,8 @@ class ResidualMemoryStore:
             if exclude_folds and record.provenance.get("outer_fold") in exclude_folds:
                 continue
             features = record.retrieval_features
-            if baseline_prediction and features.get("baseline_prediction") != baseline_prediction:
+            if (compatibility_mode == "same_label" and baseline_prediction
+                    and features.get("baseline_prediction") != baseline_prediction):
                 continue
             lexical = jaccard_similarity(query.get("claim", ""), record.source_claim)
             score_profile = distribution_similarity(

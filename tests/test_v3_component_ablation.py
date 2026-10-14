@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 from errorflow.v3_memory import ResidualMemoryRecord, ResidualMemoryStore
 from scripts.evaluate_v3_component_ablation import route_overlap, summarize_replicates, top_count
 
@@ -47,6 +49,28 @@ def test_random_neighbor_selection_is_seeded_and_query_specific():
     other = store.retrieve(query, top_k=4, selection_mode="random", random_seed=8)
     assert [row.memory_id for row, _ in first] == [row.memory_id for row, _ in again]
     assert [row.memory_id for row, _ in first] != [row.memory_id for row, _ in other]
+
+
+def test_no_label_filter_can_return_cross_label_neighbors():
+    supported = record("supported", "same words")
+    features = dict(supported.retrieval_features)
+    features["baseline_prediction"] = "REFUTED"
+    refuted = replace(
+        record("refuted", "same words"), retrieval_features=features,
+    )
+    store = ResidualMemoryStore([supported, refuted])
+    query = {
+        "example_id": "q", "claim": "same words",
+        "retrieval_features": {
+            "baseline_prediction": "SUPPORTED",
+            "label_scores": {"SUPPORTED": 1.0, "REFUTED": 0.0},
+            "evidence_tokens": 10,
+        },
+    }
+    hard = store.retrieve(query, top_k=2, compatibility_mode="same_label")
+    nlf = store.retrieve(query, top_k=2, compatibility_mode="none")
+    assert [item.retrieval_features["baseline_prediction"] for item, _ in hard] == ["SUPPORTED"]
+    assert {item.retrieval_features["baseline_prediction"] for item, _ in nlf} == {"SUPPORTED", "REFUTED"}
 
 
 def test_matched_count_and_overlap_are_deterministic():
