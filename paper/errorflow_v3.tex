@@ -540,61 +540,74 @@ NLF as a competitive transferred router rather than a universally superior one.
 Table~\ref{tab:memory-ablation} isolates three questions central to ERRORFlow:
 whether historical outcomes matter, whether instance-level neighbors add value
 beyond class-level rates, and whether explicitly penalizing regressions is
-necessary. Except for B0, all rows use the same 375-route (12.22\%) correction
-budget. B1 and B14 report means over 20 deterministic seeds; their inferential
+necessary. We use the canonical N-A taxonomy for direct NLF controls; the
+corresponding historical artifact identifiers are recorded in the caption.
+Except for NA1, all rows use the same 375-route (12.22\%) correction
+budget. NA2 and NA3 report means over 20 deterministic seeds; their inferential
 tests use only the predeclared seed 2026 and are not tests of the displayed
 means. All rows use final NLF retrieval without a predicted-label filter.
 
 \begin{table*}[t]
 \caption{Outcome-memory and utility ablations under a matched correction
-budget on grouped AVeriTeC. B1 and B14 are 20-seed means; deterministic rows
-are single frozen evaluations. B0 performs no correction.}
+budget on grouped AVeriTeC. NA2 and NA3 are 20-seed means; deterministic rows
+are single frozen evaluations. NA1 performs no correction. Historical aliases
+are NA0/B9, NA1/B0, NA2/B1, NA3/B14, NA5/B15, and NA6/B10. Holm $p$ compares
+NA0 with each row using seed 2026 for stochastic controls.}
 \label{tab:memory-ablation}
 \centering\small
-\begin{tabular}{lllrr}
+\begin{tabular}{lllrrr}
 \toprule
-ID & Configuration & Routed & Accuracy (\%) $\uparrow$ & Macro-F1 (\%) $\uparrow$ \\
+ID & Configuration & Routed & Accuracy (\%) $\uparrow$ & Macro-F1 (\%) $\uparrow$ & Holm $p_{\rm Acc}$ \\
 \midrule
-B0 & No memory (B1 only) & 0 & 74.02 & 54.60 \\
-B1 & Random memory$\dagger$ & 375 & 73.89 & 54.79 \\
-B14 & Stratified outcome shuffle$\dagger$ & 375 & 74.26 & 54.70 \\
-B15 & Class-conditional utility & 375 & 75.33 & 54.53 \\
-B10 & Recovery-only utility & 375 & 75.78 & 56.31 \\
-B9 & Full outcome memory (R6-NLF) & 375 & \textbf{75.85} & \textbf{56.66} \\
+NA1 & No memory (B1 only) & 0 & 74.02 & 54.60 & $7.12{\times}10^{-6}$ \\
+NA2 & Random neighbors$\dagger$ & 375 & 73.89 & 54.79 & $3.81{\times}10^{-7}$ \\
+NA3 & Stratified outcome shuffle$\dagger$ & 375 & 74.26 & 54.70 & $1.03{\times}10^{-5}$ \\
+NA5 & Class-conditional prior & 375 & 75.33 & 54.53 & .609 \\
+NA6 & Recovery-only utility & 375 & 75.78 & 56.31 & 1.000 \\
+NA0 & Full outcome memory (R6-NLF) & 375 & \textbf{75.85} & \textbf{56.66} & -- \\
 \bottomrule
-\multicolumn{5}{l}{\footnotesize $\dagger$Mean over 20 seeds; seed 2026 is used for paired tests.} \\
+\multicolumn{6}{l}{\footnotesize $\dagger$Mean over 20 seeds; seed 2026 is used for paired tests.} \\
 \end{tabular}
 \end{table*}
 
 \paragraph{Outcome memory matters.}
 Destroying the association between retrieval features and observed outcomes
-(B14) reduces mean accuracy and macro-F1 relative to B9. At seed 2026, B9
-exceeds B14 by 1.86 accuracy and 2.46 macro-F1 points; the correctness
+(NA3) reduces mean accuracy and macro-F1 relative to NA0. At seed 2026, NA0
+exceeds NA3 by 1.86 accuracy and 2.46 macro-F1 points; the correctness
 comparison remains significant after Holm correction
 ($p=1.03\times10^{-5}$), and both paired intervals are positive. Random memory
-(B1) also underperforms B9 by 1.96 accuracy and 1.87 macro-F1 points on
+(NA2) also underperforms NA0 by 1.96 accuracy and 1.87 macro-F1 points on
 20-seed means; the predeclared-seed paired intervals are positive and the
 Holm-adjusted correctness test is significant
 ($p=3.81\times10^{-7}$). Thus both outcome identity and neighbor ranking carry
 information beyond memory access alone.
 
 \paragraph{Instance-level versus class-level memory.}
-B9 exceeds the class-conditional estimator B15 by 0.52 accuracy and 2.13
+NA0 exceeds the class-conditional estimator NA5 by 0.52 accuracy and 2.13
 macro-F1 points. The Holm-adjusted correctness test is null ($p=.609$), while
 the paired macro-F1 interval is positive [.0085,.0351]. This supports a
 class-balance benefit without establishing a corrected accuracy advantage.
-The earlier B5 and B15 implementations call the same
-class-conditional estimator and produce identical outputs; B5 is therefore
+The historical B5 and B15 implementations call the same
+class-conditional estimator used by NA5 and produce identical outputs; B5 is therefore
 retained only in the artifact.
 
 \paragraph{Regression-aware utility.}
-Removing the regression term (B10) lowers matched-budget accuracy by 0.07 and
-macro-F1 by 0.35 points relative to B9; neither paired difference is
-established. More importantly, B10's natural $U>0$ rule routes all 3,068
-claims, yielding 192 helpful but 205 harmful changes (net $-13$), whereas B9
+Removing the regression term (NA6) lowers matched-budget accuracy by 0.07 and
+macro-F1 by 0.35 points relative to NA0; neither paired difference is
+established. More importantly, NA6's natural $U>0$ rule routes all 3,068
+claims, yielding 192 helpful but 205 harmful changes (net $-13$), whereas NA0
 routes 375 with net $+56$. The experiment supports regression modeling as a
 mechanism for selective abstention, but does not establish a fixed-budget
 quality advantage.
+
+The remaining extreme controls reinforce the same boundary. The global prior
+(NA4) and correct-only memory (NA8) do not route naturally; forcing each to the
+375-example budget produces net changes of $-14$ and $-4$. NA0 exceeds both
+with positive paired accuracy and macro-F1 intervals after the declared
+multiple-comparison protocol. Error-only memory (NA7), by contrast, is a
+competitive reduced control: its matched differences from NA0 are
+inconclusive, motivating the budget analysis below rather than a claim of
+uniform dominance.
 
 \subsection{Component Substitution and Design Selection}
 \label{sec:group-c-ablation}
@@ -664,7 +677,8 @@ neighbor is causally helpful.
 
 \subsection{Budget and Memory-Composition Sensitivity}
 
-The final NLF sweep compares full outcome memory, error-only memory,
+The final NLF sweep compares full outcome memory (NA0), error-only memory
+(NA7),
 recovery-only utility, outcome shuffle, and confidence routing under exactly
 matched route counts. Error-only memory is stronger than full memory at 5\%
 and marginally at 10\%; full memory is stronger at 11.18\%, ties at 15\%, and
@@ -814,7 +828,7 @@ correction strategies or heterogeneous cost-aware planning.
 The memory ablations sharpen this interpretation. Shuffling outcomes degrades
 both metrics and is rejected by the multiplicity-corrected correctness test,
 showing that the feature--outcome association contains routing information.
-However, recovery-only utility is statistically indistinguishable from B9 at
+However, recovery-only utility is statistically indistinguishable from NA0 at
 375 routes, and error-only memory is stronger at low budgets. Harmful outcomes
 therefore help define selective coverage and the higher-budget frontier, but
 their inclusion is not uniformly beneficial at every operating point.
@@ -1045,11 +1059,11 @@ P2 & Trained logistic router & 176 & 75.10 & 54.36 & 75.65 & 55.06 \\
 
 Table~\ref{tab:memory-appendix} reports controls omitted from the main table.
 All rows except B17 use 375 routes. B12 and B13 are 20-seed means over memories
-of 797 records, matching the size of B7; B17 selects fold-specific thresholds
+of 797 records, matching the size of NA7/B7; B17 selects fold-specific thresholds
 from source-inner folds and routes 393 claims, so it is not a matched-budget
-comparison. B4 is implementation-equivalent to B14: both permute outcomes
+comparison. B4 is implementation-equivalent to NA3/B14: both permute outcomes
 within outer-fold and predicted-label strata. B5 is implementation-equivalent
-to B15, while the constant global prior B6 remains artifact-only.
+to NA5/B15. The constant global prior is now reported explicitly as NA4.
 
 \begin{table*}[t]
 \caption{Additional outcome-memory controls on grouped AVeriTeC. $\dagger$
@@ -1063,8 +1077,9 @@ ID & Configuration & Routed & Accuracy (\%) & Macro-F1 (\%) \\
 \midrule
 B2 & Claim-nearest memory & 375 & 74.32 & 54.80 \\
 B3 & Score-nearest memory & 375 & 75.20 & 55.08 \\
-B7 & Error-only memory & 375 & 75.72 & 56.30 \\
-B8 & Correct-only memory & 375 & 73.89 & 54.42 \\
+NA4 & Global outcome prior & 375 & 73.57 & 54.27 \\
+NA7 & Error-only memory & 375 & 75.72 & 56.30 \\
+NA8 & Correct-only memory & 375 & 73.89 & 54.42 \\
 B11 & Regression-only utility & 375 & 73.99 & 54.62 \\
 B12 & Size-matched full memory$\dagger$ & 375 & 75.02 & 55.65 \\
 B13 & Size-matched mixed memory$\dagger$ & 375 & 75.03 & 55.72 \\
@@ -1074,13 +1089,13 @@ B17 & Calibrated utility$\ddagger$ & 393 & \textbf{75.85} & \textbf{56.74} \\
 \end{tabular}
 \end{table*}
 
-B7 is deliberately retained because it nearly matches B9 at the primary
+NA7 is deliberately retained because it nearly matches NA0 at the primary
 budget. It changes the memory population by excluding all correct controls,
 thereby removing direct evidence about regression risk. This selection bias
 helps at low budgets but reverses as more claims are routed. B11 provides the
-opposite extreme: low-regression ranking alone is significantly worse than B9
+opposite extreme: low-regression ranking alone is significantly worse than NA0
 ($\Delta$accuracy $=1.86$ points, Holm $p<10^{-5}$). B16 is nearly identical to
-B9, so the current evidence does not establish a benefit from similarity
+NA0/B9, so the current evidence does not establish a benefit from similarity
 weighting outcomes after the top-five neighbors have been selected. B17's
 nested calibration modestly raises macro-F1 but changes the route count and is
 therefore reported as sensitivity rather than a same-budget win.
@@ -1107,9 +1122,9 @@ Budget & Routes & Full Acc. & Error-only Acc. & Recovery-only Acc. \\
 \end{tabular}
 \end{table*}
 
-At 11.18\%, B9--B7 accuracy and macro-F1 intervals both cross zero. B9 ties
-B7 at 15\% and has higher point-estimate accuracy from 20\% onward. Its
-accuracy advantage over B7 becomes Holm-significant at 40\%, while several
+At 11.18\%, NA0--NA7 accuracy and macro-F1 intervals both cross zero. NA0 ties
+NA7 at 15\% and has higher point-estimate accuracy from 20\% onward. Its
+accuracy advantage over NA7 becomes Holm-significant at 40\%, while several
 earlier intervals cross zero. The budget curve therefore supports a
 population--budget interaction rather than universal dominance.
 
