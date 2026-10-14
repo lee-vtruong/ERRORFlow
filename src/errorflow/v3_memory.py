@@ -95,7 +95,8 @@ class ResidualMemoryStore:
         similarities for downstream utility estimation. This isolates the
         value of similarity ranking from the value of similarity weighting.
         ``compatibility_mode='same_label'`` preserves the historical R6 hard
-        baseline-label filter; ``'none'`` is the frozen R6-NLF revision.
+        baseline-label filter; ``'different_label'`` supports cross-label-only
+        controls; ``'none'`` is the frozen R6-NLF revision.
         """
         scored = []
         weights = (0.35, 0.50, 0.15) if similarity_weights is None else tuple(similarity_weights)
@@ -105,8 +106,10 @@ class ResidualMemoryStore:
         weights = tuple(weight / total_weight for weight in weights)
         if selection_mode not in {"ranked", "random"}:
             raise ValueError("selection_mode must be 'ranked' or 'random'")
-        if compatibility_mode not in {"same_label", "none"}:
-            raise ValueError("compatibility_mode must be 'same_label' or 'none'")
+        if compatibility_mode not in {"same_label", "different_label", "none"}:
+            raise ValueError(
+                "compatibility_mode must be 'same_label', 'different_label', or 'none'"
+            )
         query_features = query.get("retrieval_features", {})
         baseline_prediction = query_features.get("baseline_prediction")
         records = sorted(self._records.values(), key=lambda record: record.memory_id)
@@ -130,6 +133,9 @@ class ResidualMemoryStore:
             features = record.retrieval_features
             if (compatibility_mode == "same_label" and baseline_prediction
                     and features.get("baseline_prediction") != baseline_prediction):
+                continue
+            if (compatibility_mode == "different_label" and baseline_prediction
+                    and features.get("baseline_prediction") == baseline_prediction):
                 continue
             lexical = jaccard_similarity(query.get("claim", ""), record.source_claim)
             score_profile = distribution_similarity(

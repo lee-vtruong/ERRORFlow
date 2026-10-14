@@ -68,8 +68,10 @@ def test_no_label_filter_can_return_cross_label_neighbors():
         },
     }
     hard = store.retrieve(query, top_k=2, compatibility_mode="same_label")
+    cross = store.retrieve(query, top_k=2, compatibility_mode="different_label")
     nlf = store.retrieve(query, top_k=2, compatibility_mode="none")
     assert [item.retrieval_features["baseline_prediction"] for item, _ in hard] == ["SUPPORTED"]
+    assert [item.retrieval_features["baseline_prediction"] for item, _ in cross] == ["REFUTED"]
     assert {item.retrieval_features["baseline_prediction"] for item, _ in nlf} == {"SUPPORTED", "REFUTED"}
 
 
