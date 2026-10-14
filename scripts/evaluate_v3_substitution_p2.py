@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import time
 from pathlib import Path
 
 from errorflow.evaluation_v2 import accuracy, macro_f1
@@ -147,15 +148,34 @@ def main():
     # C4-4: for each held-out outer fold, select weights using only other
     # source folds.  Target-fold records are excluded from inner retrieval.
     tuned_scores, selected_weights = {}, {}
+    grid = weight_grid(args.weight_grid_step)
     for target_fold in range(args.folds):
         inner_ids = [key for key in ids if baseline[key]["outer_fold"] != target_fold]
         best = None
-        for weights in weight_grid(args.weight_grid_step):
+        fold_started = time.perf_counter()
+        for grid_index, weights in enumerate(grid, 1):
+            config_started = time.perf_counter()
+            print(
+                f"C4-4_TUNING fold={target_fold + 1}/{args.folds} "
+                f"config={grid_index}/{len(grid)} weights={weights}",
+                flush=True,
+            )
             config = dict(REFERENCE, weights=weights)
-            scores = {
-                key: engine.query_score(key, config, extra_excluded_folds={target_fold})[0]
-                for key in inner_ids
-            }
+            scores = {}
+            for query_index, key in enumerate(inner_ids, 1):
+                scores[key] = engine.query_score(
+                    key, config, extra_excluded_folds={target_fold},
+                )[0]
+                if query_index % 250 == 0 or query_index == len(inner_ids):
+                    elapsed = time.perf_counter() - config_started
+                    rate = query_index / elapsed if elapsed else 0.0
+                    eta = (len(inner_ids) - query_index) / rate if rate else 0.0
+                    print(
+                        f"C4-4_PROGRESS fold={target_fold + 1}/{args.folds} "
+                        f"config={grid_index}/{len(grid)} queries={query_index}/{len(inner_ids)} "
+                        f"rate={rate:.2f}/s eta_s={eta:.1f}",
+                        flush=True,
+                    )
             selected = {key for key in inner_ids if scores[key] > args.utility_threshold}
             gold = [baseline[key]["gold_label"] for key in inner_ids]
             predictions = [
@@ -170,11 +190,16 @@ def main():
         for key in ids:
             if baseline[key]["outer_fold"] == target_fold:
                 tuned_scores[key] = engine.query_score(key, config)[0]
-        print(f"C4-4 fold={target_fold} weights={best[1]}", flush=True)
+        print(
+            f"C4-4_FOLD_DONE fold={target_fold + 1}/{args.folds} weights={best[1]} "
+            f"elapsed_s={time.perf_counter() - fold_started:.1f}",
+            flush=True,
+        )
 
     # C6-4: an explicitly trained source-fold logistic comparator.
     logistic_scores = {}
     for target_fold in range(args.folds):
+        print(f"C6-4_TRAIN fold={target_fold + 1}/{args.folds}", flush=True)
         train_ids = [key for key in ids if baseline[key]["outer_fold"] != target_fold]
         target_ids = [key for key in ids if baseline[key]["outer_fold"] == target_fold]
         model = fit_softmax(
