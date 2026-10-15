@@ -476,9 +476,11 @@ def main():
         deployable_confidence = args.confidence_threshold
 
     decisions, routes = {}, {policy: set() for policy in POLICIES}
+    applied_beta_by_id = {}
     random_routes = {seed: set() for seed in args.random_seeds}
     for key in ids:
         beta = beta_by_fold[assignments[key]] if beta_by_fold is not None else deployable_beta
+        applied_beta_by_id[key] = beta
         row_decisions = decide_policies(features[key], beta=beta, threshold=args.utility_threshold, random_seed=args.seed)
         hard_route = row_decisions["D0_HardLabel"].route
         nlf_route = row_decisions["D1_NLF"].route
@@ -515,6 +517,7 @@ def main():
             policy: json_safe(decision.to_dict()) for policy, decision in decisions[key].items()
             if policy != "D4_Random"
         }
+        payload["applied_m2_beta"] = applied_beta_by_id[key]
         payload["meta_disagreement_flags"] = {
             policy: {
                 "vs_hard": decision.route != decisions[key]["D0_HardLabel"].route,
@@ -526,10 +529,32 @@ def main():
 
     if routes["D2_Union"] != routes["M1_MaxUtility"]:
         raise ValueError("M1/Union mismatch under canonical eligibility; audit before proceeding")
+    beta0_mismatches = []
     for key in ids:
         beta0 = decide_policies(features[key], beta=0.0, threshold=args.utility_threshold)
-        if beta0["M2_Reliability"].route != beta0["M1_MaxUtility"].route:
-            raise ValueError(f"M2(beta=0) != M1 for {key}")
+        if beta0["M2_Reliability"] != replace(
+            beta0["M1_MaxUtility"], policy="M2_Reliability",
+            reason="maximum_reliability_adjusted_utility",
+        ):
+            beta0_mismatches.append(key)
+    if beta0_mismatches:
+        raise ValueError(f"M2(beta=0) != M1 for {beta0_mismatches[:3]}")
+
+    applied_beta_counts = Counter(str(applied_beta_by_id[key]) for key in ids)
+    actual_m2_m1_route_mismatches = [
+        key for key in ids
+        if decisions[key]["M2_Reliability"].route != decisions[key]["M1_MaxUtility"].route
+    ]
+    zero_beta_ids = [key for key in ids if abs(applied_beta_by_id[key]) < 1e-15]
+    zero_beta_actual_mismatches = [
+        key for key in zero_beta_ids
+        if decisions[key]["M2_Reliability"].route != decisions[key]["M1_MaxUtility"].route
+    ]
+    if zero_beta_actual_mismatches:
+        raise ValueError(
+            "Applied beta=0 produced M2/M1 route mismatch: "
+            f"{zero_beta_actual_mismatches[:3]}"
+        )
 
     natural_metrics, natural_predictions = {}, {}
     result_rows, prediction_rows = [], []
@@ -756,7 +781,11 @@ def main():
         "reference_replay": reference_replay,
         "fold_exclusion": "query outer fold excluded from every source lookup" if assignments else "external source-only memory",
         "m1_union_exact_route_match": routes["D2_Union"] == routes["M1_MaxUtility"],
-        "m2_beta0_m1_exact_route_match": True,
+        "m2_beta0_m1_exact_decision_match": not beta0_mismatches,
+        "m2_applied_beta_counts": dict(applied_beta_counts),
+        "m2_zero_applied_beta_queries": len(zero_beta_ids),
+        "m2_zero_applied_beta_m1_route_mismatches": len(zero_beta_actual_mismatches),
+        "m2_actual_m1_route_mismatches": len(actual_m2_m1_route_mismatches),
         "single_a3_action_per_routed_claim": True,
         "gold_used_for_online_routing": False,
         "candidate_prediction_used_for_online_routing": False,
@@ -777,10 +806,15 @@ def main():
         "seed": args.seed, "beta_grid": args.beta_grid,
         "label_projection": projection,
         "source_selected_deployable_beta": deployable_beta,
+        "grouped_internal_m2_evaluation": (
+            "cross_fitted_beta_selected_on_complementary_outer_folds"
+            if beta_by_fold is not None else None
+        ),
         "source_selected_majority_action": deployable_majority,
         "source_selected_confidence_threshold": deployable_confidence,
         "majority_action_by_outer_fold": majority_by_fold,
         "confidence_threshold_by_outer_fold": confidence_by_fold,
+        "cross_fitted_evaluation_beta_by_outer_fold": beta_by_fold,
         "beta_by_outer_fold": beta_by_fold,
         "beta_selection": selection,
         "M3a_rule": "retain agreement; on disagreement route only if the routing side's U-beta*SE remains positive",

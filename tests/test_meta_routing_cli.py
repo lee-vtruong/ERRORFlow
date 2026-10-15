@@ -4,6 +4,7 @@ import sys
 from errorflow.io import write_jsonl
 from errorflow.v3_memory import ResidualMemoryRecord, ResidualMemoryStore
 from scripts.evaluate_v3_meta_routing import main
+from scripts.audit_v3_meta_routing import main as audit_main
 
 
 def test_meta_routing_cli_materializes_required_artifacts(tmp_path, monkeypatch):
@@ -64,3 +65,12 @@ def test_meta_routing_cli_materializes_required_artifacts(tmp_path, monkeypatch)
     feature_rows = [json.loads(line) for line in (output / "per_query_features.jsonl").read_text().splitlines()]
     assert len(feature_rows) == 4
     assert all("gold" not in json.dumps(row).lower() for row in feature_rows)
+
+    monkeypatch.setattr(sys, "argv", [
+        "audit_v3_meta_routing.py", "--output-dir", str(output), "--strict",
+    ])
+    audit_main()
+    audit = json.loads((output / "implementation_audit.json").read_text(encoding="utf-8"))
+    assert audit["P0_m2"]["beta0_invariant_passed"]
+    assert audit["P0_m2"]["zero_applied_beta_mismatches"] == 0
+    assert (output / "meta_disagreement_audit.csv").exists()

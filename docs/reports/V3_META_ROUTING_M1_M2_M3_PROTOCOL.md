@@ -36,6 +36,12 @@ and is deliberately not implemented in this dependency-free first benchmark.
 M2 beta is selected from `{0,.25,.5,1,1.5,2}` using only cross-fitted source
 folds. External runs require the selected source beta explicitly.
 
+For grouped-internal evaluation, distinguish the aggregate
+`source_selected_deployable_beta` from `cross_fitted_evaluation_beta_by_outer_fold`.
+The former is frozen for external deployment; the latter is what each held-out
+source fold actually uses. An aggregate deployable beta of zero therefore does
+not imply that every grouped-internal query was evaluated with beta zero.
+
 ## 0. Preflight
 
 ```bash
@@ -225,3 +231,38 @@ Every run directory contains all thirteen required files. Return the five
 `experiment_report.md` files, five `oracle_headroom.json` files, and five
 `statistical_comparisons.json` files for scientific interpretation. No result
 is automatically adopted into ERRORFlow or the paper.
+
+## 5. Mandatory M2/M3 implementation audit
+
+Run this after every completed setting. It verifies the beta actually applied
+per query, enforces `M2(beta=0) == M1`, measures M3a behavior in the
+disagreement region, compares actionable decisions with seeded random
+arbitration, and emits per-disagreement oracle regret.
+
+```bash
+for RUN in \
+  outputs/v3/meta_routing_experiments/qwen3_4b/averitec_grouped090 \
+  outputs/v3/meta_routing_experiments/qwen3_4b/climate_fever \
+  outputs/v3/meta_routing_experiments/qwen3_4b/scifact_oracle \
+  outputs/v3/meta_routing_experiments/qwen3_4b/scifact_bm25 \
+  outputs/v3/meta_routing_experiments/mistral7b_v03_c170c70/averitec_grouped090 \
+  outputs/v3/meta_routing_experiments/mistral7b_v03_c170c70/climate_fever
+do
+  test -s "$RUN/method_configs.json" || continue
+  python scripts/audit_v3_meta_routing.py --output-dir "$RUN" --strict
+done
+
+find outputs/v3/meta_routing_experiments -type f \
+  \( -name implementation_audit.json -o -name implementation_audit.md \
+     -o -name meta_disagreement_audit.csv \) -print | sort
+```
+
+Interpretation rules:
+
+- If the deployable beta is zero but fold-specific beta counts are nonzero,
+  label the grouped source result **cross-fitted M2**, not **M2 beta=0**.
+- Any `zero_applied_beta_mismatches > 0` is a hard implementation failure.
+- With beta zero, the current M3a rule necessarily reproduces Union in the
+  disagreement region; this is an estimator property, not useful arbitration.
+- M3b is an optional trained comparator and is not implemented in this
+  benchmark.
