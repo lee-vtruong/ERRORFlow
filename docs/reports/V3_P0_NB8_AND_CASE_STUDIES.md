@@ -29,11 +29,13 @@ only.
 - `train:675`: gold/B1/A3 = REFUTED/REFUTED/CONFLICTING. HardLabel routes at
   utility +.0176 and causes a regression; NLF abstains at -.3391. Its global
   neighborhood contains two same-label neutral records and three cross-label
-  records, two of which are harmful.
+  records, two of which are harmful. NLF recovery/regression/cost estimates
+  are .194/.433/1; HardLabel estimates are .314/.196/1.
 - `train:1933`: gold/B1/A3 = NEI/REFUTED/NEI. HardLabel abstains at -.4585;
   NLF routes at +.0219 and recovers the example. Its neighborhood contains two
   helpful and two neutral cross-label records plus one harmful same-label
-  record.
+  record. NLF recovery/regression/cost estimates are .438/.316/1; HardLabel
+  estimates are .202/.561/1.
 
 These examples make the mechanism inspectable but do not override the null
 aggregate NB8 and shuffle controls.

@@ -1090,7 +1090,9 @@ artifacts. Gold correctness was used only to select explanatory examples, not
 for routing or quantitative model selection. The deterministic exporter found
 10 cases in which NLF prevented a harmful HardLabel correction and 11 in
 which NLF made a helpful correction that HardLabel skipped; it selected the
-largest utility separation in each category.
+largest utility separation in each category. The export uses threshold .90
+(2,924 groups; largest group 9), and excludes the complete query fold from
+every displayed neighborhood.
 
 \begin{table*}[t]
 \caption{Observed AVeriTeC routing traces. Utilities are natural-threshold
@@ -1109,21 +1111,24 @@ train:1933 & Kenya's forestry sector contributes 3.6\% of national GDP. & NEI
 \end{tabular}
 \end{table*}
 
-For train:675, the evidence describes transparent post-mortem accounting and
+For train:675 (fold 4), the evidence describes transparent post-mortem accounting and
 does not establish that Russia declared the pandemic fake. B1 is correctly
 REFUTED, whereas A3 would change it to CONFLICTING. HardLabel retrieves five
 REFUTED memories (four neutral and one helpful), obtains positive utility,
-and makes this harmful correction. NLF instead retrieves two same-label
+and makes this harmful correction
+($\widehat R=.314,\widehat G=.196,\widehat C=1,U=.0176$). NLF instead retrieves two same-label
 neutral memories and three cross-label memories (one neutral and two harmful),
-giving negative utility and abstaining.
+giving $\widehat R=.194,\widehat G=.433,\widehat C=1,U=-.3391$ and abstaining.
 
-For train:1933, the evidence reports several incompatible forestry estimates
+For train:1933 (fold 0), the evidence reports several incompatible forestry estimates
 and explicitly notes that the 3.6\% figure is unproven. B1 predicts REFUTED,
 while A3 correctly changes the verdict to NEI. HardLabel's five REFUTED
-neighbors contain three harmful and two neutral outcomes, so it abstains. The
+neighbors contain three harmful and two neutral outcomes, so it abstains
+($\widehat R=.202,\widehat G=.561,\widehat C=1,U=-.4585$). The
 NLF neighborhood contains four cross-label memories (two helpful and two
 neutral) plus one same-label harmful memory; its small positive utility invokes
-A3 and recovers the example. These traces demonstrate possible mechanisms,
+A3 ($\widehat R=.438,\widehat G=.316,\widehat C=1,U=.0219$) and recovers the
+example. These traces demonstrate possible mechanisms,
 not an aggregate causal effect: NB8 and the shuffle controls remain null.
 
 \section{Statistical Detail and Negative Findings}
