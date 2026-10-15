@@ -681,7 +681,10 @@ the unchanged NLF top five and then removes cross-label outcome contributions
 without backfilling; fewer than two remaining records makes the query
 unroutable. NB4 preserves similarities and same-label outcomes but permutes
 cross-label outcomes within source-fold/source-label strata. NB4 reports the
-predeclared seed 2026 in the table and 20 seeds for sensitivity.
+predeclared seed 2026 in the table and 20 seeds for sensitivity. NB8 is the
+strict support/abstention control: it retains NB0's exact global top five,
+similarity denominator, cost, support count, and minimum-support decision, but
+sets cross-label recovery/regression outcomes to zero.
 
 \begin{table*}[t]
 \caption{Cross-label mechanism ablations on grouped AVeriTeC. Matched mode
@@ -702,6 +705,7 @@ NB5 Same-label priority & 343 & 75.52 & 55.77 & 75.62 & 56.22 & 1.000 \\
 NB6 Soft penalty (.5) & 343 & 75.52 & 55.77 & 75.62 & 56.22 & 1.000 \\
 NB7 Quota 1 & 370 & 75.59 & 56.03 & 75.55 & 56.06 & .381 \\
 NB7 Quota 2 & 371 & 75.65 & 56.39 & 75.59 & 56.34 & .270 \\
+NB8 Same-label outcomes, global support & 333 & \textbf{75.85} & 56.55 & 75.81 & 56.63 & 1.000 \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -713,8 +717,12 @@ accuracy with 45 fewer routes and differs negligibly at matched budget; both
 paired intervals cross zero. The 20-seed NB4 matched means are
 .7575 accuracy ($\mathrm{sd}=.0009$) and .5663 macro-F1
 ($\mathrm{sd}=.0014$), again close to NB0, with null seed-2026 paired tests.
-Therefore these experiments do not establish that instance-specific
-cross-label outcomes directly cause NLF's gain.
+NB8 likewise matches NB0 natural accuracy and net correction ($+56$), while
+routing 333 rather than 375 claims. At matched budget it differs by only
+$+.03$ accuracy point and $+.03$ macro-F1 point in favor of NB0; both paired
+intervals cross zero and the Holm-adjusted accuracy test is 1.0. Therefore
+these experiments do not establish that instance-specific cross-label
+outcomes directly cause NLF's gain.
 
 The supported mechanism is narrower: cross-label records can displace weaker
 same-label records in the global top five, thereby changing support and
@@ -725,8 +733,8 @@ NB5 and NB6 exactly reproduce HardLabel because same-label records fill the
 neighborhood and a .5 penalty prevents cross-label entry. Quotas interpolate
 between the endpoints, but their Holm-adjusted exact tests are null despite
 bootstrap intervals favoring NB0. In this mechanism harness, CPU lookup means
-are 39.3 ms for NB0 and 18.4 ms for HardLabel; the dual-pool soft/quota
-implementations require about 42.7 ms. These run-specific routing-only
+are 38.2 ms for NB0 and 17.4 ms for HardLabel; the dual-pool soft/quota
+implementations require about 40.4 ms. These run-specific routing-only
 measurements are not end-to-end latency.
 
 \subsection{Utility and Decision Ablations}
@@ -957,11 +965,14 @@ their inclusion is not uniformly beneficial at every operating point.
 
 The NLF mechanism ablation further limits the interpretation. Cross-label-only
 memory is harmful, while suppressing or shuffling cross-label outcomes does
-not significantly reduce matched performance. The current evidence therefore
-supports global candidate-pool competition and outcome-aware pruning, not a
-causal claim that instance-specific outcomes transferred across predicted
-labels are individually necessary. This distinction is retained even though
-NLF has the strongest joint natural AVeriTeC point estimate.
+not significantly reduce matched performance. The stricter NB8 control also
+preserves NLF's global support and abstention geometry while neutralizing
+cross-label outcomes, yet remains statistically indistinguishable. The
+current evidence therefore supports compatibility relaxation, global
+candidate-pool competition, and selective pruning, not a causal claim that
+instance-specific outcomes transferred across predicted labels are
+individually necessary. This distinction is retained even though NLF has the
+strongest joint natural AVeriTeC point estimate.
 
 The final-NLF component tests establish a corrected accuracy contribution from
 label-score similarity and a macro-F1 contribution from evidence length, but
@@ -1072,17 +1083,48 @@ The phrase ``list'' is part of the immutable instruction, but the deployed
 label-scoring decoder does not generate that list. It scores only the four
 candidate verdict strings. A3 changes verification emphasis, not output format.
 
-\section{Worked-Trace Artifact Contract}
+\section{Fold-Safe Worked Cases}
 
-A genuine qualitative example must be exported from fold-safe execution
-artifacts rather than reconstructed from aggregate results. The accompanying
-\texttt{export\_v3\_worked\_example.py} selects a routed example, recomputes
-its fold-excluded top-five neighbors, and records the claim, evidence, B1/A3
-predictions, each neighbor's similarity and recovery/regression outcome,
-$\widehat R$, $\widehat G$, $\widehat C$, and $U$. This trace is excluded from
-quantitative evaluation and is intended only to make the decision path
-auditable. We defer printing claim text until the server export is available;
-no synthetic claim is presented as an observed case.
+We exported two post-hoc qualitative cases from the grouped, fold-excluded
+artifacts. Gold correctness was used only to select explanatory examples, not
+for routing or quantitative model selection. The deterministic exporter found
+10 cases in which NLF prevented a harmful HardLabel correction and 11 in
+which NLF made a helpful correction that HardLabel skipped; it selected the
+largest utility separation in each category.
+
+\begin{table*}[t]
+\caption{Observed AVeriTeC routing traces. Utilities are natural-threshold
+estimates from independently recomputed fold-excluded top-five memories.}
+\label{tab:worked-cases}
+\centering\small
+\begin{tabular}{lp{.33\textwidth}lllrr}
+\toprule
+ID & Claim & Gold & B1 & A3 & $U_{\rm NLF}$ & $U_{\rm Hard}$ \\
+\midrule
+train:675 & Russia exposes COVID-19 with scientific data as a hoax and calls
+the pandemic fake. & REF & REF & CON & $-.3391$ & $+.0176$ \\
+train:1933 & Kenya's forestry sector contributes 3.6\% of national GDP. & NEI
+& REF & NEI & $+.0219$ & $-.4585$ \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+For train:675, the evidence describes transparent post-mortem accounting and
+does not establish that Russia declared the pandemic fake. B1 is correctly
+REFUTED, whereas A3 would change it to CONFLICTING. HardLabel retrieves five
+REFUTED memories (four neutral and one helpful), obtains positive utility,
+and makes this harmful correction. NLF instead retrieves two same-label
+neutral memories and three cross-label memories (one neutral and two harmful),
+giving negative utility and abstaining.
+
+For train:1933, the evidence reports several incompatible forestry estimates
+and explicitly notes that the 3.6\% figure is unproven. B1 predicts REFUTED,
+while A3 correctly changes the verdict to NEI. HardLabel's five REFUTED
+neighbors contain three harmful and two neutral outcomes, so it abstains. The
+NLF neighborhood contains four cross-label memories (two helpful and two
+neutral) plus one same-label harmful memory; its small positive utility invokes
+A3 and recovers the example. These traces demonstrate possible mechanisms,
+not an aggregate causal effect: NB8 and the shuffle controls remain null.
 
 \section{Statistical Detail and Negative Findings}
 For grouped AVeriTeC, R6-NLF changes 94 errors to correct and 38 correct

@@ -126,6 +126,7 @@ natural route decisions differ between NB0 and HardLabel.
 | NB6 Soft penalty 0.5 | 343 | .7552 | .5577 | .7562 | .5622 | 1.000 |
 | NB7 Quota 1 | 370 | .7559 | .5603 | .7555 | .5606 | .381 |
 | NB7 Quota 2 | 371 | .7565 | .5639 | .7559 | .5634 | .270 |
+| NB8 Same-label outcomes, global support | 333 | .7585 | .5655 | .7581 | .5663 | 1.000 |
 
 NB4 is stable over 20 seeds: its matched accuracy is .7575 +/- .0009 and
 matched Macro-F1 is .5663 +/- .0014 (population standard deviations). The
@@ -146,3 +147,13 @@ memory is sufficient to fill top five, and a 0.5 penalty prevents cross-label
 records from entering the selected neighborhood. Quotas interpolate between
 HardLabel and NLF, but their multiplicity-corrected exact accuracy tests remain
 inconclusive despite paired bootstrap intervals favoring NB0.
+
+NB8 provides the strict P0 isolation requested after the original run. It
+keeps NB0's global support, denominator, cost, and abstention opportunity while
+neutralizing cross-label recovery/regression observations. It preserves NB0's
+natural accuracy and net +56 with 333 routes. At 375 matched routes, NB0 minus
+NB8 has an accuracy interval [-.00293,.00359], a macro-F1 interval
+[-.00540,.00538], and Holm-adjusted accuracy p=1.0. Thus the evidence does not
+identify cross-label outcome transfer as the cause of NLF's gain. The
+defensible interpretation is compatibility relaxation and candidate-pool
+competition at some operating points.
