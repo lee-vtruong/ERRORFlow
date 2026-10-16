@@ -36,6 +36,11 @@ def test_score_ensemble_grouped(tmp_path, monkeypatch):
     meta = tmp_path / "meta"
     meta.mkdir()
     write_jsonl(meta / "per_query_features.jsonl", features)
+    write_jsonl(meta / "per_query_predictions.jsonl", [
+        {"example_id": row["example_id"], "mode": "natural", "policy": "D1_NLF",
+         "prediction": gold[index]["label"]}
+        for index, row in enumerate(features)
+    ])
     out = tmp_path / "ensemble"
     monkeypatch.setattr(sys, "argv", [
         "evaluate_v3_score_ensemble.py", "--gold", str(tmp_path / "gold.jsonl"),
@@ -46,6 +51,7 @@ def test_score_ensemble_grouped(tmp_path, monkeypatch):
     ensemble_main()
     report = json.loads((out / "summary.json").read_text())
     assert report["results"]["Score-Ensemble"]["accuracy"] == 0.5
+    assert report["results"]["Global-neighbor-memory"]["accuracy"] == 1.0
     assert set(report["weight_selection"]) == {"0", "1", "deployable_source"}
 
 

@@ -377,9 +377,10 @@ projection.}
 \toprule
 Evaluation & System & Accuracy & Macro-F1 & Route rate & Avg. passes \\
 \midrule
-\multirow{5}{*}{AVeriTeC grouped internal}
+\multirow{6}{*}{AVeriTeC grouped internal}
  & B1 & 0.7402 & 0.5460 & 0.000 & 4.000 \\
  & A3-All & 0.7360 & 0.5559 & 1.000 & 8.000 \\
+ & Score ensemble & 0.7562 & 0.5585 & 1.000 & 8.000 \\
  & Confidence@NLF budget & 0.7405 & 0.5514 & 0.122 & 4.489 \\
  & Same-label memory & 0.7552 & 0.5577 & 0.112 & 4.447 \\
  & Global-neighbor memory & \textbf{0.7585} & \textbf{0.5666} & 0.122 & 4.489 \\
@@ -437,6 +438,21 @@ routing. At the NLF budget, NLF exceeds confidence-only by 1.79 accuracy and
 HardLabel at the same budget, the differences are +0.23 and +0.43 points and
 both intervals cross zero. These are source-development results, not an
 independent generalization estimate.
+
+A group-cross-fitted linear ensemble of the B1 and A3 label scores is a
+stronger simple baseline than either prompt alone: it reaches 75.62 accuracy
+and 55.85 macro-F1.  Relative to B1, its accuracy gain is supported by an
+exact McNemar test ($p=.0035$) and a paired 95\% interval of
+$[+.0055,+.0261]$, whereas its macro-F1 interval crosses zero
+($[-.0025,+.0277]$).  The ensemble nevertheless evaluates both prompts for
+every claim (8.0 forward passes).  The global-neighbor memory router has
+higher point estimates (75.85 accuracy and 56.66 macro-F1) while averaging
+4.49 passes; we treat this as a point-estimate quality--compute comparison
+until the direct paired rerun is complete.  Finally, an oracle that invokes
+A3 exactly on the 192 helpful cases has 6.26 points of available accuracy
+gain.  The natural router's net gain of 56 therefore captures 29.17\% of
+that helpful-correction headroom, leaving substantial room for better
+selection.
 
 \begin{table*}[t]
 \caption{AVeriTeC matched-budget routing. Every selective router may invoke

@@ -38,8 +38,11 @@ def score_distribution(row):
     return {key: value / total for key, value in zip(scores, values)}
 
 
-def entropy(row):
-    return -sum(value * math.log(max(value, 1e-300)) for value in score_distribution(row).values())
+def uncertainty(row):
+    distribution = score_distribution(row)
+    if not distribution:
+        raise ValueError(f"Missing label scores for confidence control: {row.get('example_id')}")
+    return 1.0 - max(distribution.values())
 
 
 def top_count(ids, scores, count):
@@ -99,7 +102,9 @@ def main():
             for key, row in candidate.items()
         }
 
-    confidence = {key: entropy(baseline[key]) for key in ids}
+    # Match the frozen V3 confidence-only comparator: one minus the largest
+    # softmax-normalized B1 label probability.  Entropy is a distinct control.
+    confidence = {key: uncertainty(baseline[key]) for key in ids}
     def utility(key, mode):
         value = features[key][mode].get("utility")
         return float(value) if value is not None else -math.inf

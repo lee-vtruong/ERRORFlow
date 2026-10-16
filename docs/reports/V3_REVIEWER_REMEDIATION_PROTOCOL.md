@@ -40,6 +40,7 @@ python scripts/evaluate_v3_score_ensemble.py \
   --gold data/processed/v3/climate_fever/all_official_candidates.jsonl \
   --baseline outputs/v3/climate_fever/full/conflict_audit_v1.jsonl \
   --candidate outputs/v3/climate_fever/full/conflicting_rescue_v1.jsonl \
+  --meta-dir outputs/v3/meta_routing_experiments/qwen3_4b/climate_fever \
   --protocol external \
   --source-gold data/processed/v2/averitec/train_all.jsonl \
   --source-baseline outputs/v3/averitec/development/baseline_scores.jsonl \

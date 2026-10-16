@@ -204,6 +204,23 @@ def main():
         },
         "weight_selection": selection,
     }
+    if args.meta_dir:
+        nlf_rows = [
+            row for row in read_jsonl(args.meta_dir / "per_query_predictions.jsonl")
+            if row.get("mode") == "natural" and row.get("policy") == "D1_NLF"
+        ]
+        nlf_index = indexed(nlf_rows, "natural NLF predictions")
+        if set(nlf_index) != set(ids):
+            raise ValueError("Natural NLF prediction IDs do not match evaluation IDs")
+        nlf = [nlf_index[key]["prediction"] for key in ids]
+        report["results"]["Global-neighbor-memory"] = metrics(expected, nlf)
+        report["comparisons"]["ensemble_vs_global_neighbor_memory"] = {
+            "orientation": "ensemble_minus_global_neighbor_memory",
+            "mcnemar_exact": mcnemar_exact(expected, nlf, ensemble),
+            "paired_bootstrap": paired_bootstrap(
+                expected, nlf, ensemble, args.bootstrap_samples, args.seed
+            ),
+        }
     args.output_dir.mkdir(parents=True, exist_ok=True)
     write_jsonl(args.output_dir / "predictions.jsonl", rows)
     atomic_write_json(args.output_dir / "summary.json", report)
