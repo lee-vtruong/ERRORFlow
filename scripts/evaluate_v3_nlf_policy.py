@@ -123,12 +123,20 @@ def evaluate(ids, gold_rows, baseline, candidate, selected, projection):
         + (float(candidate[key].get("latency_ms", 0.0)) if key in selected else 0.0)
         for key in ids
     ]
+    forward_passes = [
+        float(baseline[key].get("metadata", {}).get("model_forward_passes", 4.0))
+        + (
+            float(candidate[key].get("metadata", {}).get("model_forward_passes", 4.0))
+            if key in selected else 0.0
+        )
+        for key in ids
+    ]
     return {
         "n": len(ids), "routed": len(selected), "route_rate": len(selected) / len(ids),
         "accuracy": accuracy(after, expected), "macro_f1": macro_f1(after, expected),
         "per_class": per_class(expected, after), "helpful": helpful,
         "harmful": harmful, "net": helpful - harmful,
-        "avg_model_forward_passes": 4.0 + 4.0 * len(selected) / len(ids),
+        "avg_model_forward_passes": sum(forward_passes) / len(forward_passes),
         "mean_cached_component_latency_ms": sum(latencies) / len(latencies),
     }, after
 

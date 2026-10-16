@@ -157,14 +157,29 @@ class ResidualMemoryStore:
         return len(self._records)
 
 
-def build_action_memories(baseline_rows, named_candidates, dataset="AVeriTeC"):
-    """Create action outcomes for both residual errors and correct controls."""
+def build_action_memories(
+    baseline_rows, named_candidates, dataset="AVeriTeC",
+    source_protocol="averitec_train",
+):
+    """Create action outcomes for residual errors and correct controls.
+
+    ``averitec_train`` preserves the original locked-memory contract.
+    ``grouped_in_domain`` permits another labeled source population only when
+    every record already has an outer-fold assignment; evaluation must then
+    exclude that complete fold from retrieval.
+    """
+    if source_protocol not in {"averitec_train", "grouped_in_domain"}:
+        raise ValueError("Unknown source_protocol")
     baseline = {str(row["example_id"]): row for row in baseline_rows}
     candidates = {action: {str(row["example_id"]): row for row in rows} for action, rows in named_candidates}
     records = []
     for key, row in baseline.items():
-        if row.get("split") != "train" or key.startswith("dev:"):
-            raise ValueError(f"Only AVeriTeC train records may enter V3 memory: {key}")
+        row_dataset = str(row.get("dataset") or dataset)
+        if source_protocol == "averitec_train":
+            if row_dataset != "AVeriTeC" or row.get("split") != "train" or key.startswith("dev:"):
+                raise ValueError(f"Only AVeriTeC train records may enter V3 memory: {key}")
+        elif row.get("outer_fold") is None:
+            raise ValueError(f"Grouped in-domain memory requires outer_fold: {key}")
         for action, action_rows in candidates.items():
             if key not in action_rows:
                 raise ValueError(f"Candidate {action} is missing {key}")
@@ -174,13 +189,16 @@ def build_action_memories(baseline_rows, named_candidates, dataset="AVeriTeC"):
             recovered = not before_correct and after_correct
             regressed = before_correct and not after_correct
             utility = 1.0 if recovered else (-1.0 if regressed else 0.0)
-            # V3 label scoring always evaluates four labels in four forward
-            # passes. Early cached rows record this at manifest level only, so
-            # the per-row fallback must be four rather than one.
-            extra_passes = float(after.get("metadata", {}).get("model_forward_passes", 4))
+            # Cost is normalized by prompt requests, not by label count: the
+            # four-label and SciFact three-label protocols each add one Alt
+            # request when routed.
+            metadata = after.get("metadata", {})
+            # One cached alternative-prompt request is one unit of extra cost
+            # for both four-label and three-label protocols.
+            extra_cost = float(metadata.get("llm_requests", 1.0))
             records.append(ResidualMemoryRecord(
-                memory_id=residual_memory_id(dataset, key, action), version=1,
-                source_dataset=dataset, source_split="train", source_claim_id=key,
+                memory_id=residual_memory_id(row_dataset, key, action), version=1,
+                source_dataset=row_dataset, source_split="train", source_claim_id=key,
                 source_claim=row["claim"], error_pattern=(row["diagnosis"]["error_type"] if not before_correct else "correct_control"),
                 applicability_conditions=[f"baseline_prediction={row['prediction']}"],
                 correction_strategy=action,
@@ -193,13 +211,15 @@ def build_action_memories(baseline_rows, named_candidates, dataset="AVeriTeC"):
                     "evidence_tokens": row.get("evidence_tokens", 0),
                 },
                 training_support=1, recovery_count=int(recovered), regression_count=int(regressed),
-                estimated_net_utility=utility, estimated_extra_cost=extra_passes / 4.0,
+                estimated_net_utility=utility, estimated_extra_cost=extra_cost,
                 validation_status="unvalidated_train_outcome", active=True,
                 provenance={
                     "outer_fold": row.get("outer_fold"), "gold_label_offline_only": row["gold_label"],
                     "baseline_correct_offline_only": before_correct, "candidate_prediction": after["prediction"],
                     "candidate_latency_ms": float(after.get("latency_ms", 0)),
                     "candidate_tokens": int(after.get("token_count", 0)),
+                    "source_protocol": source_protocol,
+                    "original_source_split": row.get("split"),
                 },
             ))
     return records

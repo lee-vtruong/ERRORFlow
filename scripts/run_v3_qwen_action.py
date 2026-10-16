@@ -102,7 +102,12 @@ def main():
     parser.add_argument("--seed", type=int, default=2026)
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
-    parser.add_argument("--external-evaluation", action="store_true")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--external-evaluation", action="store_true")
+    mode.add_argument(
+        "--source-development", action="store_true",
+        help="Generate cached actions for a labeled, grouped source-domain experiment.",
+    )
     args = parser.parse_args()
     assert_b1_immutable()
     if args.max_samples is not None and args.max_samples < 1:
@@ -124,11 +129,18 @@ def main():
             raise ValueError("External evaluation split must start with external_")
         if not datasets or not datasets <= {"SciFact", "Climate-FEVER"}:
             raise ValueError("External evaluation accepts only SciFact or Climate-FEVER")
+    elif args.source_development:
+        if args.split not in {"train", "source_train", "source_all"}:
+            raise ValueError("Source-development split must be train, source_train, or source_all")
+        if not datasets or not datasets <= {"SciFact", "Climate-FEVER"}:
+            raise ValueError("Source development accepts only SciFact or Climate-FEVER")
     elif args.split != "train" or any(key.startswith("dev:") for key in ids):
         raise ValueError("V3 development action runner accepts train split only")
 
-    if args.label_protocol == "scifact3" and (not args.external_evaluation or datasets != {"SciFact"}):
-        raise ValueError("scifact3 requires --external-evaluation on SciFact only")
+    if args.label_protocol == "scifact3" and (
+        not (args.external_evaluation or args.source_development) or datasets != {"SciFact"}
+    ):
+        raise ValueError("scifact3 requires external evaluation or source development on SciFact")
     labels, prompt = resolve_protocol(args.action, args.label_protocol)
     prompt_hash = prompt_sha256(prompt)
     model_hash = sha256_text(args.model)
@@ -146,6 +158,8 @@ def main():
     }
     if args.external_evaluation:
         run_config["external_evaluation"] = True
+    if args.source_development:
+        run_config["source_development"] = True
     manifest = {
         "schema_version": 3, "config_id": config_hash(run_config, length=32), "config": run_config,
         "status": "dry_run" if args.dry_run else "running", "output": str(output),
