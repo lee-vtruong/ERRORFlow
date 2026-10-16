@@ -51,8 +51,43 @@ df -h /
 If the raw SciFact names differ, locate them before continuing:
 
 ```bash
-find data/raw/scifact -maxdepth 2 -type f -printf '%p\n' | sort
+find data/raw/scifact /home/stackops/whale/cache \
+  -type f \( -name 'claims_train.jsonl' -o -name 'claims_dev.jsonl' -o -name 'corpus.jsonl' \) \
+  -printf '%p\n' 2>/dev/null | sort
 ```
+
+If `claims_train.jsonl` is absent everywhere, recover it from the official
+AllenAI SciFact release without replacing the existing corpus or dev files:
+
+```bash
+SCIFACT_TMP=$(mktemp -d)
+curl -fL \
+  https://scifact.s3-us-west-2.amazonaws.com/release/latest/data.tar.gz \
+  -o "$SCIFACT_TMP/data.tar.gz"
+
+tar -tzf "$SCIFACT_TMP/data.tar.gz" | grep -E '(^|/)claims_(train|dev)\.jsonl$|(^|/)corpus\.jsonl$'
+tar -xzf "$SCIFACT_TMP/data.tar.gz" -C "$SCIFACT_TMP"
+
+CLAIMS_TRAIN=$(find "$SCIFACT_TMP" -type f -name claims_train.jsonl -print -quit)
+test -n "$CLAIMS_TRAIN"
+install -m 0644 "$CLAIMS_TRAIN" data/raw/scifact/claims_train.jsonl
+
+wc -l data/raw/scifact/claims_train.jsonl
+sha256sum data/raw/scifact/claims_train.jsonl
+python - <<'PY'
+import json
+path = "data/raw/scifact/claims_train.jsonl"
+rows = [json.loads(line) for line in open(path, encoding="utf-8") if line.strip()]
+print("rows:", len(rows))
+print("unique_ids:", len({str(row["id"]) for row in rows}))
+print("with_evidence:", sum(bool(row.get("evidence")) for row in rows))
+assert len(rows) == len({str(row["id"]) for row in rows})
+PY
+```
+
+The current official release is expected to contain 809 train claims. Stop if
+the archive listing or uniqueness check fails; do not substitute a processed
+or unlabeled split.
 
 ## 1. CLIMATE-FEVER grouped in-domain cross-fit
 
