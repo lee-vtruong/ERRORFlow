@@ -25,7 +25,7 @@ frozen; target labels are used only for evaluation.
 ```bash
 python scripts/evaluate_v3_score_ensemble.py \
   --gold data/processed/v2/averitec/train_all.jsonl \
-  --baseline outputs/v3/averitec/full_actions/conflict_audit_v1.jsonl \
+  --baseline outputs/v3/averitec/development/baseline_scores.jsonl \
   --candidate outputs/v3/averitec/full_actions/conflicting_rescue_v1.jsonl \
   --meta-dir outputs/v3/meta_routing_experiments/qwen3_4b/averitec_grouped090 \
   --protocol grouped_internal \
@@ -42,7 +42,7 @@ python scripts/evaluate_v3_score_ensemble.py \
   --candidate outputs/v3/climate_fever/full/conflicting_rescue_v1.jsonl \
   --protocol external \
   --source-gold data/processed/v2/averitec/train_all.jsonl \
-  --source-baseline outputs/v3/averitec/full_actions/conflict_audit_v1.jsonl \
+  --source-baseline outputs/v3/averitec/development/baseline_scores.jsonl \
   --source-candidate outputs/v3/averitec/full_actions/conflicting_rescue_v1.jsonl \
   --output-dir outputs/v3/reviewer_controls/qwen_climate_fever/score_ensemble
 ```
@@ -60,7 +60,7 @@ deviation over 20 declared seeds.
 ```bash
 python scripts/evaluate_v3_quality_budget_controls.py \
   --gold data/processed/v2/averitec/train_all.jsonl \
-  --baseline outputs/v3/averitec/full_actions/conflict_audit_v1.jsonl \
+  --baseline outputs/v3/averitec/development/baseline_scores.jsonl \
   --candidate outputs/v3/averitec/full_actions/conflicting_rescue_v1.jsonl \
   --meta-dir outputs/v3/meta_routing_experiments/qwen3_4b/averitec_grouped090 \
   --output-dir outputs/v3/reviewer_controls/qwen_averitec/quality_budget \
