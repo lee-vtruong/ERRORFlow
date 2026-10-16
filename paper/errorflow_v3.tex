@@ -32,9 +32,10 @@ examples. Frozen transfer yields smaller gains over the base prompt:
 +1.56 accuracy points on CLIMATE-FEVER, +2.33 on SciFact oracle evidence, and
 +2.00 on SciFact BM25 evidence; the BM25 accuracy interval includes zero.
 Always-on correction remains stronger on the external conditions, exposing
-source-memory conservatism under domain shift. A cross-fitted logistic gate is
-competitive on source development, and matched controls do not confirm a
-universal advantage for no-label filtering or regression-aware ranking. An
+source-memory conservatism under domain shift. Cross-fitted logistic and
+boosted controls are competitive in source accuracy, while paired intervals
+favor outcome memory in macro-F1; matched controls do not confirm a universal
+advantage for global-neighbor compatibility or regression-aware ranking. An
 independent Mistral-7B replication supports selective escalation but favors
 same-label memory, so compatibility is treated as a backbone-dependent
 operating choice rather than a fixed discovery.
@@ -460,59 +461,58 @@ The natural router's net gain of 56 therefore captures 29.17\% of that
 helpful-correction headroom, leaving substantial room for better selection.
 
 \begin{table*}[t]
-\caption{AVeriTeC matched-budget routing. Every selective router may invoke
-the same cached Alt on 343 examples; random is the mean of 20 deterministic
-seeds. The final two rows add the supervised logistic and global-neighbor
-comparators at the same count. Bold marks the best selective value, not a
-claim of significant superiority over every control.}
+\caption{AVeriTeC comparison at the primary 375-route budget. Alt-All and the
+score ensemble evaluate Alt for every claim; other non-Base rows are selective.
+Random is the mean of 20 deterministic seeds. Bold marks the best point
+estimate; paired uncertainty is reported in Table~\ref{tab:stats}.}
 \label{tab:matched}
 \centering\small
 \begin{tabular}{lrrrrrr}
 \toprule
-Router & Accuracy & Macro-F1 & Helpful & Harmful & Net & Mean passes \\
+System & Routes & Accuracy & Macro-F1 & Helpful & Harmful & Mean passes \\
 \midrule
-Base & .7402 & .5460 & 0 & 0 & 0 & 4.000 \\
-Alt-All & .7360 & .5559 & 192 & 205 & -13 & 8.000 \\
-Random & .7393 & .5465 & 21.8 & 24.4 & -2.7 & 4.447 \\
-Confidence & .7392 & .5458 & 60 & 63 & -3 & 4.447 \\
-Margin & .7454 & .5522 & 68 & 52 & 16 & 4.447 \\
-Label-conditional & .7451 & .5547 & 71 & 56 & 15 & 4.447 \\
-Similarity-only & .7331 & .5416 & 11 & 33 & -22 & 4.447 \\
-Static pattern & .7526 & .5451 & 60 & 22 & 38 & 4.447 \\
-Outcome memory & \textbf{.7552} & \textbf{.5577} & 90 & 44 & 46 & 4.447 \\
-Cross-fitted logistic gate & .7565 & .5506 & -- & -- & -- & 4.447 \\
-Global-neighbor memory & \textbf{.7575} & \textbf{.5655} & 89 & 36 & 53 & 4.447 \\
+Base & 0 & .7402 & .5460 & 0 & 0 & 4.000 \\
+Alt-All & 3,068 & .7360 & .5559 & 192 & 205 & 8.000 \\
+Score ensemble & 3,068 & .7562 & .5585 & -- & -- & 8.000 \\
+Random & 375 & .7391 & .5465 & -- & -- & 4.489 \\
+Confidence & 375 & .7405 & .5514 & -- & -- & 4.489 \\
+Logistic & 375 & .7562 & .5503 & 87 & 38 & 4.489 \\
+Logistic + interactions & 375 & .7575 & .5493 & 89 & 36 & 4.489 \\
+Boosted stumps & 375 & .7552 & .5460 & 82 & 36 & 4.489 \\
+Memory-SameLabel & 375 & .7562 & .5622 & 99 & 50 & 4.489 \\
+Routed score fusion & 375 & .7581 & .5594 & 79 & 24 & 4.489 \\
+Memory-Global & 375 & \textbf{.7585} & \textbf{.5666} & 94 & 38 & 4.489 \\
 \bottomrule
 \end{tabular}
 \end{table*}
 
-Table~\ref{tab:matched} establishes value over Base, random, confidence-only,
-and similarity-only routing on source development. It also shows that a
-supervised logistic gate on the same pre-action signals is close in accuracy;
-the evidence supports outcome-memory retrieval as a transparent non-parametric
-choice, not as the uniquely effective predictor of prompt benefit. Static
-class-pattern routing is only 0.26 accuracy points below same-label memory
-(Holm $p=.9935$), although its macro-F1 is lower. The ablations in
-Section~\ref{sec:group-c-ablation} further separate outcome-memory utility
-from the representation used to retrieve its neighbors.
+Table~\ref{tab:matched} shows that supervised gates are close to
+Memory-Global in accuracy at the same budget. However, Memory-Global has a
+positive paired macro-F1 interval over logistic, logistic with interactions,
+and boosted stumps (Table~\ref{tab:stats}); their accuracy intervals all cross
+zero. Routed score fusion reduces harmful changes from 38 to 24 but also loses
+15 helpful changes, leaving accuracy unchanged and significantly reducing
+macro-F1. Thus the evidence supports a class-balance advantage for
+non-parametric outcome retrieval, not a general accuracy advantage over every
+supervised predictor. The component ablations below separate memory utility
+from neighbor representation.
 
 \begin{table*}[t]
-\caption{Direct same-budget statistical comparisons for grouped AVeriTeC.
-``Positive'' means the reported paired 95\% interval excludes zero; ``crosses''
-means it includes zero. NR denotes a comparison not reported by the frozen
-artifact. Holm $p$ is for correctness flips.}
+\caption{Direct comparisons against Memory-Global on grouped AVeriTeC.
+Selective controls use 375 routes. Deltas are Memory-Global minus the named
+control; $p$ is the unadjusted exact two-sided McNemar test.}
 \label{tab:stats}
 \centering\small
-\begin{tabular}{lrrrrl}
+\begin{tabular}{lrrrrr}
 \toprule
-Comparison & $\Delta$Acc. & $\Delta$F1 & Holm $p$ & Accuracy CI & Macro-F1 CI \\
+Control & $\Delta$Acc. & $\Delta$F1 & Exact $p$ & Accuracy CI & Macro-F1 CI \\
 \midrule
-Memory-SameLabel $-$ Base & +.01499 & +.01169 & .000612 & [.00750,.02249] & [.00009,.02393] \\
-Memory-SameLabel $-$ Random mean & +.01587 & +.01117 & NR & NR & NR \\
-Memory-SameLabel $-$ Confidence & +.0160 & +.0119 & NR & NR & NR \\
-Memory-SameLabel $-$ Label-conditional & +.01010 & +.00298 & .0674 & positive & crosses zero \\
-Memory-SameLabel $-$ Similarity-only & +.0221 & +.0161 & NR & NR & NR \\
-Memory-SameLabel $-$ Static pattern & +.0026 & +.0126 & .9935 & crosses zero & positive \\
+Score ensemble & +.00228 & +.00805 & .671 & [-.00619,.01141] & [-.00577,.02251] \\
+Memory-SameLabel & +.00228 & +.00435 & .324 & [-.00163,.00619] & [-.00258,.01167] \\
+Routed score fusion & +.00033 & +.00720 & 1.000 & [-.00326,.00391] & [.00029,.01555] \\
+Logistic & +.00228 & +.01623 & .547 & [-.00391,.00847] & [.00314,.02985] \\
+Logistic + interactions & +.00098 & +.01728 & .841 & [-.00522,.00750] & [.00485,.03061] \\
+Boosted stumps & +.00326 & +.02060 & .373 & [-.00293,.00978] & [.00827,.03410] \\
 \bottomrule
 \end{tabular}
 \end{table*}
