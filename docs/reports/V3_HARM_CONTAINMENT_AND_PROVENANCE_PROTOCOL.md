@@ -186,9 +186,18 @@ the three new in-domain `summary.json` files.
 - Qwen AVeriTeC Alt-All has 192 helpful and 205 harmful flips; Memory-Global
   retains 94 helpful flips and exposes 38 harmful flips, corresponding to
   49.0% gain retained and 81.5% harm avoided.
+- Mistral AVeriTeC retains 173/310 helpful changes and exposes 64/327 harmful
+  changes (55.8% retained; 80.4% avoided). CLIMATE-FEVER in-domain retains
+  67/128 and exposes 32/81 (52.3%; 60.5%). Native SciFact oracle retains 0/1
+  and exposes 0/16 (0%; 100%); native SciFact BM25 retains 3/15 and exposes
+  6/31 (20.0%; 80.6%). These are descriptive containment ratios, not no-harm
+  guarantees.
 - The initial checksum manifest included mutable `.cache/huggingface` files.
   Schema v2 separates the stable weight digest from downloader audit state.
   For the three reported Qwen safetensors shards, `weights_sha256` is
   `a36b5737652a4f20b2a89b6d692d7ac939ac9f1f4da755864e9b49f56ec094d9`.
-- Mistral, CLIMATE-FEVER in-domain, and native SciFact harm-containment JSON
-  files remain required before extending the manuscript's audited-count table.
+  The stable model-artifact digest is
+  `c573dd87197b6283e480c3f5f6b8eefc59d61a3012afba878f4902a321bb4743`;
+  the complete audit-tree digest is
+  `add84a00de45a96d33278a4c60755f41903bc509b829b58e38f5d80aef3495a1`.
+- All five requested harm-containment JSON files are now complete.

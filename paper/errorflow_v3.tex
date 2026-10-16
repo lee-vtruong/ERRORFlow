@@ -516,7 +516,9 @@ Setting & Alt $G$ & Alt $H$ & Router $G$ & Router $H$ & Avoided & Retained \\
 \midrule
 AVeriTeC, Qwen Global & 192 & 205 & 94 & 38 & 81.5\% & 49.0\% \\
 AVeriTeC, Mistral Global & 310 & 327 & 173 & 64 & 80.4\% & 55.8\% \\
+CLIMATE-FEVER, in-domain Global & 128 & 81 & 67 & 32 & 60.5\% & 52.3\% \\
 SciFact oracle dev, native & 1 & 16 & 0 & 0 & 100.0\% & 0.0\% \\
+SciFact BM25 dev, native & 15 & 31 & 3 & 6 & 80.6\% & 20.0\% \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -1214,7 +1216,10 @@ pins Hugging Face snapshot revision \texttt{c170c708...bab71}. The artifact
 release includes a streaming checksum utility that records per-file hashes.
 The canonical aggregate over the three Qwen safetensors shards is
 \texttt{a36b5737...94d9}; the artifact ledger also records each shard digest.
-Mutable Hugging Face downloader metadata is excluded from this weight digest.
+The stable model-artifact digest is \texttt{c573dd87...b4743}; the complete
+audit-tree digest, including mutable downloader state, is
+\texttt{add84a00...95a1}. Mutable Hugging Face downloader metadata is excluded
+from the first two reproducibility digests.
 Exact replay found
 zero route and prediction mismatches, and rotating target gold labels did not
 alter routes. Group exclusion removes the validation fold from usable memory;
