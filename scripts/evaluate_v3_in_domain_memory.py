@@ -21,7 +21,12 @@ from errorflow.io import atomic_write_json, read_jsonl, write_jsonl
 from errorflow.v3_memory import ResidualMemoryStore, build_action_memories
 from errorflow.v3_residuals import build_residual_records
 from errorflow.v3_routing import best_memory_action, deterministic_random_score
-from errorflow.v3_statistics import mcnemar_exact, paired_bootstrap, percentile
+from errorflow.v3_statistics import (
+    grouped_paired_bootstrap,
+    mcnemar_exact,
+    paired_bootstrap,
+    percentile,
+)
 
 try:
     from scripts.evaluate_v3_grouping_sensitivity import grouped_folds, near_duplicate_edges
@@ -100,15 +105,20 @@ def evaluate(ids, residuals, candidates, selected):
     }, after
 
 
-def compare(gold, left, right, samples, seed):
+def compare(gold, left, right, samples, seed, groups=None):
     bootstrap = paired_bootstrap(gold, left, right, samples, seed)
     bootstrap["delta_accuracy"] = accuracy(right, gold) - accuracy(left, gold)
     bootstrap["delta_macro_f1"] = macro_f1(right, gold) - macro_f1(left, gold)
-    return {
+    result = {
         "orientation": "right_minus_left",
         "mcnemar_exact": mcnemar_exact(gold, left, right),
         "paired_bootstrap": bootstrap,
     }
+    if groups is not None:
+        result["grouped_paired_bootstrap"] = grouped_paired_bootstrap(
+            gold, left, right, groups, samples, seed
+        )
+    return result
 
 
 def uncertainty(row):
@@ -297,23 +307,31 @@ def main():
             })
 
     expected = [residuals[key]["gold_label"] for key in ids]
+    component_by_id = {
+        key: min(component) for component in components for key in component
+    }
+    bootstrap_groups = [component_by_id[key] for key in ids]
     primary = "Memory-Global-natural"
     comparisons = {
         "Memory-Global_vs_Base": compare(
             expected, predictions["Base"], predictions[primary], args.samples, args.seed,
+            bootstrap_groups,
         ),
         "Memory-Global_vs_Alt-All": compare(
             expected, predictions["Alt-All"], predictions[primary], args.samples, args.seed,
+            bootstrap_groups,
         ),
         "Memory-Global_vs_Confidence": compare(
             expected, predictions["Confidence-matched"], predictions[primary], args.samples, args.seed,
+            bootstrap_groups,
         ),
         "Memory-Global_vs_SameLabel": compare(
             expected, predictions["Memory-SameLabel-matched"], predictions[primary], args.samples, args.seed,
+            bootstrap_groups,
         ),
         "Memory-Global_vs_Random2026": compare(
             expected, predictions[f"Random-matched-seed-{args.seed}"], predictions[primary],
-            args.samples, args.seed,
+            args.samples, args.seed, bootstrap_groups,
         ),
     }
     isolation = []
@@ -334,7 +352,7 @@ def main():
 
     base_accuracy = results["Base"]["accuracy"]
     memory_accuracy = results[primary]["accuracy"]
-    memory_vs_base_ci = comparisons["Memory-Global_vs_Base"]["paired_bootstrap"]["accuracy_delta_ci95"]
+    memory_vs_base_ci = comparisons["Memory-Global_vs_Base"]["grouped_paired_bootstrap"]["accuracy_delta_ci95"]
     strict_support = (
         memory_accuracy > base_accuracy
         and memory_vs_base_ci[0] > 0.0
@@ -373,10 +391,11 @@ def main():
             "Memory-SameLabel": hard_timing,
         },
         "hypothesis_test": {
-            "criterion": "Memory-Global improves Base with positive paired accuracy CI and uses fewer forwards than Alt-All",
+            "criterion": "Memory-Global improves Base with positive group-bootstrap accuracy CI and uses fewer forwards than Alt-All",
             "supported_under_this_protocol": strict_support,
             "descriptive_accuracy_gain": memory_accuracy - base_accuracy,
             "accuracy_delta_ci95": memory_vs_base_ci,
+            "resampling_unit": "near_duplicate_group",
             "memory_avg_forward_passes": results[primary]["avg_model_forward_passes"],
             "alt_all_avg_forward_passes": results["Alt-All"]["avg_model_forward_passes"],
         },

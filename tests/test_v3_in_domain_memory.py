@@ -3,6 +3,7 @@ import sys
 
 from errorflow.io import write_jsonl
 from errorflow.v3_memory import ResidualMemoryStore, build_action_memories
+from errorflow.v3_statistics import grouped_paired_bootstrap
 from scripts.evaluate_v3_in_domain_memory import evaluate, finite_top_count, main
 
 
@@ -79,6 +80,16 @@ def test_matched_selection_rejects_insufficient_eligible_scores():
     assert finite_top_count(["a", "b"], {"a": 1.0, "b": 0.5}, 1) == {"a"}
 
 
+def test_grouped_bootstrap_resamples_complete_groups():
+    result = grouped_paired_bootstrap(
+        ["A", "A", "B"], ["B", "B", "B"], ["A", "A", "B"],
+        ["duplicate-pair", "duplicate-pair", "singleton"], samples=20, seed=7,
+    )
+    assert result["resampling_unit"] == "group"
+    assert result["n_groups"] == 2
+    assert result["accuracy_delta_ci95"][0] >= 0.0
+
+
 def test_in_domain_cli_materializes_fold_safe_artifacts(tmp_path, monkeypatch):
     gold_rows, baseline_rows, candidate_rows = [], [], []
     for index in range(10):
@@ -128,4 +139,6 @@ def test_in_domain_cli_materializes_fold_safe_artifacts(tmp_path, monkeypatch):
     assert report["results"]["Base"]["accuracy"] == 0.0
     assert report["results"]["Memory-Global-natural"]["accuracy"] == 1.0
     assert all(row["usable_validation_id_overlap"] == 0 for row in report["fold_isolation"])
+    assert report["comparisons"]["Memory-Global_vs_Base"]["grouped_paired_bootstrap"]["n_groups"] == 10
+    assert report["hypothesis_test"]["resampling_unit"] == "near_duplicate_group"
     assert sum(1 for _ in (output / "memory.jsonl").open(encoding="utf-8")) == 10

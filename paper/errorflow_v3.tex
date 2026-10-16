@@ -22,27 +22,21 @@
 \maketitle
 
 \begin{abstract}
-Applying a second verification prompt uniformly increases compute and can
-regress correct predictions. ERRORFlow stores source-domain outcomes of one
-fixed alternative prompt and uses non-parametric memory to decide when to
-escalate, without updating model weights. On grouped AVeriTeC development,
-Qwen3-4B routing improves accuracy from 74.02\% to 75.85\% and macro-F1 from
-54.60\% to 56.66\% while invoking the alternative prompt on 12.22\% of
-examples. Frozen AVeriTeC-memory transfer yields smaller gains over Base:
-+1.56 accuracy points on CLIMATE-FEVER, +2.33 on projected SciFact oracle,
-and +2.00 on projected SciFact BM25; the BM25 accuracy interval includes
-zero. In-domain cross-fitting raises the CLIMATE-FEVER gain to +2.28 points,
-but native-three-label SciFact memory does not improve Base on train
-cross-validation or frozen train-to-dev evaluation because Alt itself has
-negative net utility. Thus source-memory mismatch is only a partial,
-dataset-dependent explanation. Unweighted cross-fitted logistic and
-boosted controls are competitive in source accuracy; exploratory paired
-intervals favor outcome memory in macro-F1, but class-balanced controls remain
-necessary before assigning that gap to memory. Matched controls do not confirm a universal
-advantage for global-neighbor compatibility or regression-aware ranking. An
-independent Mistral-7B replication supports selective escalation but favors
-same-label memory, so compatibility is treated as a backbone-dependent
-operating choice rather than a fixed discovery.
+Applying an alternative verification prompt uniformly can recover errors but
+also regress correct verdicts. ERRORFlow is a non-parametric selective
+escalation method: it retrieves source-domain outcomes of one frozen
+alternative prompt and invokes that prompt only when neighboring outcomes
+predict positive utility. On grouped AVeriTeC development with Qwen3-4B, it
+routes 12.22\% of claims, improving accuracy from 74.02\% to 75.85\% and
+macro-F1 from 54.60\% to 56.66\% at 4.49 rather than 8.00 average forward
+passes. Relative to always invoking the same alternative, it avoids 81.5\%
+of harmful changes while retaining 49.0\% of helpful changes. Frozen transfer
+to CLIMATE-FEVER gives a smaller gain, while native-three-label SciFact shows
+no accuracy improvement because the alternative action itself is harmful;
+there the router largely abstains and limits regression. A Mistral-7B
+replication favors same-label rather than global-neighbor compatibility.
+These results support compute-aware regression containment, not a formal
+no-harm guarantee or universal accuracy improvement.
 \keywords{Fact verification \and Non-parametric routing \and Outcome memory
 \and Selective routing \and Retrieval-augmented verification}
 \end{abstract}
@@ -64,6 +58,8 @@ action only when neighboring source outcomes indicate positive utility. The
 method records helpful and harmful changes, route rate, and model forward
 passes, enabling matched-budget comparisons against confidence, similarity,
 supervised, same-label-memory, and random routers.
+Figure~\ref{fig:architecture} summarizes the offline outcome-memory and online
+selective-escalation stages.
 
 Our experiments emphasize claim boundaries and reproducibility. Source-domain
 evaluation excludes the complete query fold from memory and includes
@@ -348,9 +344,10 @@ SciFact dev & 300 & 3 & Open-corpus BM25 top-5 sentences \\
 \end{table}
 
 The CLIMATE-FEVER release is evaluated as one locked external population. Its
-DISPUTED label maps directly to CONFLICTING. SciFact has no CONFLICTING label;
-the predeclared primary adapter maps CONFLICTING predictions to NOT ENOUGH
-INFO. We retain raw four-label sensitivity and projection counts.
+DISPUTED label maps directly to CONFLICTING. SciFact has no CONFLICTING label.
+Our primary SciFact experiments therefore use native three-label Base and Alt
+prompts. Historical four-label runs that map CONFLICTING predictions to NOT
+ENOUGH INFO are retained only as an ontology-adapter sensitivity analysis.
 
 The SciFact retriever ranks all 5,183 corpus documents with BM25 over title and
 abstract, retains five documents, and then ranks their sentences to retain
@@ -369,16 +366,20 @@ tests used in this paper.
 We report accuracy, macro-F1, per-class F1, helpful and harmful prediction
 changes, route rate, and average forward passes. Paired comparisons use exact
 two-sided McNemar tests and 5,000-sample paired bootstrap confidence intervals.
-Source matched-router comparisons additionally apply Holm correction.
+For grouped source analyses, the released evaluator additionally resamples
+complete near-duplicate groups; claim-level intervals are retained for exact
+reproduction of earlier tables until the grouped rerun is materialized. Source
+matched-router comparisons additionally apply Holm correction.
 
 \section{Main Results}
 
 \begin{table*}[t]
-\caption{Main quality--cost results. The global-neighbor memory router is
+\caption{Main four-label quality--cost results. The global-neighbor memory router is
 selected on grouped AVeriTeC development. Confidence is matched to its natural
 route count and is therefore a controlled-budget comparator rather than a
-separately tuned natural policy. SciFact rows use historical four-label
-scoring followed by the predeclared three-label projection.}
+separately tuned natural policy. Native-three-label SciFact is reported in
+Table~\ref{tab:in-domain-memory}; historical projected results are a protocol
+sensitivity analysis.}
 \label{tab:main}
 \centering
 \small
@@ -401,30 +402,15 @@ Evaluation & System & Accuracy & Macro-F1 & Route rate & Avg. passes \\
  & Confidence@Memory-Global budget & 0.5355 & 0.4159 & 0.190 & 4.761 \\
  & Memory-SameLabel (natural) & 0.5375 & 0.4063 & 0.199 & 4.797 \\
  & Memory-Global (natural) & 0.5368 & 0.4117 & 0.190 & 4.761 \\
-\midrule
-\multirow{6}{*}{SciFact oracle}
- & Base & 0.6067 & 0.5596 & 0.000 & 4.000 \\
- & Alt-All & 0.8167 & 0.7822 & 1.000 & 8.000 \\
- & Score ensemble & 0.7833 & 0.7291 & 1.000 & 8.000 \\
- & Confidence@Memory-Global budget & 0.6267 & 0.5814 & 0.080 & 4.320 \\
- & Memory-SameLabel (natural) & 0.6300 & 0.5931 & 0.087 & 4.347 \\
- & Memory-Global (natural) & 0.6300 & 0.5951 & 0.080 & 4.320 \\
-\midrule
-\multirow{6}{*}{SciFact BM25}
- & Base & 0.6100 & 0.5778 & 0.000 & 4.000 \\
- & Alt-All & 0.6367 & 0.6157 & 1.000 & 8.000 \\
- & Score ensemble & 0.6533 & 0.6168 & 1.000 & 8.000 \\
- & Confidence@Memory-Global budget & 0.6067 & 0.5811 & 0.207 & 4.827 \\
- & Memory-SameLabel (natural) & 0.6267 & 0.6035 & 0.187 & 4.747 \\
- & Memory-Global (natural) & 0.6300 & 0.6075 & 0.207 & 4.827 \\
 \bottomrule
 \end{tabular}
 \end{table*}
 
 \begin{table*}[t]
-\caption{Natural Memory-Global change over Base with paired 95\% bootstrap intervals.
+\caption{Natural Memory-Global change over Base in the four-label protocols,
+with paired 95\% bootstrap intervals.
 A positive point estimate is not treated as established when its interval
-crosses zero. SciFact uses the predeclared post-routing label projection.}
+crosses zero. Native SciFact results are in Table~\ref{tab:in-domain-memory}.}
 \label{tab:delta-ci}
 \centering\small
 \begin{tabular}{lrrrr}
@@ -433,8 +419,6 @@ Condition & $\Delta$Accuracy & 95\% CI & $\Delta$Macro-F1 & 95\% CI \\
 \midrule
 AVeriTeC grouped & +.01825 & [.01076,.02575] & +.02055 & [.00865,.03337] \\
 CLIMATE-FEVER candidates & +.01564 & [.00456,.02736] & +.03091 & [.01378,.04892] \\
-SciFact oracle projected & +.02333 & [.00333,.04667] & +.03553 & [.01089,.06457] \\
-SciFact BM25 projected & +.02000 & [-.00333,.04333] & +.02967 & [.00434,.05728] \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -507,6 +491,31 @@ has a positive unadjusted interval but is not treated as a corrected
 significance claim. The component ablations below separate memory utility
 from neighbor representation.
 
+The complementary safety view is regression containment rather than a
+literal no-harm guarantee. Table~\ref{tab:harm-containment} compares each
+selective policy with invoking the same Alt on every claim. On Qwen
+AVeriTeC, Memory-Global retains 94 of Alt's 192 helpful changes while exposing
+only 38 of its 205 harmful changes. The Mistral replication shows the same
+qualitative filtering pattern even though it favors Memory-SameLabel.
+
+\begin{table*}[t]
+\caption{Harm containment in settings with audited flip counts. ``Avoided''
+is $1-H_{\rm router}/H_{\rm Alt}$ and ``retained'' is
+$G_{\rm router}/G_{\rm Alt}$. These descriptive ratios are not safety
+guarantees.}
+\label{tab:harm-containment}
+\centering\small
+\begin{tabular}{lrrrrrr}
+\toprule
+Setting & Alt $G$ & Alt $H$ & Router $G$ & Router $H$ & Avoided & Retained \\
+\midrule
+AVeriTeC, Qwen Global & 192 & 205 & 94 & 38 & 81.5\% & 49.0\% \\
+AVeriTeC, Mistral Global & 310 & 327 & 173 & 64 & 80.4\% & 55.8\% \\
+SciFact oracle dev, native & 1 & 16 & 0 & 0 & 100.0\% & 0.0\% \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
 \begin{table*}[t]
 \caption{Direct comparisons against Memory-Global on grouped AVeriTeC.
 Selective controls use 375 routes. Deltas are Memory-Global minus the named
@@ -547,55 +556,30 @@ paired intervals include zero.
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/helpful_harmful.pdf}
-\caption{Helpful and harmful prediction changes. Always-on correction exposes
-more gains but also more regressions.}
+\caption{Quality--budget behavior. Panel (a) shows helpful and harmful
+prediction changes; panel (b) compares full-outcome, error-only, and
+recovery-only memory across matched budgets. The star marks the natural
+Memory-Global operating point (12.22\%). Recovery-only matches or exceeds full
+memory at low budgets, while full memory becomes stronger at higher budgets.}
 \label{fig:flips}
 \end{figure}
 
-\subsection{SciFact Ontology Sensitivity}
+Figure~\ref{fig:flips} makes the central trade-off explicit: selective
+escalation filters many Alt regressions, but neither the natural threshold nor
+the full recovery-minus-regression utility dominates at every budget.
 
-With oracle rationales, projected Memory-Global improves accuracy by 2.33 points and
-macro-F1 by 3.55 points, with positive paired bootstrap intervals
-(Table~\ref{tab:delta-ci}); the exact accuracy McNemar test is weaker
-($p=.065$). Memory-Global and Memory-SameLabel have identical natural accuracy and no confirmed
-paired difference. The raw four-label comparison is null. Moreover, Alt
-produces 96 CONFLICTING outputs under oracle evidence, and projection converts
-90 additional examples to correct predictions. This result is therefore
-adapter-mediated and cannot support projection-independent transfer.
-Always-on policies are substantially stronger in this condition. Alt-All
-reaches 0.8167/0.7822 accuracy/macro-F1, while the score ensemble reaches
-0.7833/0.7291. The ensemble exceeds Memory-Global by 15.33 accuracy points
-(95\% CI $[+.0967,+.2133]$, exact McNemar $p<10^{-6}$), yet remains 3.33
-points below Alt-All (95\% CI $[-.0633,-.0033]$, $p=.0414$). This is direct
-evidence that source-memory conservatism leaves much of Alt's target-domain
-benefit unused.
-
-\subsection{Retrieved-Evidence Robustness}
-
-With open BM25 evidence, Memory-Global improves Base macro-F1 by 2.97 points with a
-positive bootstrap interval, while its 2.00-point accuracy interval crosses
-zero. At the Memory-Global budget, Memory-Global is 1.00 accuracy and 1.03 macro-F1 points above
-Memory-SameLabel, but the small-sample paired tests do not confirm superiority.
-Only five Alt predictions are
-projected, so this condition is not driven by mass ontology conversion.
-The score ensemble has the strongest accuracy point estimate (0.6533), 2.33
-points above Memory-Global, but its paired accuracy and macro-F1 intervals
-against Memory-Global both cross zero. Routed score fusion reaches
-0.6233/0.5965 and likewise does not improve Memory-Global.
-
-The earlier retrieval-stratum audit used Memory-SameLabel. On 121 verifiable hits it
-had net zero correctness change; on 67 misses it preserved Base while Alt-All
-lost six net correct predictions; on 112 NEI claims it gained five. The new
-Memory-Global aggregate gains are consistent with selective harm avoidance, but a fresh
-Memory-Global stratum analysis was not used for model selection and is not inferred.
+Historical four-label SciFact results are moved to
+Appendix~\ref{sec:scifact-projection}; they reverse the native action effect
+after mapping CONFLICTING to NEI and therefore cannot be mixed with the
+primary three-label evaluation.
 
 \subsection{Cross-Domain Summary}
 
-Table~\ref{tab:delta-ci} summarizes frozen Memory-Global change over Base. Macro-F1
-intervals are positive in all four protocols, but interpretation differs:
-AVeriTeC is train-selected; SciFact oracle is projection-sensitive;
-CLIMATE-FEVER has supplied candidates rather than open retrieval; and SciFact
-BM25 accuracy is statistically inconclusive. Direct Memory-Global--Memory-SameLabel and
+Table~\ref{tab:delta-ci} summarizes the two four-label protocols. AVeriTeC is
+train-selected, whereas CLIMATE-FEVER has supplied candidates rather than open
+retrieval. Native-three-label SciFact in Table~\ref{tab:in-domain-memory} does
+not improve Base; the historical projected condition is discussed only as
+ontology sensitivity. Direct Memory-Global--Memory-SameLabel and
 Memory-Global--confidence comparisons are mostly inconclusive, so the evidence supports
 Memory-Global as a competitive transferred router rather than a universally superior one.
 
@@ -604,13 +588,10 @@ external route budgets, Memory-Global has higher macro-F1 than logistic,
 interaction-augmented logistic, and boosted-stump gates on CLIMATE-FEVER; the
 three paired macro-F1 intervals favoring memory are respectively
 $[+.0051,+.0397]$, $[+.0012,+.0350]$, and $[+.0051,+.0374]$, while accuracy
-comparisons are inconclusive. On SciFact oracle, Memory-Global also exceeds
-plain logistic and boosted stumps in macro-F1, whereas the interaction model
-is inconclusive; all BM25 supervised comparisons are inconclusive. These
-unweighted controls leave a possible class-balance advantage, but the claim is
-provisional until outcome-balanced and per-Base-label calibrated gates are
-evaluated. None approaches the external quality of Alt-All where Alt has a
-high target-domain benefit rate.
+comparisons are inconclusive. These unweighted controls leave a possible
+class-balance advantage, but the claim is provisional until outcome-balanced
+and per-Base-label calibrated gates are evaluated. We do not transfer these
+four-label supervised-control results to native-three-label SciFact.
 
 \subsection{In-Domain Memory Test}
 
@@ -620,7 +601,7 @@ CLIMATE-FEVER uses five near-duplicate-grouped folds over its only labeled
 release. SciFact uses native three-label prompts throughout: memory is first
 cross-fitted on official train and then frozen for train-to-dev evaluation.
 These SciFact rows are therefore not numerically interchangeable with the
-historical four-label, post-projection rows in Table~\ref{tab:main}.
+historical four-label, post-projection appendix sensitivity.
 
 \begin{table*}[t]
 \caption{In-domain outcome-memory test. $\Delta$Accuracy is natural
@@ -644,7 +625,9 @@ SciFact BM25 train$\rightarrow$dev & .5800 & .5267 & .5700 & .127 & 3.380 & $-.0
 }
 \end{table*}
 
-The mismatch account is supported on CLIMATE-FEVER but not in general.
+In-domain memory is beneficial on CLIMATE-FEVER but not in general. A direct
+paired comparison against the frozen AVeriTeC-memory predictions is required
+before attributing the difference specifically to memory provenance.
 In-domain Memory-Global improves CLIMATE-FEVER accuracy by 2.28 points and
 macro-F1 by 3.35 points while using 4.72 rather than 8.00 forwards; both
 paired intervals are positive. Its accuracy remains 0.78 points below
@@ -1009,8 +992,8 @@ CONFLICTING F1 remains only .1012. On CLIMATE-FEVER it improves REFUTED, NEI,
 SUPPORTED, and CONFLICTING over Base, while Alt-All remains stronger on NEI.
 
 \begin{table*}[t]
-\caption{Per-class F1 under each evidence protocol. SciFact has no
-CONFLICTING target class after the predeclared projection.}
+\caption{Per-class F1 in the two main four-label protocols. Native SciFact
+per-class outputs are distributed with the train-to-dev artifacts.}
 \label{tab:per-class}
 \centering\small
 \begin{tabular}{llrrrr}
@@ -1026,16 +1009,6 @@ CLIMATE-FEVER candidates & Base & .6791 & .4101 & .3227 & .1111 \\
 CLIMATE-FEVER candidates & Alt-All & .6982 & .4680 & .4707 & .1202 \\
 CLIMATE-FEVER candidates & Memory-SameLabel & .6963 & .4438 & .3722 & .1128 \\
 CLIMATE-FEVER candidates & Memory-Global & .6920 & .4509 & .3665 & .1373 \\
-\midrule
-SciFact oracle & Base & .7015 & .4522 & .5250 & -- \\
-SciFact oracle & Alt-All & .8249 & .6346 & .8870 & -- \\
-SciFact oracle & Memory-SameLabel & .7085 & .4959 & .5750 & -- \\
-SciFact oracle & Memory-Global & .7044 & .5042 & .5767 & -- \\
-\midrule
-SciFact BM25 & Base & .7099 & .4960 & .5275 & -- \\
-SciFact BM25 & Alt-All & .7007 & .5378 & .6087 & -- \\
-SciFact BM25 & Memory-SameLabel & .7143 & .5385 & .5579 & -- \\
-SciFact BM25 & Memory-Global & .7143 & .5426 & .5654 & -- \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -1114,9 +1087,9 @@ ERRORFlow Memory-Global & AVeriTeC train grouped & human QA evidence & Qwen3-4B 
 AVeriTeC task \cite{schlichtkrull2024averitec} & official dev/test & web retrieval + QA & varied & varied & -- & AVeriTeC score & no \\
 ERRORFlow Memory-Global & CLIMATE-FEVER all & five official candidates & Qwen3-4B & no weight update & .5368 & -- & protocol-specific \\
 CLIMATE-FEVER \cite{diggelmann2020climate} & official release & supplied candidates & dataset baselines & supervised & -- & paper metrics & context only \\
-ERRORFlow Memory-Global & SciFact dev oracle & gold rationales & Qwen3-4B & no weight update & .6300 & -- & adapter-sensitive \\
+ERRORFlow Memory-Global & SciFact dev oracle & gold rationales, native 3-label & Qwen3-4B & no weight update & .4900 & -- & protocol-specific \\
 SciFact \cite{wadden2020scifact} & official dev/test & corpus retrieval/rationales & trained verifier & supervised & -- & task metrics & no \\
-ERRORFlow Memory-Global & SciFact dev BM25 & open corpus top-5 & Qwen3-4B & no weight update & .6300 & -- & closest internal condition \\
+ERRORFlow Memory-Global & SciFact dev BM25 & open corpus top-5, native 3-label & Qwen3-4B & no weight update & .5700 & -- & closest internal condition \\
 \bottomrule
 \end{tabular}}
 \end{table*}
@@ -1139,8 +1112,8 @@ the signal.
 \toprule
 Supported by current experiments & Not established \\
 \midrule
-Selective escalation improves Base on grouped source development and modestly
-on frozen external protocols. & An unbiased AVeriTeC held-out gain after broad
+Selective escalation improves Base on grouped source development and on the
+frozen CLIMATE-FEVER protocol; it limits native SciFact regressions. & An unbiased AVeriTeC held-out gain after broad
 method selection. \\
 Outcome-linked memory beats shuffled outcomes and random routing on source
 development. & A universal advantage over supervised logistic, static, or
@@ -1155,16 +1128,18 @@ heterogeneous-cost optimality. \\
 \end{tabular}
 \end{table}
 
-External behavior is protocol-dependent. Alt-All dominates selective routing
-on SciFact oracle; on CLIMATE-FEVER the score ensemble exceeds Memory-Global
-by 1.50 accuracy and 2.12 macro-F1 points. On SciFact BM25, however, Alt-All's
-accuracy advantage over Memory-Global is only 0.67 point and has not been
-confirmed by a direct paired test, while the score ensemble has the strongest
-point estimate. Thus eight-forward inference is clearly preferable only in
-some external conditions. The router's practical role is a compute-constrained
-operating point at roughly 4.3--4.8 average forwards, not a universally
-quality-dominant replacement for Alt-All. In-domain memory confirms this source-mismatch account on
-CLIMATE-FEVER, but SciFact does not: under matched native-three-label prompts,
+External behavior is protocol-dependent. On CLIMATE-FEVER the score ensemble
+exceeds frozen AVeriTeC-memory routing by 1.50 accuracy and 2.12 macro-F1
+points. Under native-three-label SciFact, however, Alt-All is 5.0 points below
+Base with oracle evidence and 5.33 points below Base with BM25 evidence; the
+router stays equal to Base or within one point while using only 3.05--3.38
+average forwards. The historical projected oracle reversal is isolated in
+Appendix~\ref{sec:scifact-projection}. Thus the router's practical role is a
+compute-constrained, harm-limiting operating point, not a universally
+quality-dominant replacement for Alt-All. In-domain memory improves
+CLIMATE-FEVER, but its direct advantage over AVeriTeC memory is not claimed
+until the paired provenance test is run. SciFact gives a different diagnosis:
+under matched native-three-label prompts,
 Alt is harmful on both train and dev, so the limiting factor is action quality
 rather than memory provenance. Memory mismatch is therefore a
 dataset-dependent diagnosis, not a general explanation of transfer.
@@ -1212,9 +1187,11 @@ memory under the same prompts and routing constants. Base and Alt instruction
 SHA-256 values are \texttt{700ebdc1...decf7} and
 \texttt{09e187ec...aaf}. These identify instruction strings; the reported
 model hash identifies the model name, not weight files. The Mistral experiment
-pins Hugging Face snapshot revision \texttt{c170c708...bab71}; the Qwen result
-is tied to the reported local model identifier and configuration hash but does
-not have a byte-level checkpoint digest. Exact replay found
+pins Hugging Face snapshot revision \texttt{c170c708...bab71}. The artifact
+release includes a streaming checksum utility that records per-file hashes and
+a canonical aggregate digest for the Qwen snapshot; the digest is inserted
+into the camera-ready artifact ledger only after it is computed on the frozen
+server copy. Exact replay found
 zero route and prediction mismatches, and rotating target gold labels did not
 alter routes. Group exclusion removes the validation fold from usable memory;
 it does not prove absence of shared evidence or semantic paraphrases. Large
@@ -1232,8 +1209,9 @@ The main ablation suite uses one Qwen checkpoint; the Mistral replication
 covers only grouped AVeriTeC and CLIMATE-FEVER and does not repeat every
 component ablation or SciFact protocol. Source results are train-selected,
 and source memory uses labeled outcomes; training-free denotes
-the absence of weight updates, not the absence of supervision. SciFact oracle
-results depend strongly on label projection. CLIMATE-FEVER uses official
+the absence of weight updates, not the absence of supervision. Historical
+four-label SciFact oracle results depend strongly on label projection.
+CLIMATE-FEVER uses official
 retrieved candidates rather than ERRORFlow retrieval, while the open SciFact
 retriever is only a lexical baseline. Several external matched-router
 comparisons remain statistically inconclusive. Finally, CONFLICTING-class
@@ -1316,17 +1294,19 @@ appendix. Main-text tables use semantic names only.}
 Artifact ID & Semantic configuration & Artifact ID & Semantic configuration \\
 \midrule
 A0 & Full Memory-SameLabel & A1/A4/A8 & Without claim / label-only / random neighbors \\
-B2/B3 & Claim-nearest / score-nearest & B11 & Regression-only utility \\
-B12/B13 & Size-matched full / mixed memory & B16/B17 & Uniform outcomes / calibrated threshold \\
-NA0 & Full Memory-Global & NA2/NA3 & Random neighbors / stratified outcome shuffle \\
-NA4/NA5 & Global / class-conditional prior & NA6 & Recovery-only utility \\
-NA7/NA8 & Error-only / correct-only memory & NB0/NB1 & Memory-Global / Memory-SameLabel \\
-NB2/NB3 & Cross-label only / suppress cross-label outcomes & NB4 & Shuffle cross-label outcomes \\
-NB5/NB6 & Same-label priority / soft label penalty & NB7 & Cross-label quota (one or two) \\
-NB8 & Same-label outcomes with global support & NC0 & Full Memory-Global similarity \\
-NC1--NC4 & Three removals / uniform weights & NC5--NC8 & Label-only / Hellinger / JS / TF--IDF \\
-ND0/ND1 & Full / recovery-only utility & ND2/ND3 & Unsmoothed / source-prior shrinkage \\
-ND4/ND6 & Regression-only / calibrated threshold & C0/C7 & Historical same-label / no-label-filter sweep \\
+B2/B3 & Claim-nearest / score-nearest & B4/B14 & Outcome shuffle / stratified shuffle \\
+B5/B15 & Static class / class-conditional prior & B9 & Full outcome memory \\
+B11 & Regression-only utility & B12/B13 & Size-matched full / mixed memory \\
+B16/B17 & Uniform outcomes / calibrated threshold & NA0 & Full Memory-Global \\
+NA2/NA3 & Random neighbors / stratified outcome shuffle & NA4/NA5 & Global / class-conditional prior \\
+NA6 & Recovery-only utility & NA7/NA8 & Error-only / correct-only memory \\
+NB0/NB1 & Memory-Global / Memory-SameLabel & NB2/NB3 & Cross-label only / suppress cross-label outcomes \\
+NB4 & Shuffle cross-label outcomes & NB5/NB6 & Same-label priority / soft label penalty \\
+NB7 & Cross-label quota (one or two) & NB8 & Same-label outcomes with global support \\
+NC0 & Full Memory-Global similarity & NC1--NC4 & Three removals / uniform weights \\
+NC5--NC8 & Label-only / Hellinger / JS / TF--IDF & ND0/ND1 & Full / recovery-only utility \\
+ND2/ND3 & Unsmoothed / source-prior shrinkage & ND4/ND6 & Regression-only / calibrated threshold \\
+C0/C7 & Historical same-label / no-label-filter sweep & -- & -- \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -1499,11 +1479,12 @@ calibration claim.
 
 \section{Historical Same-Label Component-Ablation Detail}
 
-Table~\ref{tab:component-appendix} reports the A0-minus-variant paired results
-omitted from the main table. Natural mode lets each variant route at its own
-positive-utility threshold; matched mode fixes 343 routes. The final columns
-count folds in which A0 has higher matched-budget accuracy/macro-F1. A1 and A4
-are included here despite null effects; complete per-fold values and
+Table~\ref{tab:component-appendix} reports Full-Memory-SameLabel-minus-variant
+paired results omitted from the main table. Natural mode lets each variant
+route at its own positive-utility threshold; matched mode fixes 343 routes.
+The final columns count folds in which the full method has higher matched-budget
+accuracy/macro-F1. Claim-removal and label-score-only controls are included
+despite null effects; complete per-fold values and
 prediction-level rows remain in the released artifact.
 
 \begin{table*}[t]
@@ -1527,7 +1508,7 @@ Random compatible neighbors$\ast$ & +.0098 & +.0169 & .057 & 3/5 & 3/5 \\
 \end{tabular}
 \end{table*}
 
-For matched-budget A8, A0's mean advantage across 20 seeds is .00859 accuracy
+Against random compatible neighbors, the full method's mean advantage across 20 seeds is .00859 accuracy
 and .00900 macro-F1; the ranges are [.00522,.01499] and [.00061,.01671]. Seed
 2026 is the predeclared member of the Holm family and must not be conflated
 with the 20-seed mean.
@@ -1586,12 +1567,12 @@ P2 & Trained logistic router & 176 & 75.10 & 54.36 & 75.65 & 55.06 \\
 \label{sec:memory-appendix}
 
 Table~\ref{tab:memory-appendix} reports controls omitted from the main table.
-All rows except B17 use 375 routes. B12 and B13 are 20-seed means over memories
-of 797 records, matching the size of NA7/B7; B17 selects fold-specific thresholds
-from source-inner folds and routes 393 claims, so it is not a matched-budget
-comparison. B4 is implementation-equivalent to NA3/B14: both permute outcomes
-within outer-fold and predicted-label strata. B5 is implementation-equivalent
-to NA5/B15. The constant global prior is now reported explicitly as NA4.
+All rows except calibrated utility use 375 routes. The two size-matched rows
+are 20-seed means over memories of 797 records, matching the size of error-only
+memory. Calibrated utility selects fold-specific thresholds from source-inner
+folds and routes 393 claims, so it is not a matched-budget comparison. The
+historical outcome-shuffle and static-class implementations are equivalent to
+the stratified-shuffle and class-conditional-prior controls, respectively.
 
 \begin{table*}[t]
 \caption{Additional outcome-memory controls on grouped AVeriTeC. $\dagger$
@@ -1599,32 +1580,33 @@ denotes a 20-seed mean; $\ddagger$ denotes nested calibration with 393 routes.
 All other rows use the matched 375-route Memory-Global budget.}
 \label{tab:memory-appendix}
 \centering\small
-\begin{tabular}{lllrr}
+\begin{tabular}{lrrr}
 \toprule
-ID & Configuration & Routed & Accuracy (\%) & Macro-F1 (\%) \\
+Configuration & Routed & Accuracy (\%) & Macro-F1 (\%) \\
 \midrule
-B2 & Claim-nearest memory & 375 & 74.32 & 54.80 \\
-B3 & Score-nearest memory & 375 & 75.20 & 55.08 \\
-NA4 & Global outcome prior & 375 & 73.57 & 54.27 \\
-NA7 & Error-only memory & 375 & 75.72 & 56.30 \\
-NA8 & Correct-only memory & 375 & 73.89 & 54.42 \\
-B11 & Regression-only utility & 375 & 73.99 & 54.62 \\
-B12 & Size-matched full memory$\dagger$ & 375 & 75.02 & 55.65 \\
-B13 & Size-matched mixed memory$\dagger$ & 375 & 75.03 & 55.72 \\
-B16 & Uniform outcome weights & 375 & 75.81 & 56.63 \\
-B17 & Calibrated utility$\ddagger$ & 393 & \textbf{75.85} & \textbf{56.74} \\
+Claim-nearest memory & 375 & 74.32 & 54.80 \\
+Score-nearest memory & 375 & 75.20 & 55.08 \\
+Global outcome prior & 375 & 73.57 & 54.27 \\
+Error-only memory & 375 & 75.72 & 56.30 \\
+Correct-only memory & 375 & 73.89 & 54.42 \\
+Regression-only utility & 375 & 73.99 & 54.62 \\
+Size-matched full memory$\dagger$ & 375 & 75.02 & 55.65 \\
+Size-matched mixed memory$\dagger$ & 375 & 75.03 & 55.72 \\
+Uniform outcome weights & 375 & 75.81 & 56.63 \\
+Calibrated utility$\ddagger$ & 393 & \textbf{75.85} & \textbf{56.74} \\
 \bottomrule
 \end{tabular}
 \end{table*}
 
-NA7 is deliberately retained because it nearly matches NA0 at the primary
-budget. It changes the memory population by excluding all correct controls,
+Error-only memory is deliberately retained because it nearly matches full
+Memory-Global at the primary budget. It changes the memory population by excluding all correct controls,
 thereby removing direct evidence about regression risk. This selection bias
-helps at low budgets but reverses as more claims are routed. B11 provides the
-opposite extreme: low-regression ranking alone is significantly worse than NA0
-($\Delta$accuracy $=1.86$ points, Holm $p<10^{-5}$). B16 is nearly identical to
-NA0/B9, so the current evidence does not establish a benefit from similarity
-weighting outcomes after the top-five neighbors have been selected. B17's
+helps at low budgets but reverses as more claims are routed. Regression-only
+utility provides the opposite extreme and is significantly worse than full
+Memory-Global ($\Delta$accuracy $=1.86$ points, Holm $p<10^{-5}$). Uniform
+outcome weighting is nearly identical to full memory, so the current evidence
+does not establish a benefit from similarity weighting outcomes after the
+top-five neighbors have been selected. Calibrated utility's
 nested calibration modestly raises macro-F1 but changes the route count and is
 therefore reported as sensitivity rather than a same-budget win.
 
@@ -1650,11 +1632,26 @@ Budget & Routes & Full Acc. & Error-only Acc. & Recovery-only Acc. \\
 \end{tabular}
 \end{table*}
 
-At 11.18\%, NA0--NA7 accuracy and macro-F1 intervals both cross zero. NA0 ties
-NA7 at 15\% and has higher point-estimate accuracy from 20\% onward. Its
-accuracy advantage over NA7 becomes Holm-significant at 40\%, while several
+At 11.18\%, full-minus-error-only accuracy and macro-F1 intervals both cross
+zero. The two tie at 15\%, and full memory has higher point-estimate accuracy
+from 20\% onward. Its accuracy advantage becomes Holm-significant at 40\%, while several
 earlier intervals cross zero. The budget curve therefore supports a
 population--budget interaction rather than universal dominance.
+
+\section{Historical Four-Label SciFact Projection Sensitivity}
+\label{sec:scifact-projection}
+
+These runs score four labels and then map CONFLICTING to NEI; they are not the
+primary native-three-label SciFact protocol. With oracle rationales, projected
+Memory-Global reaches .6300 accuracy and .5951 macro-F1 from a .6067/.5596
+Base. Alt-All reaches .8167/.7822. Alt emits 96 CONFLICTING predictions, and
+the projection converts 90 additional examples to correct predictions, so the
+positive effect is adapter-mediated. Under BM25 evidence, projected Base,
+Alt-All, and Memory-Global accuracy are .6100, .6367, and .6300; the router's
+two-point accuracy interval over Base crosses zero. Only five Alt predictions
+are projected in the BM25 condition. The opposite sign of Alt under native
+three-label scoring demonstrates prompt/ontology sensitivity rather than two
+estimates of one common SciFact effect.
 
 \section{Evidence-Regime Separation}
 AVeriTeC uses human question--answer evidence and internal fold exclusion.

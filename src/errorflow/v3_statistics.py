@@ -45,3 +45,50 @@ def paired_bootstrap(gold, baseline, candidate, samples=5000, seed=2026):
         "p_delta_accuracy_gt_0": sum(value > 0 for value in accuracy_deltas) / samples,
         "p_delta_macro_f1_gt_0": sum(value > 0 for value in f1_deltas) / samples,
     }
+
+
+def grouped_paired_bootstrap(gold, baseline, candidate, groups, samples=5000, seed=2026):
+    """Paired bootstrap that resamples complete claim groups.
+
+    ``groups`` must align with the prediction arrays. A sampled group contributes
+    all of its members, preserving dependence among near-duplicate claims.
+    """
+    if not (len(gold) == len(baseline) == len(candidate) == len(groups)):
+        raise ValueError("gold, predictions, and groups must have equal length")
+    if not gold:
+        raise ValueError("grouped bootstrap requires at least one example")
+    members = {}
+    for index, group in enumerate(groups):
+        members.setdefault(str(group), []).append(index)
+    keys = sorted(members)
+    rng = random.Random(seed)
+    accuracy_deltas, f1_deltas = [], []
+    for _ in range(samples):
+        indexes = []
+        for _ in keys:
+            indexes.extend(members[rng.choice(keys)])
+        sampled_gold = [gold[index] for index in indexes]
+        sampled_baseline = [baseline[index] for index in indexes]
+        sampled_candidate = [candidate[index] for index in indexes]
+        accuracy_deltas.append(
+            accuracy(sampled_candidate, sampled_gold)
+            - accuracy(sampled_baseline, sampled_gold)
+        )
+        f1_deltas.append(
+            macro_f1(sampled_candidate, sampled_gold)
+            - macro_f1(sampled_baseline, sampled_gold)
+        )
+    return {
+        "samples": samples,
+        "seed": seed,
+        "resampling_unit": "group",
+        "n_groups": len(keys),
+        "accuracy_delta_ci95": [
+            percentile(accuracy_deltas, 0.025), percentile(accuracy_deltas, 0.975)
+        ],
+        "macro_f1_delta_ci95": [
+            percentile(f1_deltas, 0.025), percentile(f1_deltas, 0.975)
+        ],
+        "p_delta_accuracy_gt_0": sum(value > 0 for value in accuracy_deltas) / samples,
+        "p_delta_macro_f1_gt_0": sum(value > 0 for value in f1_deltas) / samples,
+    }
