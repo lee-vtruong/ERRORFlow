@@ -10,7 +10,7 @@
 \usepackage{amsmath}
 \usepackage{microtype}
 
-\title{ERRORFlow: Training-Free Selective Residual Correction for Fact Verification}
+\title{ERRORFlow: Outcome-Memory-Guided Selective Prompt Escalation for Fact Verification}
 \titlerunning{ERRORFlow}
 
 % TODO: replace author and affiliation placeholders before submission.
@@ -22,28 +22,22 @@
 \maketitle
 
 \begin{abstract}
-Large language model fact verifiers can benefit from a second inference pass,
-but applying correction prompts uniformly increases compute and may regress
-already-correct predictions. We introduce ERRORFlow, a training-free residual
-correction framework that stores source-domain action outcomes in a
-non-parametric error memory and selectively invokes a frozen corrective prompt
-when similar residual patterns indicate positive utility. ERRORFlow updates no
-model weights and explicitly measures the quality--cost trade-off. Using
-Qwen3-4B-Instruct-2507, train-selected conservative grouped development on
-AVeriTeC shows that the revised no-label-filter router (R6-NLF) improves
-accuracy by 1.83 points and macro-F1 by 2.05 points while routing 12.22\% of
-examples. It also reduces harmful corrections relative to the historical
-hard-label router. Frozen external evaluation improves B1 macro-F1 by 3.09
-points on CLIMATE-FEVER, 3.55 points on SciFact oracle evidence, and 2.97
-points on SciFact BM25 evidence; paired bootstrap intervals are positive,
-although the BM25 accuracy interval crosses zero. Same-budget comparisons do
-not establish universal superiority over HardLabel or confidence-only routing.
-Component ablations show that the compatibility rule and neighborhood size
-materially affect the quality--cost frontier, while no single similarity
-metric is uniformly superior. Cross-label mechanism controls are consistent
-with candidate-pool competition and selective pruning, but do not establish
-that cross-label outcomes themselves cause the gain. Conflicting-evidence
-classification remains weak.
+Applying a second verification prompt uniformly increases compute and can
+regress correct predictions. ERRORFlow stores source-domain outcomes of one
+fixed alternative prompt and uses non-parametric memory to decide when to
+escalate, without updating model weights. On grouped AVeriTeC development,
+Qwen3-4B routing improves accuracy from 74.02\% to 75.85\% and macro-F1 from
+54.60\% to 56.66\% while invoking the alternative prompt on 12.22\% of
+examples. Frozen transfer yields smaller gains over the base prompt:
++1.56 accuracy points on CLIMATE-FEVER, +2.33 on SciFact oracle evidence, and
++2.00 on SciFact BM25 evidence; the BM25 accuracy interval includes zero.
+Always-on correction remains stronger on the external conditions, exposing
+source-memory conservatism under domain shift. A cross-fitted logistic gate is
+competitive on source development, and matched controls do not confirm a
+universal advantage for no-label filtering or regression-aware ranking. An
+independent Mistral-7B replication supports selective escalation but favors
+same-label memory, so compatibility is treated as a backbone-dependent
+operating choice rather than a fixed discovery.
 \keywords{Fact verification \and Training-free inference \and Error memory
 \and Selective routing \and Retrieval-augmented verification}
 \end{abstract}
@@ -75,18 +69,14 @@ and an open-corpus BM25 SciFact condition that exposes retrieval failures.
 
 The main contributions are:
 \begin{itemize}
-  \item a source-supervised, parameter-frozen router that retrieves observed
-  helpful and harmful outcomes of a fixed corrective action and applies that
-  action only when local signed utility is positive;
-  \item a reproducible residual-correction pipeline with immutable prompts,
-  versioned outcome memory, deterministic routing, and explicit compute
-  accounting;
-  \item leakage-audited source evaluation with exact policy replay and
-  near-duplicate-group sensitivity;
-  \item matched-budget controls that separate corrective-action quality from
-  routing quality; and
-  \item cross-domain and retrieved-evidence analyses that identify both
-  transfer gains and failure modes.
+  \item an outcome-memory formulation for selecting whether to keep a base
+  verdict or invoke one fixed alternative prompt, with no model-weight update;
+  \item matched-budget evaluation against confidence, random, static, and
+  supervised gates, with fold-safe memory exclusion and explicit forward-pass
+  accounting; and
+  \item cross-domain, retrieved-evidence, and second-backbone experiments that
+  identify where selective escalation transfers and where compatibility and
+  source utility fail to transfer.
 \end{itemize}
 
 \section{Related Work}
@@ -117,11 +107,24 @@ was helpful in similar source cases.
 Selective QA studies abstention under domain shift, while active and adaptive
 retrieval allocate retrieval effort conditionally
 \cite{kamath2020selective,jiang2023active,jeong2024adaptiverag,asai2024selfrag}.
-These approaches motivate uncertainty and confidence controls. ERRORFlow's
-router instead estimates the signed downstream value of a particular action,
-including regressions, and compares it with confidence, margin,
-label-conditional, similarity-only, static-pattern, and random routing at the
-same realized route count.
+These approaches motivate uncertainty and confidence controls. LLM cascades
+and routers allocate requests across models to trade response quality for cost
+\cite{chen2024frugalgpt,ding2024hybrid,ong2025routellm}. Learning-to-defer
+formulates a related decision between a predictor and a downstream expert
+\cite{madras2018defer,mozannar2020defer}. ERRORFlow differs in that both
+choices are immutable prompts of the same verifier, but its supervised source
+problem is structurally close to predicting which action will be correct.
+Accordingly, we compare non-parametric memory with a cross-fitted logistic
+gate rather than presenting kNN as the only solution.
+
+\paragraph{Incremental-action modeling.}
+Uplift modeling estimates the incremental effect of an intervention and
+distinguishes beneficial from harmful treatment cases
+\cite{gutierrez2017uplift}. Our helpful/harmful/neutral labels are analogous
+to positive, negative, and zero observed prompt effects because both B1 and A3
+are cached for each labeled source example. This analogy is descriptive, not
+a causal identification claim: prompts are not randomized treatments, and our
+router predicts an observed paired action contrast.
 
 \paragraph{Outcome-based non-parametric memory.}
 Retrieval augmentation \cite{lewis2020rag}, case-based reasoning
@@ -242,12 +245,13 @@ denote recovery, regression, and normalized cost. With $W=\sum_iw_i$,
 \widehat G=\frac{\sum_iw_ig_i+1}{W+2},\quad
 \widehat C=\frac{\sum_iw_ic_i}{W},
 \end{equation}
-and utility is $U=\widehat R-\widehat G-0.1\widehat C$. R6-NLF retrieves five
-records, requires at least two, and routes iff $U>0$. The historical
-R6-HardLabel comparator applies the additional exact-B1-label filter.
-With one constant-cost action, this penalty cannot change ordering at a fixed
-budget; our experiments therefore validate residual outcome-memory routing,
-not an independent heterogeneous-cost mechanism.
+and utility is $U=\widehat R-\widehat G-0.1\widehat C$. The global-neighbor
+variant retrieves five records, requires at least two, and routes iff $U>0$.
+The same-label comparator additionally requires the memory record's B1 verdict
+to match the query's B1 verdict. With one constant-cost action,
+$\widehat C=1$ whenever a route is eligible, so the cost term is exactly a
+threshold shift. It cannot change ranking at a fixed budget. We therefore test
+outcome-memory prompt escalation, not general cost-aware planning.
 
 \subsection{Utility Estimation and Decision Boundary}
 
@@ -269,20 +273,20 @@ pseudo-counts cancel in the signed outcome term:
 \end{equation}
 Thus smoothing does not introduce independent positive and negative evidence
 into net utility; it shrinks the magnitude of observed signed outcomes toward
-zero. This explains why the Group-C unsmoothed estimator produced identical
+zero. This explains why the unsmoothed ablation produced identical
 route decisions in the tested configuration: removing the denominator
 shrinkage changed score magnitudes but not which utilities crossed the fixed
 boundary. This equivalence is empirical for that configuration, not a general
 guarantee once costs, thresholds, or actions differ.
 
-The zero boundary follows the operational objective: spend the second pass
-only when estimated recovery exceeds estimated regression plus cost. The cost
-unit is one additional four-forward-pass A3 call, so $\widehat C=1$ in the
-current single-action experiment and 0.1 is a fixed utility penalty selected
-on source development. No probabilistic confidence interval surrounds $U$;
-near-zero routes may therefore be unstable. Threshold and weight sensitivity
-are limitations, and the primary evidence comes from matched-budget controls
-rather than interpreting $U$ as calibrated probability.
+The zero boundary is one source-selected operating point. Because cost is
+constant, changing its coefficient is equivalent to changing this boundary.
+Recovery-only matches the full ranking at several low budgets, so the present
+experiments do not isolate regression subtraction as a universally superior
+ranking rule. Its clearest role is controlling natural coverage: without the
+subtraction, the smoothed recovery estimate is positive for every query and
+the zero-threshold policy escalates all examples. We rely on matched-budget
+controls rather than interpreting $U$ as calibrated probability.
 
 For mechanics, suppose five neighbors have similarities
 $(.80,.70,.60,.50,.40)$, recovery indicators $(1,1,0,0,0)$, regression
@@ -304,9 +308,11 @@ B1 label scores and evidence-length features, not a separately trained model.}
 
 \subsection{Controls and Cost}
 
-We compare B1, A3-All, confidence-only, R6-HardLabel, and R6-NLF in every
-renewed evaluation. Source ablations additionally include random, margin,
-label-conditional, similarity-only, static-pattern, and outcome-memory routers.
+We compare the base prompt, always-on alternative prompt, confidence-only,
+same-label memory, and global-neighbor memory in every renewed evaluation.
+Source ablations additionally include random, margin, label-conditional,
+similarity-only, static-pattern, and a cross-fitted logistic gate trained on
+the same pre-action features.
 Selective controls receive exactly the realized R6-NLF route count. Average model forward
 passes equal $4+4r$, where $r$ is the route rate.
 
@@ -343,6 +349,12 @@ five. It does not inspect cited document IDs, rationale indices, or labels.
 Among 188 verifiable claims, top-5 any-rationale recall is 64.36\% and complete
 rationale recall is 62.77\%.
 
+The official AVeriTeC development labels are not an untouched holdout in this
+project: 25 examples were opened during smoke development and the remaining
+475 during the V2 study. Any V3 rerun on those 500 claims is therefore labeled
+post-selection regression evidence, not confirmatory held-out evaluation. The
+external datasets above remain the frozen transfer tests used in this paper.
+
 \subsection{Metrics and Statistical Tests}
 
 We report accuracy, macro-F1, per-class F1, helpful and harmful prediction
@@ -353,8 +365,8 @@ Source matched-router comparisons additionally apply Holm correction.
 \section{Main Results}
 
 \begin{table*}[t]
-\caption{Main quality--cost results. R6-NLF is the revised main method selected
-on grouped AVeriTeC development. Confidence is matched to the natural NLF
+\caption{Main quality--cost results. The global-neighbor memory router is
+selected on grouped AVeriTeC development. Confidence is matched to its natural
 route count and is therefore a controlled-budget comparator rather than a
 separately tuned natural policy. SciFact uses the predeclared three-label
 projection.}
@@ -369,15 +381,15 @@ Evaluation & System & Accuracy & Macro-F1 & Route rate & Avg. passes \\
  & B1 & 0.7402 & 0.5460 & 0.000 & 4.000 \\
  & A3-All & 0.7360 & 0.5559 & 1.000 & 8.000 \\
  & Confidence@NLF budget & 0.7405 & 0.5514 & 0.122 & 4.489 \\
- & R6-HardLabel & 0.7552 & 0.5577 & 0.112 & 4.447 \\
- & R6-NLF & \textbf{0.7585} & \textbf{0.5666} & 0.122 & 4.489 \\
+ & Same-label memory & 0.7552 & 0.5577 & 0.112 & 4.447 \\
+ & Global-neighbor memory & \textbf{0.7585} & \textbf{0.5666} & 0.122 & 4.489 \\
 \midrule
 \multirow{5}{*}{CLIMATE-FEVER}
  & B1 & 0.5212 & 0.3808 & 0.000 & 4.000 \\
  & A3-All & 0.5518 & 0.4393 & 1.000 & 8.000 \\
  & Confidence@NLF budget & 0.5355 & 0.4159 & 0.190 & 4.761 \\
- & R6-HardLabel & 0.5375 & 0.4063 & 0.199 & 4.797 \\
- & R6-NLF & 0.5368 & 0.4117 & 0.190 & 4.761 \\
+ & Same-label memory & 0.5375 & 0.4063 & 0.199 & 4.797 \\
+ & Global-neighbor memory & 0.5368 & 0.4117 & 0.190 & 4.761 \\
 \midrule
 \multirow{5}{*}{SciFact oracle}
  & B1 & 0.6067 & 0.5596 & 0.000 & 4.000 \\
@@ -427,11 +439,11 @@ both intervals cross zero. These are source-development results, not an
 independent generalization estimate.
 
 \begin{table*}[t]
-\caption{Historical AVeriTeC matched-budget routing at the natural grouped
-R6-HardLabel budget.
-Every selective router may invoke the same cached A3 on 343 examples; random
-is the mean of 20 deterministic seeds. Bold marks the best selective value,
-not a claim of significant superiority over every control.}
+\caption{AVeriTeC matched-budget routing. Every selective router may invoke
+the same cached A3 on 343 examples; random is the mean of 20 deterministic
+seeds. The final two rows add the supervised logistic and global-neighbor
+comparators at the same count. Bold marks the best selective value, not a
+claim of significant superiority over every control.}
 \label{tab:matched}
 \centering\small
 \begin{tabular}{lrrrrrr}
@@ -447,16 +459,19 @@ Label-conditional & .7451 & .5547 & 71 & 56 & 15 & 4.447 \\
 Similarity-only & .7331 & .5416 & 11 & 33 & -22 & 4.447 \\
 Static pattern & .7526 & .5451 & 60 & 22 & 38 & 4.447 \\
 Outcome memory & \textbf{.7552} & \textbf{.5577} & 90 & 44 & 46 & 4.447 \\
-ERRORFlow R6-HardLabel & \textbf{.7552} & \textbf{.5577} & 90 & 44 & 46 & 4.447 \\
+Cross-fitted logistic gate & .7565 & .5506 & -- & -- & -- & 4.447 \\
+Global-neighbor memory & \textbf{.7575} & \textbf{.5655} & 89 & 36 & 53 & 4.447 \\
 \bottomrule
 \end{tabular}
 \end{table*}
 
 Table~\ref{tab:matched} establishes value over B1, random, confidence-only,
-and similarity-only routing. It also exposes the boundary of the contribution:
-R6-HardLabel and outcome-memory routing are identical because the only action has
-constant cost, and its macro-F1 advantage over label-conditional routing is
-not confirmatory after Holm correction. The ablations in
+and similarity-only routing on source development. It also shows that a
+supervised logistic gate on the same pre-action signals is close in accuracy;
+the evidence supports outcome-memory retrieval as a transparent non-parametric
+choice, not as the uniquely effective predictor of prompt benefit. Static
+class-pattern routing is only 0.26 accuracy points below same-label memory
+(Holm $p=.9935$), although its macro-F1 is lower. The ablations in
 Section~\ref{sec:group-c-ablation} further separate outcome-memory utility
 from the representation used to retrieve its neighbors.
 
@@ -484,9 +499,9 @@ HardLabel $-$ Static pattern & +.0026 & +.0126 & .9935 & crosses zero & positive
 \subsection{External Four-Label Transfer}
 
 On CLIMATE-FEVER, A3-All improves B1 by 3.06 accuracy points and 5.85 macro-F1
-points. R6-NLF routes 19.02\% and improves B1 by 1.56 accuracy and 3.09
+points. Global-neighbor memory routes 19.02\% and improves B1 by 1.56 accuracy and 3.09
 macro-F1 points; both paired bootstrap intervals are positive
-(Table~\ref{tab:delta-ci}). At the same budget, its differences from HardLabel
+(Table~\ref{tab:delta-ci}). At the same budget, its differences from same-label memory
 and confidence-only are inconclusive. NLF raises CONFLICTING F1 from 0.1111 to
 0.1373, but this class remains weak; most absolute performance still comes
 from SUPPORTED.
@@ -534,6 +549,60 @@ CLIMATE-FEVER has supplied candidates rather than open retrieval; and SciFact
 BM25 accuracy is statistically inconclusive. Direct NLF--HardLabel and
 NLF--confidence comparisons are mostly inconclusive, so the evidence supports
 NLF as a competitive transferred router rather than a universally superior one.
+
+\subsection{Second-Backbone Robustness}
+
+We repeat the complete B1--A3--memory pipeline with the frozen
+Mistral-7B-Instruct-v0.3 snapshot \texttt{c170c70}; no Qwen scores, action
+outcomes, or memory records are reused. Table~\ref{tab:second-backbone}
+reports natural routing. On grouped AVeriTeC, NLF improves B1 accuracy by
+3.55 points while using 4.94 rather than 8.00 mean forward passes, although
+its macro-F1 interval over B1 crosses zero. At the NLF budget it exceeds
+confidence-only by 2.35 accuracy points (95\% CI [.01369,.03357]) and 1.80
+macro-F1 points (95\% CI [.00674,.02937]). Thus, outcome-based selective
+routing is not specific to Qwen.
+
+The compatibility result does not replicate. HardLabel exceeds NLF on grouped
+AVeriTeC at both natural routing ($\Delta$accuracy NLF$-$HardLabel $=-.00554$,
+95\% CI $[-.00978,-.00130]$, exact $p=.0161$) and the matched NLF budget
+($-.00587$, 95\% CI $[-.01076,-.00098]$, $p=.0300$). NLF-only natural routes
+have net $-6$, whereas HardLabel-only routes have net $+11$.
+
+On CLIMATE-FEVER, both selective policies again improve accuracy over B1,
+while macro-F1 does not improve: HardLabel reaches .4932/.3709 and NLF
+.4886/.3668 from B1 at .4573/.3724. Natural NLF improves B1 accuracy by
+3.13 points (95\% CI [.01498,.04821], exact $p=.00031$), but its macro-F1
+change is $-.00558$ with an interval crossing zero. At the primary matched
+NLF budget, NLF--HardLabel accuracy is $-.00782$ and inconclusive
+($p=.104$); at the matched HardLabel budget, the difference is $-.01173$
+(95\% CI $[-.02020,-.00391]$, $p=.00643$). NLF lookup is also more expensive:
+37.1 versus 11.5 ms per AVeriTeC query and 49.8 versus 15.0 ms per
+CLIMATE-FEVER query. These CPU timings exclude model inference.
+
+\begin{table*}[t]
+\caption{Second-backbone replication with Mistral-7B-Instruct-v0.3. B1 and
+A3, residual outcomes, and memory are rebuilt for this backbone. Selective
+rows use their natural route thresholds.}
+\label{tab:second-backbone}
+\centering\small
+\begin{tabular}{llrrrrr}
+\toprule
+Dataset & Method & Route rate & Accuracy & Macro-F1 & Helpful & Harmful \\
+\midrule
+\multirow{4}{*}{AVeriTeC grouped}
+ & B1 & .000 & .4465 & .4196 & 0 & 0 \\
+ & A3-All & 1.000 & .4410 & .3157 & 310 & 327 \\
+ & R6-HardLabel & .214 & \textbf{.4876} & \textbf{.4321} & 174 & 48 \\
+ & R6-NLF & .235 & .4821 & .4276 & 173 & 64 \\
+\midrule
+\multirow{4}{*}{CLIMATE-FEVER}
+ & B1 & .000 & .4573 & \textbf{.3724} & 0 & 0 \\
+ & A3-All & 1.000 & .4593 & .2262 & 231 & 228 \\
+ & R6-HardLabel & .211 & \textbf{.4932} & .3709 & 116 & 61 \\
+ & R6-NLF & .247 & .4886 & .3668 & 110 & 62 \\
+\bottomrule
+\end{tabular}
+\end{table*}
 
 \section{Analysis and Ablations}
 
@@ -941,19 +1010,43 @@ ERRORFlow R6-NLF & SciFact dev BM25 & open corpus top-5 & Qwen3-4B & no weight u
 
 \subsection{What the Evidence Supports}
 
-Outcome memory is useful because it estimates both recovery and regression of
-the same fixed A3 action in nearby source cases. This differs from uncertainty
-routing, which ranks ambiguity without observing whether A3 historically
-helped that type of input. The matched-budget evidence supports improvement
-over B1, random, confidence-only, and similarity-only routing on source
-development. On external settings, NLF is not significantly better than
-matched confidence or HardLabel; its transfer evidence is primarily the
-paired improvement over B1. It does not establish a secure macro-F1 advantage
-over label-conditional routing after Holm correction, and constant action cost
-makes R6 equivalent to outcome-only memory ranking at a fixed budget.
-Accordingly, ERRORFlow is described as
-memory-guided selection of a fixed corrective action, not as learning reusable
-correction strategies or heterogeneous cost-aware planning.
+Table~\ref{tab:claims} separates the demonstrated result from open claims.
+Outcome memory ranks the observed paired effect of the same fixed alternative
+prompt, whereas confidence ranks ambiguity without observing whether that
+prompt helped similar source examples. The cross-fitted logistic result shows
+that these source labels can also support a conventional supervised gate;
+kNN contributes a direct case-based representation, not exclusive access to
+the signal.
+
+\begin{table}[t]
+\caption{Scope of the empirical claims.}
+\label{tab:claims}
+\centering\small
+\begin{tabular}{p{.44\linewidth}p{.48\linewidth}}
+\toprule
+Supported by current experiments & Not established \\
+\midrule
+Selective escalation improves B1 on grouped source development and modestly
+on frozen external protocols. & An unbiased AVeriTeC held-out gain after broad
+method selection. \\
+Outcome-linked memory beats shuffled outcomes and random routing on source
+development. & A universal advantage over supervised logistic, static, or
+confidence gates. \\
+Compatibility is backbone-dependent. & Causal benefit from cross-label
+outcomes or one universally best compatibility rule. \\
+Forward-pass use falls relative to A3-All. & General wall-clock or
+heterogeneous-cost optimality. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+On external settings, always-on A3 is stronger than the selective router. This
+is consistent with a conservative AVeriTeC memory being transferred into
+domains where A3 has a higher base rate of benefit. Constant action cost makes
+the cost coefficient a threshold shift, and the current evidence does not
+identify regression subtraction as a superior fixed-budget ranking rule.
+Accordingly, ERRORFlow is described as outcome-memory-guided selective prompt
+escalation, not reusable strategy learning or general cost-aware planning.
 
 The memory ablations sharpen this interpretation. Shuffling outcomes degrades
 both metrics and is rejected by the multiplicity-corrected correctness test,
@@ -972,7 +1065,7 @@ current evidence therefore supports compatibility relaxation, global
 candidate-pool competition, and selective pruning, not a causal claim that
 instance-specific outcomes transferred across predicted labels are
 individually necessary. This distinction is retained even though NLF has the
-strongest joint natural AVeriTeC point estimate.
+strongest joint natural AVeriTeC point estimate under the main Qwen backbone.
 
 The final-NLF component tests establish a corrected accuracy contribution from
 label-score similarity and a macro-F1 contribution from evidence length, but
@@ -985,16 +1078,24 @@ statistical reliability rather than whether a row favors ERRORFlow.
 
 \section{Reproducibility and Audit}
 
-All inference uses one frozen Qwen3-4B-Instruct-2507 identifier, BF16 on CUDA,
-deterministic mean label log probability, and seed 2026. B1 and A3 instruction
+Main experiments use one frozen Qwen3-4B-Instruct-2507 identifier, BF16 on
+CUDA, deterministic mean label log probability, and seed 2026. The
+second-backbone check uses the locally frozen Mistral-7B-Instruct-v0.3
+snapshot \texttt{c170c708...bab71} and independently rebuilds B1, A3, and
+memory under the same prompts and routing constants. B1 and A3 instruction
 SHA-256 values are \texttt{700ebdc1...decf7} and
 \texttt{09e187ec...aaf}. These identify instruction strings; the reported
-model hash identifies the model name, not weight files. Exact replay found
+model hash identifies the model name, not weight files. The Mistral experiment
+pins Hugging Face snapshot revision \texttt{c170c708...bab71}; the Qwen run
+does not yet provide a byte-level checkpoint digest, which remains a release
+requirement. Exact replay found
 zero route and prediction mismatches, and rotating target gold labels did not
 alter routes. Group exclusion removes the validation fold from usable memory;
 it does not prove absence of shared evidence or semantic paraphrases. Large
 experimental JSONL files remain server-side and are represented by an
-artifact ledger rather than committed to Git.
+artifact ledger rather than committed to Git. Submission requires an
+anonymized public code snapshot plus immutable hashes or archived copies of
+the redistributable evaluation artifacts.
 
 The frozen NLF evaluation manifests have configuration IDs
 \texttt{bdac31d1...5625b} for grouped AVeriTeC and
@@ -1003,8 +1104,10 @@ manifest distinguish the external datasets despite the shared policy ID.
 
 \section{Limitations}
 
-The experiments use one base-model checkpoint. Source results are
-train-selected, and source memory uses labeled outcomes; training-free denotes
+The main ablation suite uses one Qwen checkpoint; the Mistral replication
+covers only grouped AVeriTeC and CLIMATE-FEVER and does not repeat every
+component ablation or SciFact protocol. Source results are train-selected,
+and source memory uses labeled outcomes; training-free denotes
 the absence of weight updates, not the absence of supervision. SciFact oracle
 results depend strongly on label projection. CLIMATE-FEVER uses official
 retrieved candidates rather than ERRORFlow retrieval, while the open SciFact
@@ -1019,6 +1122,13 @@ route counts as interchangeable. Source-memory subset sensitivity is post-hoc
 and severely changes route rate; it cannot support target-specific memory
 selection.
 
+The official AVeriTeC development labels were previously opened and cannot
+serve as a new unbiased holdout. The global-neighbor choice and several
+hyperparameters arose from a broad source-development search, so the grouped
+gain is development evidence rather than a confirmatory estimate. A
+predeclared run on hidden official evaluation data or another unopened
+population is still required.
+
 \paragraph{Ethics and broader impact.}
 Selective correction can reduce unnecessary computation, but automated
 verdicts should not replace human fact-checking. Memory may encode source
@@ -1029,16 +1139,17 @@ this repository because its official repository declares no license.
 
 \section{Conclusion}
 
-ERRORFlow shows that a frozen corrective action can be invoked selectively
-using non-parametric source residual outcomes. Development ablations select
-R6-NLF, which admits cross-label neighbors while retaining the fixed action,
-similarity function, and signed utility rule. The method reduces second-pass
-compute and can improve a frozen verifier, but its strongest defensible effect
-is selective harm avoidance under imperfect evidence. Frozen external reruns
-show positive macro-F1 intervals over B1 under supplied candidates, oracle
-rationales, and open BM25 evidence, but do not establish universal superiority
-over simpler matched-budget routers; ontology adaptation must be reported
-explicitly.
+ERRORFlow shows that a frozen alternative prompt can be invoked selectively
+using non-parametric source action outcomes. The method reduces second-pass
+compute and improves the base prompt in the studied protocols, but always-on
+correction is stronger on the external conditions and a supervised logistic
+gate is competitive on source development. The evidence therefore supports
+memory-based selective prompt escalation, not a uniquely optimal kNN router,
+cross-label knowledge transfer, or general cost-aware planning. Compatibility
+is a backbone-dependent operating choice: global neighbors give the strongest
+Qwen development point estimate, whereas same-label memory is stronger for
+Mistral. Future confirmation requires an untouched held-out evaluation and a
+frozen predeclared configuration.
 
 \begin{credits}
 \subsubsection{Acknowledgments}
