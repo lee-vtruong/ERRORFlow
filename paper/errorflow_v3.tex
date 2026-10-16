@@ -388,23 +388,26 @@ Evaluation & System & Accuracy & Macro-F1 & Route rate & Avg. passes \\
  & Memory-SameLabel & 0.7552 & 0.5577 & 0.112 & 4.447 \\
  & Memory-Global & \textbf{0.7585} & \textbf{0.5666} & 0.122 & 4.489 \\
 \midrule
-\multirow{5}{*}{CLIMATE-FEVER}
+\multirow{6}{*}{CLIMATE-FEVER}
  & Base & 0.5212 & 0.3808 & 0.000 & 4.000 \\
  & Alt-All & 0.5518 & 0.4393 & 1.000 & 8.000 \\
+ & Score ensemble & 0.5518 & 0.4329 & 1.000 & 8.000 \\
  & Confidence@Memory-Global budget & 0.5355 & 0.4159 & 0.190 & 4.761 \\
  & Memory-SameLabel & 0.5375 & 0.4063 & 0.199 & 4.797 \\
  & Memory-Global & 0.5368 & 0.4117 & 0.190 & 4.761 \\
 \midrule
-\multirow{5}{*}{SciFact oracle}
+\multirow{6}{*}{SciFact oracle}
  & Base & 0.6067 & 0.5596 & 0.000 & 4.000 \\
  & Alt-All & 0.8167 & 0.7822 & 1.000 & 8.000 \\
+ & Score ensemble & 0.7833 & 0.7291 & 1.000 & 8.000 \\
  & Confidence@Memory-Global budget & 0.6267 & 0.5814 & 0.080 & 4.320 \\
  & Memory-SameLabel & 0.6300 & 0.5931 & 0.087 & 4.347 \\
  & Memory-Global & 0.6300 & 0.5951 & 0.080 & 4.320 \\
 \midrule
-\multirow{5}{*}{SciFact BM25}
+\multirow{6}{*}{SciFact BM25}
  & Base & 0.6100 & 0.5778 & 0.000 & 4.000 \\
  & Alt-All & 0.6367 & 0.6157 & 1.000 & 8.000 \\
+ & Score ensemble & 0.6533 & 0.6168 & 1.000 & 8.000 \\
  & Confidence@Memory-Global budget & 0.6067 & 0.5811 & 0.207 & 4.827 \\
  & Memory-SameLabel & 0.6267 & 0.6035 & 0.187 & 4.747 \\
  & Memory-Global & 0.6300 & 0.6075 & 0.207 & 4.827 \\
@@ -525,7 +528,13 @@ macro-F1 points; both paired bootstrap intervals are positive
 (Table~\ref{tab:delta-ci}). At the same budget, its differences from same-label memory
 and confidence-only are inconclusive. Memory-Global raises CONFLICTING F1 from 0.1111 to
 0.1373, but this class remains weak; most absolute performance still comes
-from SUPPORTED.
+from SUPPORTED. The frozen source-selected score ensemble reaches the same
+accuracy as Alt-All and 0.4329 macro-F1. It exceeds Memory-Global by 1.50
+accuracy points (95\% CI $[+.0020,+.0280]$, exact McNemar $p=.0346$) and
+2.12 macro-F1 points (95\% CI $[+.0029,+.0394]$), but evaluates both prompts
+for every claim. A selective routed-score fusion variant does not improve
+Memory-Global: its accuracy and macro-F1 are 0.5355 and 0.4068, and both
+paired intervals include zero.
 
 \begin{figure}[t]
 \centering
@@ -545,6 +554,13 @@ paired difference. The raw four-label comparison is null. Moreover, Alt
 produces 96 CONFLICTING outputs under oracle evidence, and projection converts
 90 additional examples to correct predictions. This result is therefore
 adapter-mediated and cannot support projection-independent transfer.
+Always-on policies are substantially stronger in this condition. Alt-All
+reaches 0.8167/0.7822 accuracy/macro-F1, while the score ensemble reaches
+0.7833/0.7291. The ensemble exceeds Memory-Global by 15.33 accuracy points
+(95\% CI $[+.0967,+.2133]$, exact McNemar $p<10^{-6}$), yet remains 3.33
+points below Alt-All (95\% CI $[-.0633,-.0033]$, $p=.0414$). This is direct
+evidence that source-memory conservatism leaves much of Alt's target-domain
+benefit unused.
 
 \subsection{Retrieved-Evidence Robustness}
 
@@ -554,6 +570,10 @@ zero. At the Memory-Global budget, Memory-Global is 1.00 accuracy and 1.03 macro
 Memory-SameLabel, but the small-sample paired tests do not confirm superiority.
 Only five Alt predictions are
 projected, so this condition is not driven by mass ontology conversion.
+The score ensemble has the strongest accuracy point estimate (0.6533), 2.33
+points above Memory-Global, but its paired accuracy and macro-F1 intervals
+against Memory-Global both cross zero. Routed score fusion reaches
+0.6233/0.5965 and likewise does not improve Memory-Global.
 
 The earlier retrieval-stratum audit used Memory-SameLabel. On 121 verifiable hits it
 had net zero correctness change; on 67 misses it preserved Base while Alt-All
@@ -570,6 +590,18 @@ CLIMATE-FEVER has supplied candidates rather than open retrieval; and SciFact
 BM25 accuracy is statistically inconclusive. Direct Memory-Global--Memory-SameLabel and
 Memory-Global--confidence comparisons are mostly inconclusive, so the evidence supports
 Memory-Global as a competitive transferred router rather than a universally superior one.
+
+Cross-fitted supervised gates do not reverse this conclusion. At the same
+external route budgets, Memory-Global has higher macro-F1 than logistic,
+interaction-augmented logistic, and boosted-stump gates on CLIMATE-FEVER; the
+three paired macro-F1 intervals favoring memory are respectively
+$[+.0051,+.0397]$, $[+.0012,+.0350]$, and $[+.0051,+.0374]$, while accuracy
+comparisons are inconclusive. On SciFact oracle, Memory-Global also exceeds
+plain logistic and boosted stumps in macro-F1, whereas the interaction model
+is inconclusive; all BM25 supervised comparisons are inconclusive. Thus
+non-parametric memory retains a class-balance advantage over these learned
+source gates, but none approaches the external quality of Alt-All where Alt
+has a high target-domain benefit rate.
 
 \subsection{Second-Backbone Robustness}
 
@@ -1060,13 +1092,22 @@ heterogeneous-cost optimality. \\
 \end{tabular}
 \end{table}
 
-On external settings, always-on Alt is stronger than the selective router. This
-is consistent with a conservative AVeriTeC memory being transferred into
-domains where Alt has a higher base rate of benefit. Constant action cost makes
-the cost coefficient a threshold shift, and the current evidence does not
-identify regression subtraction as a superior fixed-budget ranking rule.
-Accordingly, ERRORFlow is described as outcome-memory-guided selective prompt
-escalation, not reusable strategy learning or general cost-aware planning.
+On external settings, always-on Alt is stronger than the selective router. A
+source-selected score ensemble also exceeds memory on CLIMATE-FEVER and has
+the strongest SciFact-BM25 accuracy point estimate, while Alt-All remains
+significantly stronger than the ensemble on SciFact oracle. Therefore, when
+eight forwards per claim are acceptable, the current external results favor
+always-on inference rather than ERRORFlow. The router's practical role is a
+compute-constrained operating point: it retains part of the quality gain at
+roughly 4.3--4.8 average forwards, not a quality-dominant replacement for
+Alt-All. This pattern is consistent with a conservative AVeriTeC memory being
+transferred into domains where Alt has a higher base rate of benefit, but an
+in-domain-memory experiment is still required to test that explanation.
+Constant action cost makes the cost coefficient a threshold shift, and the
+current evidence does not identify regression subtraction as a superior
+fixed-budget ranking rule. Accordingly, ERRORFlow is described as
+outcome-memory-guided selective prompt escalation, not reusable strategy
+learning or general cost-aware planning.
 
 The memory ablations sharpen this interpretation. Shuffling outcomes degrades
 both metrics and is rejected by the multiplicity-corrected correctness test,
