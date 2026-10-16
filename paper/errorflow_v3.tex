@@ -470,6 +470,8 @@ Score ensemble & 3,068 & .7562 & .5585 & -- & -- & 8.000 \\
 Random & 375 & .7391 & .5465 & -- & -- & 4.489 \\
 Confidence & 375 & .7405 & .5514 & -- & -- & 4.489 \\
 Logistic & 375 & .7562 & .5503 & 87 & 38 & 4.489 \\
+Logistic, outcome-balanced & 375 & .7585 & .5534 & 93 & 37 & 4.489 \\
+Logistic, Base-label ranked & 375 & .7448 & .5462 & 52 & 38 & 4.489 \\
 Logistic + interactions & 375 & .7575 & .5493 & 89 & 36 & 4.489 \\
 Boosted stumps & 375 & .7552 & .5460 & 82 & 36 & 4.489 \\
 Memory-SameLabel@375 & 375 & .7562 & .5622 & 99 & 50 & 4.489 \\
@@ -480,14 +482,17 @@ Memory-Global@375 & 375 & \textbf{.7585} & \textbf{.5666} & 94 & 38 & 4.489 \\
 \end{table*}
 
 Table~\ref{tab:matched} shows that supervised gates are close to
-Memory-Global in accuracy at the same budget. The unweighted gates have
-positive paired Memory-Global-minus-control macro-F1 intervals
-(Table~\ref{tab:stats}), while their accuracy intervals cross zero. These
-intervals are exploratory and are not multiplicity-adjusted; class-weighted
-and per-Base-label calibrated logistic controls are required before attributing
-the gap to non-parametric memory. Routed score fusion reduces harmful changes
+Memory-Global in accuracy at the same budget. Outcome-balanced logistic ties
+Memory-Global accuracy and differs by 1.31 macro-F1 points, but its 99\%
+familywise Memory-minus-logistic interval $[-.00393,.03160]$ includes zero.
+Thus the earlier unweighted-logistic gap
+does not establish a class-balance advantage for memory. Base-label ranking
+is worse on both metrics after familywise correction (accuracy Holm
+$p=.00102$; simultaneous intervals exclude zero), while interaction and
+boosted-stump controls retain lower corrected macro-F1 but inconclusive
+accuracy. Routed score fusion reduces harmful changes
 from 38 to 24 but also loses 15 helpful changes. Its small macro-F1 difference
-has a positive unadjusted interval but is not treated as a corrected
+has a positive unadjusted interval but is not treated as a multiplicity-corrected
 significance claim. The component ablations below separate memory utility
 from neighbor representation.
 
@@ -519,8 +524,8 @@ SciFact oracle dev, native & 1 & 16 & 0 & 0 & 100.0\% & 0.0\% \\
 \begin{table*}[t]
 \caption{Direct comparisons against Memory-Global on grouped AVeriTeC.
 Selective controls use 375 routes. Deltas are Memory-Global minus the named
-control; $p$ and bootstrap intervals are unadjusted across this comparison
-family.}
+control. The table gives exact McNemar $p$ and paired 95\% intervals; the
+text separately reports multiplicity-adjusted supervised-control results.}
 \label{tab:stats}
 \centering\small
 \begin{tabular}{lrrrrr}
@@ -531,6 +536,8 @@ Score ensemble & +.00228 & +.00805 & .671 & [-.00619,.01141] & [-.00577,.02251] 
 Memory-SameLabel & +.00228 & +.00435 & .324 & [-.00163,.00619] & [-.00258,.01167] \\
 Routed score fusion & +.00033 & +.00720 & 1.000 & [-.00326,.00391] & [.00029,.01555] \\
 Logistic & +.00228 & +.01623 & .547 & [-.00391,.00847] & [.00314,.02985] \\
+Logistic, outcome-balanced & .00000 & +.01315 & 1.000 & [-.00619,.00652] & [-.00013,.02706] \\
+Logistic, Base-label ranked & +.01369 & +.02038 & .00020 & [.00684,.02053] & [.00799,.03309] \\
 Logistic + interactions & +.00098 & +.01728 & .841 & [-.00522,.00750] & [.00485,.03061] \\
 Boosted stumps & +.00326 & +.02060 & .373 & [-.00293,.00978] & [.00827,.03410] \\
 \bottomrule
@@ -567,6 +574,15 @@ memory at low budgets, while full memory becomes stronger at higher budgets.}
 Figure~\ref{fig:flips} makes the central trade-off explicit: selective
 escalation filters many Alt regressions, but neither the natural threshold nor
 the full recovery-minus-regression utility dominates at every budget.
+The full 5--40\% quality--compute sweep reaches the same conclusion. On
+AVeriTeC, Memory-Global peaks at .7588 accuracy/.5672 macro-F1 at 15\%
+routing, whereas outcome-balanced logistic peaks at .7598/.5530 at the same
+budget; neither dominates both metrics. The oracle-at-most-budget upper bound
+uses only 192 helpful routes and reaches .8028/.6298, showing that the natural
+router retains roughly half of the available beneficial actions. On
+CLIMATE-FEVER, Alt-All and its frozen score ensemble remain above selective
+routers; the projected SciFact curves are reported only in the ontology
+sensitivity appendix.
 
 Historical four-label SciFact results are moved to
 Appendix~\ref{sec:scifact-projection}; they reverse the native action effect
@@ -584,14 +600,15 @@ Memory-Global--confidence comparisons are mostly inconclusive, so the evidence s
 Memory-Global as a competitive transferred router rather than a universally superior one.
 
 Cross-fitted supervised gates do not reverse this conclusion. At the same
-external route budgets, Memory-Global has higher macro-F1 than logistic,
-interaction-augmented logistic, and boosted-stump gates on CLIMATE-FEVER; the
-three paired macro-F1 intervals favoring memory are respectively
-$[+.0051,+.0397]$, $[+.0012,+.0350]$, and $[+.0051,+.0374]$, while accuracy
-comparisons are inconclusive. These unweighted controls leave a possible
-class-balance advantage, but the claim is provisional until outcome-balanced
-and per-Base-label calibrated gates are evaluated. We do not transfer these
-four-label supervised-control results to native-three-label SciFact.
+external route budget, outcome-balanced and Base-label-ranked logistic are
+statistically indistinguishable from Memory-Global on CLIMATE-FEVER in both
+accuracy and macro-F1. Plain logistic and boosted stumps have lower 99\%
+familywise macro-F1, while all accuracy comparisons remain inconclusive.
+Accordingly, these controls establish supervised routing as competitive and
+reject a unique class-balance explanation for kNN; they do not identify a
+universally superior router. The projected SciFact control rows are retained
+only as adapter sensitivity and are not transferred to the native-three-label
+main protocol.
 
 \subsection{In-Domain Memory Test}
 
@@ -625,14 +642,18 @@ SciFact BM25 train$\rightarrow$dev & .5800 & .5267 & .5700 & .127 & 3.380 & $-.0
 }
 \end{table*}
 
-In-domain memory is beneficial on CLIMATE-FEVER but not in general. A direct
-paired comparison against the frozen AVeriTeC-memory predictions is required
-before attributing the difference specifically to memory provenance.
+In-domain memory is beneficial on CLIMATE-FEVER but not in general.
 In-domain Memory-Global improves CLIMATE-FEVER accuracy by 2.28 points and
 macro-F1 by 3.35 points while using 4.72 rather than 8.00 forwards; both
 paired intervals are positive. Its accuracy remains 0.78 points below
 Alt-All, and matched same-label memory has a slightly higher point estimate
-(.5453 versus .5440), with no confirmed compatibility difference.
+(.5453 versus .5440), with no confirmed compatibility difference. Against
+the frozen AVeriTeC-memory router on the same 1,535 claims, in-domain memory
+is higher by only .72 accuracy and .26 macro-F1 points. The direct McNemar
+test is null ($p=.329$); claim-bootstrap accuracy CI
+$[-.00586,.02085]$ and near-duplicate-group bootstrap CI
+$[-.00585,.02018]$ both cross zero. Memory mismatch is therefore plausible
+but not confirmed by this paired test.
 
 SciFact exposes a different failure mode. Under a consistent native
 three-label protocol, Alt has negative net outcomes on oracle train
@@ -1137,8 +1158,9 @@ average forwards. The historical projected oracle reversal is isolated in
 Appendix~\ref{sec:scifact-projection}. Thus the router's practical role is a
 compute-constrained, harm-limiting operating point, not a universally
 quality-dominant replacement for Alt-All. In-domain memory improves
-CLIMATE-FEVER, but its direct advantage over AVeriTeC memory is not claimed
-until the paired provenance test is run. SciFact gives a different diagnosis:
+CLIMATE-FEVER, but its direct advantage over AVeriTeC memory is only .72
+accuracy point and is not confirmed by either claim- or group-bootstrap
+uncertainty. SciFact gives a different diagnosis:
 under matched native-three-label prompts,
 Alt is harmful on both train and dev, so the limiting factor is action quality
 rather than memory provenance. Memory mismatch is therefore a
@@ -1186,12 +1208,14 @@ snapshot \texttt{c170c708...bab71} and independently rebuilds Base, Alt, and
 memory under the same prompts and routing constants. Base and Alt instruction
 SHA-256 values are \texttt{700ebdc1...decf7} and
 \texttt{09e187ec...aaf}. These identify instruction strings; the reported
-model hash identifies the model name, not weight files. The Mistral experiment
+manifest model hash identifies the model name, while the byte-level digest
+below identifies the Qwen weight files. The Mistral experiment
 pins Hugging Face snapshot revision \texttt{c170c708...bab71}. The artifact
-release includes a streaming checksum utility that records per-file hashes and
-a canonical aggregate digest for the Qwen snapshot; the digest is inserted
-into the camera-ready artifact ledger only after it is computed on the frozen
-server copy. Exact replay found
+release includes a streaming checksum utility that records per-file hashes.
+The canonical aggregate over the three Qwen safetensors shards is
+\texttt{a36b5737...94d9}; the artifact ledger also records each shard digest.
+Mutable Hugging Face downloader metadata is excluded from this weight digest.
+Exact replay found
 zero route and prediction mismatches, and rotating target gold labels did not
 alter routes. Group exclusion removes the validation fold from usable memory;
 it does not prove absence of shared evidence or semantic paraphrases. Large
@@ -1260,8 +1284,9 @@ memory-based selective prompt escalation, not a uniquely optimal kNN router,
 cross-label knowledge transfer, or general cost-aware planning. Compatibility
 is a backbone-dependent operating choice: global neighbors give the strongest
 Qwen development point estimate, whereas same-label memory is stronger for
-Mistral. In-domain memory partially resolves CLIMATE-FEVER transfer but cannot
-rescue a harmful SciFact alternative action. Future confirmation requires an
+Mistral. In-domain memory improves CLIMATE-FEVER, although its paired
+advantage over AVeriTeC memory is not established; it also cannot rescue a
+harmful SciFact alternative action. Future confirmation requires an
 untouched held-out evaluation and a frozen predeclared configuration.
 
 \begin{credits}
@@ -1414,7 +1439,11 @@ must still be interpreted as adapter-mediated.
 The in-domain experiment sharpens this negative finding. On grouped
 CLIMATE-FEVER, Memory-Global improves Base by .0228 accuracy
 (95\% CI [.0104,.0352], exact McNemar $p=.000562$) and .0335 macro-F1
-(95\% CI [.0187,.0481]). In contrast, native-three-label SciFact shows no
+(95\% CI [.0187,.0481]). A paired provenance comparison gives only +.00717
+accuracy for in-domain over frozen AVeriTeC memory (McNemar $p=.329$); its
+claim-level CI $[-.00586,.02085]$ and group-level CI
+$[-.00585,.02018]$ cross zero. Thus the experiment does not confirm memory
+mismatch as the source of the transfer gap. In contrast, native-three-label SciFact shows no
 accuracy improvement on oracle train cross-validation ($-.0025$), frozen
 oracle train-to-dev evaluation (.0000), BM25 train cross-validation
 ($-.0049$), or frozen BM25 train-to-dev evaluation ($-.0100$); every paired

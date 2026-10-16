@@ -141,6 +141,20 @@ python scripts/hash_model_snapshot.py \
   2>&1 | tee outputs/logs/qwen3_4b_sha256.log
 ```
 
+If the schema-v1 manifest has already been produced, upgrade its aggregate
+fields without rereading the 8 GB checkpoint:
+
+```bash
+python scripts/hash_model_snapshot.py \
+  --model-dir /home/stackops/whale/cache/models/Qwen3-4B-Instruct-2507 \
+  --output outputs/v3/reviewer_round3/checksums/qwen3_4b_snapshot.json \
+  --reuse-existing
+```
+
+Use `weights_sha256` as the stable weight digest. `snapshot_sha256` also
+covers tokenizer/configuration artifacts but excludes mutable `.cache`
+downloader metadata; `full_tree_sha256` is retained only as an audit value.
+
 ## 6. Return package
 
 ```bash
@@ -154,7 +168,7 @@ for path in sorted(glob.glob("outputs/v3/reviewer_round3/**/*.json", recursive=T
     elif "comparison" in report:
         print(report["comparison"])
     else:
-        print({k: report.get(k) for k in ("snapshot_sha256", "total_bytes")})
+        print({k: report.get(k) for k in ("snapshot_sha256", "weights_sha256", "total_bytes")})
 PY
 
 df -h /
@@ -162,3 +176,19 @@ df -h /
 
 Return the printed output plus the grouped-bootstrap comparison blocks from
 the three new in-domain `summary.json` files.
+
+## Recorded findings (2026-10-17)
+
+- On 1,535 CLIMATE-FEVER claims, in-domain memory scores 0.5440 accuracy and
+  0.4143 macro-F1 versus 0.5368/0.4117 for frozen AVeriTeC memory. The direct
+  differences are +0.00717/+0.00260, but McNemar p=0.329 and both claim-level
+  and grouped 95% intervals cross zero. This does not confirm memory mismatch.
+- Qwen AVeriTeC Alt-All has 192 helpful and 205 harmful flips; Memory-Global
+  retains 94 helpful flips and exposes 38 harmful flips, corresponding to
+  49.0% gain retained and 81.5% harm avoided.
+- The initial checksum manifest included mutable `.cache/huggingface` files.
+  Schema v2 separates the stable weight digest from downloader audit state.
+  For the three reported Qwen safetensors shards, `weights_sha256` is
+  `a36b5737652a4f20b2a89b6d692d7ac939ac9f1f4da755864e9b49f56ec094d9`.
+- Mistral, CLIMATE-FEVER in-domain, and native SciFact harm-containment JSON
+  files remain required before extending the manuscript's audited-count table.
