@@ -28,11 +28,14 @@ fixed alternative prompt and uses non-parametric memory to decide when to
 escalate, without updating model weights. On grouped AVeriTeC development,
 Qwen3-4B routing improves accuracy from 74.02\% to 75.85\% and macro-F1 from
 54.60\% to 56.66\% while invoking the alternative prompt on 12.22\% of
-examples. Frozen transfer yields smaller gains over the base prompt:
-+1.56 accuracy points on CLIMATE-FEVER, +2.33 on SciFact oracle evidence, and
-+2.00 on SciFact BM25 evidence; the BM25 accuracy interval includes zero.
-Always-on correction remains stronger on the external conditions, exposing
-source-memory conservatism under domain shift. Cross-fitted logistic and
+examples. Frozen AVeriTeC-memory transfer yields smaller gains over Base:
++1.56 accuracy points on CLIMATE-FEVER, +2.33 on projected SciFact oracle,
+and +2.00 on projected SciFact BM25; the BM25 accuracy interval includes
+zero. In-domain cross-fitting raises the CLIMATE-FEVER gain to +2.28 points,
+but native-three-label SciFact memory does not improve Base on train
+cross-validation or frozen train-to-dev evaluation because Alt itself has
+negative net utility. Thus source-memory mismatch is only a partial,
+dataset-dependent explanation. Cross-fitted logistic and
 boosted controls are competitive in source accuracy, while paired intervals
 favor outcome memory in macro-F1; matched controls do not confirm a universal
 advantage for global-neighbor compatibility or regression-aware ranking. An
@@ -371,8 +374,8 @@ Source matched-router comparisons additionally apply Holm correction.
 \caption{Main quality--cost results. The global-neighbor memory router is
 selected on grouped AVeriTeC development. Confidence is matched to its natural
 route count and is therefore a controlled-budget comparator rather than a
-separately tuned natural policy. SciFact uses the predeclared three-label
-projection.}
+separately tuned natural policy. SciFact rows use historical four-label
+scoring followed by the predeclared three-label projection.}
 \label{tab:main}
 \centering
 \small
@@ -602,6 +605,56 @@ is inconclusive; all BM25 supervised comparisons are inconclusive. Thus
 non-parametric memory retains a class-balance advantage over these learned
 source gates, but none approaches the external quality of Alt-All where Alt
 has a high target-domain benefit rate.
+
+\subsection{In-Domain Memory Test}
+
+Table~\ref{tab:in-domain-memory} directly tests whether replacing AVeriTeC
+memory with fold-safe target-domain outcomes resolves the external gap.
+CLIMATE-FEVER uses five near-duplicate-grouped folds over its only labeled
+release. SciFact uses native three-label prompts throughout: memory is first
+cross-fitted on official train and then frozen for train-to-dev evaluation.
+These SciFact rows are therefore not numerically interchangeable with the
+historical four-label, post-projection rows in Table~\ref{tab:main}.
+
+\begin{table*}[t]
+\caption{In-domain outcome-memory test. $\Delta$Accuracy is natural
+Memory-Global minus Base with a paired 95\% bootstrap interval. SciFact
+train$\rightarrow$dev routing uses train outcomes only; dev labels are read
+after routes are fixed.}
+\label{tab:in-domain-memory}
+\centering\small
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lrrrrrl}
+\toprule
+Condition & Base Acc. & Alt-All Acc. & Memory Acc. & Route rate & Avg. passes & $\Delta$Accuracy 95\% CI \\
+\midrule
+CLIMATE-FEVER cross-fit & .5212 & .5518 & .5440 & .180 & 4.722 & +.0228 [.0104,.0352] \\
+SciFact oracle train cross-fit & .5365 & .4475 & .5340 & .009 & 3.026 & $-.0025$ [$-.0062$,0] \\
+SciFact oracle train$\rightarrow$dev & .4900 & .4400 & .4900 & .017 & 3.050 & .0000 [0,0] \\
+SciFact BM25 train cross-fit & .6156 & .5562 & .6106 & .100 & 3.300 & $-.0049$ [$-.0185$,.0087] \\
+SciFact BM25 train$\rightarrow$dev & .5800 & .5267 & .5700 & .127 & 3.380 & $-.0100$ [$-.0300$,.0100] \\
+\bottomrule
+\end{tabular}
+}
+\end{table*}
+
+The mismatch account is supported on CLIMATE-FEVER but not in general.
+In-domain Memory-Global improves CLIMATE-FEVER accuracy by 2.28 points and
+macro-F1 by 3.35 points while using 4.72 rather than 8.00 forwards; both
+paired intervals are positive. Its accuracy remains 0.78 points below
+Alt-All, and matched same-label memory has a slightly higher point estimate
+(.5453 versus .5440), with no confirmed compatibility difference.
+
+SciFact exposes a different failure mode. Under a consistent native
+three-label protocol, Alt has negative net outcomes on oracle train
+($8$ helpful, $80$ harmful), oracle dev ($1/16$), BM25 train ($50/98$), and
+BM25 dev ($15/31$). Oracle memory consequently routes only five dev claims
+and changes no correctness; BM25 memory routes 38 and produces net $-3$.
+Outcome memory can abstain from a broadly harmful action, but cannot
+manufacture beneficial corrections that the fixed Alt prompt does not
+provide. The earlier projected SciFact gains therefore reflect the distinct
+four-label adapter protocol, not evidence that in-domain memory alone repairs
+transfer.
 
 \subsection{Second-Backbone Robustness}
 
@@ -1084,6 +1137,8 @@ method selection. \\
 Outcome-linked memory beats shuffled outcomes and random routing on source
 development. & A universal advantage over supervised logistic, static, or
 confidence gates. \\
+In-domain memory improves CLIMATE-FEVER under grouped cross-fitting. &
+Source-memory mismatch as a general explanation of SciFact transfer. \\
 Compatibility is backbone-dependent. & Causal benefit from cross-label
 outcomes or one universally best compatibility rule. \\
 Forward-pass use falls relative to Alt-All. & General wall-clock or
@@ -1100,9 +1155,11 @@ eight forwards per claim are acceptable, the current external results favor
 always-on inference rather than ERRORFlow. The router's practical role is a
 compute-constrained operating point: it retains part of the quality gain at
 roughly 4.3--4.8 average forwards, not a quality-dominant replacement for
-Alt-All. This pattern is consistent with a conservative AVeriTeC memory being
-transferred into domains where Alt has a higher base rate of benefit, but an
-in-domain-memory experiment is still required to test that explanation.
+Alt-All. In-domain memory confirms this source-mismatch account on
+CLIMATE-FEVER, but SciFact does not: under matched native-three-label prompts,
+Alt is harmful on both train and dev, so the limiting factor is action quality
+rather than memory provenance. Memory mismatch is therefore a
+dataset-dependent diagnosis, not a general explanation of transfer.
 Constant action cost makes the cost coefficient a threshold shift, and the
 current evidence does not identify regression subtraction as a superior
 fixed-budget ranking rule. Accordingly, ERRORFlow is described as
@@ -1181,6 +1238,15 @@ route counts as interchangeable. Source-memory subset sensitivity is post-hoc
 and severely changes route rate; it cannot support target-specific memory
 selection.
 
+The in-domain analysis adds another protocol boundary. CLIMATE-FEVER has only
+one labeled release, so its five-fold result is cross-fitted rather than an
+untouched test. SciFact train$\rightarrow$dev excludes dev labels from memory
+and routing, but the dev set had already been inspected elsewhere in this
+project. Moreover, the native-three-label prompts produce markedly different
+Base and Alt behavior from the historical four-label projection experiment.
+The comparison diagnoses action and memory mismatch; it is not a clean
+estimate of changing memory while holding every other protocol detail fixed.
+
 The official AVeriTeC development labels were previously opened and cannot
 serve as a new unbiased holdout. The global-neighbor choice and several
 hyperparameters arose from a broad source-development search, so the grouped
@@ -1200,15 +1266,17 @@ this repository because its official repository declares no license.
 
 ERRORFlow shows that a frozen alternative prompt can be invoked selectively
 using non-parametric source action outcomes. The method reduces second-pass
-compute and improves the base prompt in the studied protocols, but always-on
-correction is stronger on the external conditions and a supervised logistic
+compute and improves the base prompt in several studied protocols, but not
+under native-three-label SciFact in-domain evaluation. Always-on correction
+is stronger on the original external conditions and a supervised logistic
 gate is competitive on source development. The evidence therefore supports
 memory-based selective prompt escalation, not a uniquely optimal kNN router,
 cross-label knowledge transfer, or general cost-aware planning. Compatibility
 is a backbone-dependent operating choice: global neighbors give the strongest
 Qwen development point estimate, whereas same-label memory is stronger for
-Mistral. Future confirmation requires an untouched held-out evaluation and a
-frozen predeclared configuration.
+Mistral. In-domain memory partially resolves CLIMATE-FEVER transfer but cannot
+rescue a harmful SciFact alternative action. Future confirmation requires an
+untouched held-out evaluation and a frozen predeclared configuration.
 
 \begin{credits}
 \subsubsection{Acknowledgments}
@@ -1329,6 +1397,16 @@ macro-F1 interval over Base is positive while accuracy crosses zero; at the Memo
 budget its +.0100 accuracy difference over Memory-SameLabel has $p=.25$. The oracle
 raw four-label Memory-SameLabel comparison remains null, so projected SciFact gains
 must still be interpreted as adapter-mediated.
+
+The in-domain experiment sharpens this negative finding. On grouped
+CLIMATE-FEVER, Memory-Global improves Base by .0228 accuracy
+(95\% CI [.0104,.0352], exact McNemar $p=.000562$) and .0335 macro-F1
+(95\% CI [.0187,.0481]). In contrast, native-three-label SciFact shows no
+accuracy improvement on oracle train cross-validation ($-.0025$), frozen
+oracle train-to-dev evaluation (.0000), BM25 train cross-validation
+($-.0049$), or frozen BM25 train-to-dev evaluation ($-.0100$); every paired
+accuracy interval contains zero. This rules out a general claim that replacing
+source memory with target-domain memory is sufficient to repair transfer.
 
 \section{Memory-Global Similarity and Sensitivity Detail}
 
