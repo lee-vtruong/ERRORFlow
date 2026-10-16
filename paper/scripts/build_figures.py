@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = json.loads((ROOT / "data" / "verified_results.json").read_text(encoding="utf-8"))
@@ -19,6 +20,61 @@ def save(name: str) -> None:
     plt.tight_layout()
     plt.savefig(OUT / name, bbox_inches="tight")
     plt.close()
+
+def overview_method() -> None:
+    fig, ax = plt.subplots(figsize=(6.8, 2.7))
+    ax.set_xlim(0, 12); ax.set_ylim(0, 5); ax.axis("off")
+
+    def box(x, y, w, h, title, detail, color):
+        patch = FancyBboxPatch(
+            (x, y), w, h, boxstyle="round,pad=0.08,rounding_size=0.08",
+            linewidth=1.1, edgecolor=color, facecolor=color + "18",
+        )
+        ax.add_patch(patch)
+        ax.text(x + w / 2, y + h * .66, title, ha="center", va="center",
+                fontsize=8.3, fontweight="bold", color="#222222")
+        ax.text(x + w / 2, y + h * .30, detail, ha="center", va="center",
+                fontsize=7, color="#333333", linespacing=1.25)
+
+    def arrow(x1, y1, x2, y2, label=None):
+        ax.add_patch(FancyArrowPatch((x1, y1), (x2, y2), arrowstyle="-|>",
+                                     mutation_scale=10, lw=1.0, color="#555555"))
+        if label:
+            ax.text((x1+x2)/2, (y1+y2)/2 + .18, label, ha="center",
+                    fontsize=7, color="#555555")
+
+    ax.text(.25, 4.72, "Offline: source outcome construction", fontsize=8,
+            fontweight="bold", color="#555555")
+    box(.25, 2.95, 2.15, 1.15, "Paired source runs",
+        "Base + Alt\nhelpful / harmful / neutral", "#4C78A8")
+    box(3.05, 2.95, 2.25, 1.15, "Outcome memory",
+        "Claim, score profile, evidence size\nand observed effect", "#7A5195")
+    arrow(2.40, 3.52, 3.05, 3.52)
+
+    ax.plot([5.75, 5.75], [.35, 4.65], color="#BBBBBB", lw=.9, ls="--")
+    ax.text(6.05, 4.72, "Online: selective prompt escalation", fontsize=8,
+            fontweight="bold", color="#555555")
+    box(6.05, 2.95, 1.65, 1.15, "Base prompt",
+        "Verdict and\nlabel-score profile", "#4C78A8")
+    box(8.25, 2.95, 1.80, 1.15, "Memory router",
+        "Retrieve outcomes\nestimate signed utility", "#54A24B")
+    box(10.70, 3.55, 1.15, .90, "Keep Base", "No extra\nmodel passes", "#4C78A8")
+    box(10.70, 2.05, 1.15, .90, "Run Alt", "Fixed second\nprompt", "#F58518")
+    arrow(7.70, 3.52, 8.25, 3.52)
+    arrow(10.05, 3.65, 10.70, 4.00)
+    arrow(10.05, 3.30, 10.70, 2.50)
+    ax.text(10.39, 3.96, "$U\\leq0$", ha="center", fontsize=6.7, color="#555555")
+    ax.text(10.39, 2.91, "$U>0$", ha="center", fontsize=6.7, color="#555555")
+    ax.add_patch(FancyArrowPatch(
+        (4.18, 2.95), (9.0, 2.95), arrowstyle="-|>", mutation_scale=10,
+        lw=1.0, color="#555555", connectionstyle="arc3,rad=.22",
+    ))
+    ax.text(6.55, 2.12, "frozen source memory", ha="center", fontsize=7,
+            color="#555555")
+    ax.text(6.0, .38,
+            "Non-parametric routing: source labels build memory; target labels are never used for routing.",
+            ha="center", fontsize=7.5, color="#444444")
+    save("overview_method.pdf")
 
 def quality_cost() -> None:
     fig, axes = plt.subplots(1,2,figsize=(6.8,2.5))
@@ -69,5 +125,5 @@ def cross_domain_delta() -> None:
     save("cross_domain_delta.pdf")
 
 if __name__ == "__main__":
-    quality_cost(); helpful_harmful(); retrieval_strata(); cross_domain_delta()
-    print(f"FIGURES_DONE count=4 output_dir={OUT}")
+    overview_method(); quality_cost(); helpful_harmful(); retrieval_strata(); cross_domain_delta()
+    print(f"FIGURES_DONE count=5 output_dir={OUT}")

@@ -18,10 +18,10 @@ The repository includes a verified bibliography, a frozen numeric snapshot,
 vector-figure generator, claim ledger, and reproducibility guide. Raw V3
 prediction artifacts remain server-side because `outputs/` is ignored.
 
-The revised method overview uses `figures/Overview-method.png`. A genuine
-claim-level memory-routing example can be exported from server artifacts with
-`scripts/export_v3_worked_example.py`; the manuscript does not present a
-synthetic claim as an observed trace.
+The method overview is generated as the vector figure
+`figures/overview_method.pdf` by `paper/scripts/build_figures.py`. The
+manuscript includes two genuine fold-safe claim-level routing cases; synthetic
+arithmetic is labeled as illustration rather than observed evidence.
 
 The current source revision also adds paired confidence intervals, per-class
 F1, development-fold budget and memory-size sensitivity, explicit compute

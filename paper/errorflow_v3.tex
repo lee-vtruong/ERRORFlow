@@ -38,7 +38,7 @@ universal advantage for no-label filtering or regression-aware ranking. An
 independent Mistral-7B replication supports selective escalation but favors
 same-label memory, so compatibility is treated as a backbone-dependent
 operating choice rather than a fixed discovery.
-\keywords{Fact verification \and Training-free inference \and Error memory
+\keywords{Fact verification \and Non-parametric routing \and Outcome memory
 \and Selective routing \and Retrieval-augmented verification}
 \end{abstract}
 
@@ -121,7 +121,7 @@ gate rather than presenting kNN as the only solution.
 Uplift modeling estimates the incremental effect of an intervention and
 distinguishes beneficial from harmful treatment cases
 \cite{gutierrez2017uplift}. Our helpful/harmful/neutral labels are analogous
-to positive, negative, and zero observed prompt effects because both B1 and A3
+to positive, negative, and zero observed prompt effects because both Base and Alt
 are cached for each labeled source example. This analogy is descriptive, not
 a causal identification claim: prompts are not randomized treatments, and our
 router predicts an observed paired action contrast.
@@ -130,8 +130,8 @@ router predicts an observed paired action contrast.
 Retrieval augmentation \cite{lewis2020rag}, case-based reasoning
 \cite{das2021case}, and verbal memory \cite{shinn2023reflexion} motivate
 non-parametric reuse. Their memories store knowledge, solutions, or verbal
-experience. ERRORFlow stores action outcomes: observable B1 features, whether
-A3 recovered an error or regressed a correct prediction, and action cost.
+experience. ERRORFlow stores action outcomes: observable Base features, whether
+Alt recovered an error or regressed a correct prediction, and action cost.
 Cross-domain retrieval \cite{thakur2021beir}, long contexts
 \cite{liu2024lost}, and noisy evidence \cite{fang2024noise} expose robustness
 limits that motivate our retrieval-stratified analysis. The memory is
@@ -160,12 +160,12 @@ ERRORFlow & Yes & Helpful and harmful & Yes & Yes & Forward passes \\
 
 \section{Problem Formulation}
 
-Let a frozen verifier $f_{B1}$ map claim--evidence input $x=(c,E)$ to a
-verdict, and let a fixed alternative instruction $f_{A3}$ be available at an
-additional cost. A routing policy $\pi(x)\in\{0,1\}$ returns B1 when
-$\pi(x)=0$ and A3 when $\pi(x)=1$. For a labeled source population, a routed
-example is helpful when B1 is wrong and A3 is correct, harmful when B1 is
-correct and A3 is wrong, and neutral otherwise. ERRORFlow estimates this
+Let a frozen verifier $f_{Base}$ map claim--evidence input $x=(c,E)$ to a
+verdict, and let a fixed alternative instruction $f_{Alt}$ be available at an
+additional cost. A routing policy $\pi(x)\in\{0,1\}$ returns Base when
+$\pi(x)=0$ and Alt when $\pi(x)=1$. For a labeled source population, a routed
+example is helpful when Base is wrong and Alt is correct, harmful when Base is
+correct and Alt is wrong, and neutral otherwise. ERRORFlow estimates this
 signed residual outcome from compatible source cases while constraining the
 expected extra forward passes. The goal is not to learn a new verifier or a
 new correction strategy, but to perform \emph{memory-guided selection of one
@@ -180,7 +180,7 @@ supervision.
 
 \subsection{Frozen Base Verifier}
 
-Given claim $c$, evidence set $E$, and label set $\mathcal{Y}$, B1 computes the
+Given claim $c$, evidence set $E$, and label set $\mathcal{Y}$, Base computes the
 mean token log probability of each candidate label under a fixed instruction:
 \begin{equation}
 s_y = \frac{1}{|y|}\sum_{t=1}^{|y|}\log p(y_t\mid c,E,y_{<t}).
@@ -191,23 +191,23 @@ label scoring and seed 2026.
 
 \subsection{Corrective Action}
 
-A3 is a second immutable instruction, \texttt{conflicting\_rescue\_v1}, that
+Alt is a second immutable instruction, \texttt{conflicting\_rescue\_v1}, that
 asks the same model to reconsider evidence coverage, polarity, and potential
-conflict. A3 uses the same candidate-label scoring rule as B1. Always-on A3
+conflict. Alt uses the same candidate-label scoring rule as Base. Always-on Alt
 therefore adds four model forward passes per example.
 
-Crucially, A3 does not receive B1's prediction, confidence, explanation, or
+Crucially, Alt does not receive Base's prediction, confidence, explanation, or
 retrieved memories. It receives the same claim and evidence under a different
 instruction and is therefore an alternative second-pass verifier, not a
-conversational edit of B1. Table~\ref{tab:b1a3} isolates the intervention.
+conversational edit of Base. Table~\ref{tab:b1a3} isolates the intervention.
 
 \begin{table}[t]
-\caption{B1 and A3 differ only in instruction and invocation policy.}
+\caption{Base and Alt differ only in instruction and invocation policy.}
 \label{tab:b1a3}
 \centering\small
 \begin{tabular}{lll}
 \toprule
-Dimension & B1 conflict audit & A3 conflicting rescue \\
+Dimension & Base conflict audit & Alt conflicting rescue \\
 \midrule
 Backbone & Frozen Qwen3-4B & Same model \\
 Input & Claim + evidence & Same claim + evidence \\
@@ -215,15 +215,15 @@ Prompt focus & Four-way audit & Support/refute re-audit \\
 Label scoring & Mean token log-prob. & Same scoring \\
 Extra passes & Base four & Four if routed \\
 Weight updates & None & None \\
-Receives B1 output & No & No \\
+Receives Base output & No & No \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \subsection{Residual Outcome Memory}
 
-Each source-memory record contains the source claim, B1 prediction and score
-profile, evidence-length features, the A3 outcome, and observed utility. No
+Each source-memory record contains the source claim, Base prediction and score
+profile, evidence-length features, the Alt outcome, and observed utility. No
 target label enters a route decision. For source evaluation, records from the
 query's complete grouped fold are excluded. For external evaluation, the
 complete frozen AVeriTeC train memory is used.
@@ -233,10 +233,10 @@ For query $q$ and memory record $i$, retrieval similarity is
 S(q,i)=0.35J(T_q,T_i)+0.50\left(1-\tfrac12\lVert p_q-p_i\rVert_1\right)
 +0.15\left(1+|e_q-e_i|/100\right)^{-1},
 \end{equation}
-where $J$ is set-token Jaccard similarity, $p$ a softmax-normalized B1 score
+where $J$ is set-token Jaccard similarity, $p$ a softmax-normalized Base score
 vector, and $e$ the whitespace evidence-token count. Records must match the
-action, but the final R6-NLF policy does not require the memory record's B1
-verdict to equal the query's B1 verdict. The complete score profile remains a
+action, but the final Memory-Global policy does not require the memory record's Base
+verdict to equal the query's Base verdict. The complete score profile remains a
 similarity feature, allowing cross-label outcomes to contribute when their
 other residual signals are close. Let $w_i=S(q,i)$, and let $r_i$, $g_i$, and $c_i$
 denote recovery, regression, and normalized cost. With $W=\sum_iw_i$,
@@ -247,8 +247,8 @@ denote recovery, regression, and normalized cost. With $W=\sum_iw_i$,
 \end{equation}
 and utility is $U=\widehat R-\widehat G-0.1\widehat C$. The global-neighbor
 variant retrieves five records, requires at least two, and routes iff $U>0$.
-The same-label comparator additionally requires the memory record's B1 verdict
-to match the query's B1 verdict. With one constant-cost action,
+The same-label comparator additionally requires the memory record's Base verdict
+to match the query's Base verdict. With one constant-cost action,
 $\widehat C=1$ whenever a route is eligible, so the cost term is exactly a
 threshold shift. It cannot change ranking at a fixed budget. We therefore test
 outcome-memory prompt escalation, not general cost-aware planning.
@@ -262,8 +262,8 @@ $W=\sum_iw_i$ rather than a count, this is a heuristic similarity-weighted
 estimator, not a calibrated Bayesian posterior. Similarities are bounded but
 are not renormalized before the sums; division by $W$ normalizes only the cost
 average. If fewer than two records remain after action, ID, and fold filters,
-R6-NLF does not route. Recovery means B1 wrong/A3 correct under
-the offline source gold label; regression means B1 correct/A3 wrong.
+Memory-Global does not route. Recovery means Base wrong/Alt correct under
+the offline source gold label; regression means Base correct/Alt wrong.
 
 Symmetric smoothing has a specific consequence for routing. The two
 pseudo-counts cancel in the signed outcome term:
@@ -292,17 +292,19 @@ For mechanics, suppose five neighbors have similarities
 $(.80,.70,.60,.50,.40)$, recovery indicators $(1,1,0,0,0)$, regression
 indicators $(0,0,0,1,0)$, and unit costs. Then $W=3.0$,
 $\widehat R=(1.5+1)/5=.50$, $\widehat G=(.5+1)/5=.30$,
-$\widehat C=1$, and $U=.10>0$, so A3 is invoked. This arithmetic example is
-not an experimental result; the release script exports a genuine routed trace
-from the server artifacts for the final qualitative case table.
+$\widehat C=1$, and $U=.10>0$, so the alternative prompt is invoked. This
+arithmetic example is not an experimental result. Two genuine routed cases,
+exported under fold-safe memory exclusion, appear in
+Appendix~\ref{sec:worked-cases}.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\linewidth]{figures/Overview-method.png}
+\includegraphics[width=\linewidth]{figures/overview_method.pdf}
 \caption{ERRORFlow overview. Offline source outcomes populate residual memory;
-online R6-NLF retrieves source outcomes and invokes A3 only at positive
-estimated utility. The score-profile/internal-signal block denotes recorded
-B1 label scores and evidence-length features, not a separately trained model.}
+online Memory-Global retrieves source outcomes and invokes the alternative
+prompt only at positive estimated utility. The score-profile block denotes
+recorded Base label scores and evidence-length features, not a separately
+trained model.}
 \label{fig:architecture}
 \end{figure}
 
@@ -313,7 +315,7 @@ same-label memory, and global-neighbor memory in every renewed evaluation.
 Source ablations additionally include random, margin, label-conditional,
 similarity-only, static-pattern, and a cross-fitted logistic gate trained on
 the same pre-action features.
-Selective controls receive exactly the realized R6-NLF route count. Average model forward
+Selective controls receive exactly the realized Memory-Global route count. Average model forward
 passes equal $4+4r$, where $r$ is the route rate.
 
 \section{Experimental Setup}
@@ -349,11 +351,11 @@ five. It does not inspect cited document IDs, rationale indices, or labels.
 Among 188 verifiable claims, top-5 any-rationale recall is 64.36\% and complete
 rationale recall is 62.77\%.
 
-The official AVeriTeC development labels are not an untouched holdout in this
-project: 25 examples were opened during smoke development and the remaining
-475 during the V2 study. Any V3 rerun on those 500 claims is therefore labeled
-post-selection regression evidence, not confirmatory held-out evaluation. The
-external datasets above remain the frozen transfer tests used in this paper.
+The AVeriTeC development labels were used during method development and are
+therefore not treated as an untouched holdout. Any additional evaluation on
+those 500 claims is labeled post-selection regression evidence rather than a
+confirmatory estimate. The external datasets above remain the frozen transfer
+tests used in this paper.
 
 \subsection{Metrics and Statistical Tests}
 
@@ -378,39 +380,39 @@ projection.}
 Evaluation & System & Accuracy & Macro-F1 & Route rate & Avg. passes \\
 \midrule
 \multirow{6}{*}{AVeriTeC grouped internal}
- & B1 & 0.7402 & 0.5460 & 0.000 & 4.000 \\
- & A3-All & 0.7360 & 0.5559 & 1.000 & 8.000 \\
+ & Base & 0.7402 & 0.5460 & 0.000 & 4.000 \\
+ & Alt-All & 0.7360 & 0.5559 & 1.000 & 8.000 \\
  & Score ensemble & 0.7562 & 0.5585 & 1.000 & 8.000 \\
- & Confidence@NLF budget & 0.7405 & 0.5514 & 0.122 & 4.489 \\
- & Same-label memory & 0.7552 & 0.5577 & 0.112 & 4.447 \\
- & Global-neighbor memory & \textbf{0.7585} & \textbf{0.5666} & 0.122 & 4.489 \\
+ & Confidence@Memory-Global budget & 0.7405 & 0.5514 & 0.122 & 4.489 \\
+ & Memory-SameLabel & 0.7552 & 0.5577 & 0.112 & 4.447 \\
+ & Memory-Global & \textbf{0.7585} & \textbf{0.5666} & 0.122 & 4.489 \\
 \midrule
 \multirow{5}{*}{CLIMATE-FEVER}
- & B1 & 0.5212 & 0.3808 & 0.000 & 4.000 \\
- & A3-All & 0.5518 & 0.4393 & 1.000 & 8.000 \\
- & Confidence@NLF budget & 0.5355 & 0.4159 & 0.190 & 4.761 \\
- & Same-label memory & 0.5375 & 0.4063 & 0.199 & 4.797 \\
- & Global-neighbor memory & 0.5368 & 0.4117 & 0.190 & 4.761 \\
+ & Base & 0.5212 & 0.3808 & 0.000 & 4.000 \\
+ & Alt-All & 0.5518 & 0.4393 & 1.000 & 8.000 \\
+ & Confidence@Memory-Global budget & 0.5355 & 0.4159 & 0.190 & 4.761 \\
+ & Memory-SameLabel & 0.5375 & 0.4063 & 0.199 & 4.797 \\
+ & Memory-Global & 0.5368 & 0.4117 & 0.190 & 4.761 \\
 \midrule
 \multirow{5}{*}{SciFact oracle}
- & B1 & 0.6067 & 0.5596 & 0.000 & 4.000 \\
- & A3-All & 0.8167 & 0.7822 & 1.000 & 8.000 \\
- & Confidence@NLF budget & 0.6267 & 0.5814 & 0.080 & 4.320 \\
- & R6-HardLabel & 0.6300 & 0.5931 & 0.087 & 4.347 \\
- & R6-NLF & 0.6300 & 0.5951 & 0.080 & 4.320 \\
+ & Base & 0.6067 & 0.5596 & 0.000 & 4.000 \\
+ & Alt-All & 0.8167 & 0.7822 & 1.000 & 8.000 \\
+ & Confidence@Memory-Global budget & 0.6267 & 0.5814 & 0.080 & 4.320 \\
+ & Memory-SameLabel & 0.6300 & 0.5931 & 0.087 & 4.347 \\
+ & Memory-Global & 0.6300 & 0.5951 & 0.080 & 4.320 \\
 \midrule
 \multirow{5}{*}{SciFact BM25}
- & B1 & 0.6100 & 0.5778 & 0.000 & 4.000 \\
- & A3-All & 0.6367 & 0.6157 & 1.000 & 8.000 \\
- & Confidence@NLF budget & 0.6067 & 0.5811 & 0.207 & 4.827 \\
- & R6-HardLabel & 0.6267 & 0.6035 & 0.187 & 4.747 \\
- & R6-NLF & 0.6300 & 0.6075 & 0.207 & 4.827 \\
+ & Base & 0.6100 & 0.5778 & 0.000 & 4.000 \\
+ & Alt-All & 0.6367 & 0.6157 & 1.000 & 8.000 \\
+ & Confidence@Memory-Global budget & 0.6067 & 0.5811 & 0.207 & 4.827 \\
+ & Memory-SameLabel & 0.6267 & 0.6035 & 0.187 & 4.747 \\
+ & Memory-Global & 0.6300 & 0.6075 & 0.207 & 4.827 \\
 \bottomrule
 \end{tabular}
 \end{table*}
 
 \begin{table*}[t]
-\caption{Natural R6-NLF change over B1 with paired 95\% bootstrap intervals.
+\caption{Natural Memory-Global change over Base with paired 95\% bootstrap intervals.
 A positive point estimate is not treated as established when its interval
 crosses zero. SciFact uses the predeclared post-routing label projection.}
 \label{tab:delta-ci}
@@ -430,18 +432,18 @@ SciFact BM25 projected & +.02000 & [-.00333,.04333] & +.02967 & [.00434,.05728] 
 \subsection{Source-Domain Routing}
 
 Under conservative token-Jaccard 0.90 grouping, the development-selected
-R6-NLF policy improves AVeriTeC accuracy by 1.83 points and macro-F1 by 2.05
+Memory-Global policy improves AVeriTeC accuracy by 1.83 points and macro-F1 by 2.05
 points while routing 12.22\%. It produces 94 helpful and 38 harmful changes
-(net $+56$), compared with 90/44 (net $+46$) for R6-HardLabel at 11.18\%
-routing. At the NLF budget, NLF exceeds confidence-only by 1.79 accuracy and
+(net $+56$), compared with 90/44 (net $+46$) for Memory-SameLabel at 11.18\%
+routing. At the Memory-Global budget, Memory-Global exceeds confidence-only by 1.79 accuracy and
 1.52 macro-F1 points; both paired intervals are positive. Compared with
-HardLabel at the same budget, the differences are +0.23 and +0.43 points and
+Memory-SameLabel at the same budget, the differences are +0.23 and +0.43 points and
 both intervals cross zero. These are source-development results, not an
 independent generalization estimate.
 
-A group-cross-fitted linear ensemble of the B1 and A3 label scores is a
+A group-cross-fitted linear ensemble of the Base and Alt label scores is a
 stronger simple baseline than either prompt alone: it reaches 75.62 accuracy
-and 55.85 macro-F1.  Relative to B1, its accuracy gain is supported by an
+and 55.85 macro-F1.  Relative to Base, its accuracy gain is supported by an
 exact McNemar test ($p=.0035$) and a paired 95\% interval of
 $[+.0055,+.0261]$, whereas its macro-F1 interval crosses zero
 ($[-.0025,+.0277]$).  The ensemble nevertheless evaluates both prompts for
@@ -452,14 +454,14 @@ ensemble-minus-router accuracy is $-.0023$ (95\% CI
 $[-.0114,+.0062]$, exact McNemar $p=.671$), and macro-F1 is $-.0081$
 (95\% CI $[-.0225,+.0058]$).  Thus the supported advantage is computational:
 the router attains a statistically indistinguishable point on these metrics
-without evaluating A3 for every claim.  Finally, an oracle that invokes A3
+without evaluating Alt for every claim.  Finally, an oracle that invokes Alt
 exactly on the 192 helpful cases has 6.26 points of available accuracy gain.
 The natural router's net gain of 56 therefore captures 29.17\% of that
 helpful-correction headroom, leaving substantial room for better selection.
 
 \begin{table*}[t]
 \caption{AVeriTeC matched-budget routing. Every selective router may invoke
-the same cached A3 on 343 examples; random is the mean of 20 deterministic
+the same cached Alt on 343 examples; random is the mean of 20 deterministic
 seeds. The final two rows add the supervised logistic and global-neighbor
 comparators at the same count. Bold marks the best selective value, not a
 claim of significant superiority over every control.}
@@ -469,8 +471,8 @@ claim of significant superiority over every control.}
 \toprule
 Router & Accuracy & Macro-F1 & Helpful & Harmful & Net & Mean passes \\
 \midrule
-B1 & .7402 & .5460 & 0 & 0 & 0 & 4.000 \\
-A3-All & .7360 & .5559 & 192 & 205 & -13 & 8.000 \\
+Base & .7402 & .5460 & 0 & 0 & 0 & 4.000 \\
+Alt-All & .7360 & .5559 & 192 & 205 & -13 & 8.000 \\
 Random & .7393 & .5465 & 21.8 & 24.4 & -2.7 & 4.447 \\
 Confidence & .7392 & .5458 & 60 & 63 & -3 & 4.447 \\
 Margin & .7454 & .5522 & 68 & 52 & 16 & 4.447 \\
@@ -484,7 +486,7 @@ Global-neighbor memory & \textbf{.7575} & \textbf{.5655} & 89 & 36 & 53 & 4.447 
 \end{tabular}
 \end{table*}
 
-Table~\ref{tab:matched} establishes value over B1, random, confidence-only,
+Table~\ref{tab:matched} establishes value over Base, random, confidence-only,
 and similarity-only routing on source development. It also shows that a
 supervised logistic gate on the same pre-action signals is close in accuracy;
 the evidence supports outcome-memory retrieval as a transparent non-parametric
@@ -505,23 +507,23 @@ artifact. Holm $p$ is for correctness flips.}
 \toprule
 Comparison & $\Delta$Acc. & $\Delta$F1 & Holm $p$ & Accuracy CI & Macro-F1 CI \\
 \midrule
-HardLabel $-$ B1 & +.01499 & +.01169 & .000612 & [.00750,.02249] & [.00009,.02393] \\
-HardLabel $-$ Random mean & +.01587 & +.01117 & NR & NR & NR \\
-HardLabel $-$ Confidence & +.0160 & +.0119 & NR & NR & NR \\
-HardLabel $-$ Label-conditional & +.01010 & +.00298 & .0674 & positive & crosses zero \\
-HardLabel $-$ Similarity-only & +.0221 & +.0161 & NR & NR & NR \\
-HardLabel $-$ Static pattern & +.0026 & +.0126 & .9935 & crosses zero & positive \\
+Memory-SameLabel $-$ Base & +.01499 & +.01169 & .000612 & [.00750,.02249] & [.00009,.02393] \\
+Memory-SameLabel $-$ Random mean & +.01587 & +.01117 & NR & NR & NR \\
+Memory-SameLabel $-$ Confidence & +.0160 & +.0119 & NR & NR & NR \\
+Memory-SameLabel $-$ Label-conditional & +.01010 & +.00298 & .0674 & positive & crosses zero \\
+Memory-SameLabel $-$ Similarity-only & +.0221 & +.0161 & NR & NR & NR \\
+Memory-SameLabel $-$ Static pattern & +.0026 & +.0126 & .9935 & crosses zero & positive \\
 \bottomrule
 \end{tabular}
 \end{table*}
 
 \subsection{External Four-Label Transfer}
 
-On CLIMATE-FEVER, A3-All improves B1 by 3.06 accuracy points and 5.85 macro-F1
-points. Global-neighbor memory routes 19.02\% and improves B1 by 1.56 accuracy and 3.09
+On CLIMATE-FEVER, Alt-All improves Base by 3.06 accuracy points and 5.85 macro-F1
+points. Global-neighbor memory routes 19.02\% and improves Base by 1.56 accuracy and 3.09
 macro-F1 points; both paired bootstrap intervals are positive
 (Table~\ref{tab:delta-ci}). At the same budget, its differences from same-label memory
-and confidence-only are inconclusive. NLF raises CONFLICTING F1 from 0.1111 to
+and confidence-only are inconclusive. Memory-Global raises CONFLICTING F1 from 0.1111 to
 0.1373, but this class remains weak; most absolute performance still comes
 from SUPPORTED.
 
@@ -535,72 +537,72 @@ more gains but also more regressions.}
 
 \subsection{SciFact Ontology Sensitivity}
 
-With oracle rationales, projected R6-NLF improves accuracy by 2.33 points and
+With oracle rationales, projected Memory-Global improves accuracy by 2.33 points and
 macro-F1 by 3.55 points, with positive paired bootstrap intervals
 (Table~\ref{tab:delta-ci}); the exact accuracy McNemar test is weaker
-($p=.065$). NLF and HardLabel have identical natural accuracy and no confirmed
-paired difference. The raw four-label comparison is null. Moreover, A3
+($p=.065$). Memory-Global and Memory-SameLabel have identical natural accuracy and no confirmed
+paired difference. The raw four-label comparison is null. Moreover, Alt
 produces 96 CONFLICTING outputs under oracle evidence, and projection converts
 90 additional examples to correct predictions. This result is therefore
 adapter-mediated and cannot support projection-independent transfer.
 
 \subsection{Retrieved-Evidence Robustness}
 
-With open BM25 evidence, R6-NLF improves B1 macro-F1 by 2.97 points with a
+With open BM25 evidence, Memory-Global improves Base macro-F1 by 2.97 points with a
 positive bootstrap interval, while its 2.00-point accuracy interval crosses
-zero. At the NLF budget, NLF is 1.00 accuracy and 1.03 macro-F1 points above
-HardLabel, but the small-sample paired tests do not confirm superiority.
-Only five A3 predictions are
+zero. At the Memory-Global budget, Memory-Global is 1.00 accuracy and 1.03 macro-F1 points above
+Memory-SameLabel, but the small-sample paired tests do not confirm superiority.
+Only five Alt predictions are
 projected, so this condition is not driven by mass ontology conversion.
 
-The earlier retrieval-stratum audit used HardLabel. On 121 verifiable hits it
-had net zero correctness change; on 67 misses it preserved B1 while A3-All
+The earlier retrieval-stratum audit used Memory-SameLabel. On 121 verifiable hits it
+had net zero correctness change; on 67 misses it preserved Base while Alt-All
 lost six net correct predictions; on 112 NEI claims it gained five. The new
-NLF aggregate gains are consistent with selective harm avoidance, but a fresh
-NLF stratum analysis was not used for model selection and is not inferred.
+Memory-Global aggregate gains are consistent with selective harm avoidance, but a fresh
+Memory-Global stratum analysis was not used for model selection and is not inferred.
 
 \subsection{Cross-Domain Summary}
 
-Table~\ref{tab:delta-ci} summarizes frozen R6-NLF change over B1. Macro-F1
+Table~\ref{tab:delta-ci} summarizes frozen Memory-Global change over Base. Macro-F1
 intervals are positive in all four protocols, but interpretation differs:
 AVeriTeC is train-selected; SciFact oracle is projection-sensitive;
 CLIMATE-FEVER has supplied candidates rather than open retrieval; and SciFact
-BM25 accuracy is statistically inconclusive. Direct NLF--HardLabel and
-NLF--confidence comparisons are mostly inconclusive, so the evidence supports
-NLF as a competitive transferred router rather than a universally superior one.
+BM25 accuracy is statistically inconclusive. Direct Memory-Global--Memory-SameLabel and
+Memory-Global--confidence comparisons are mostly inconclusive, so the evidence supports
+Memory-Global as a competitive transferred router rather than a universally superior one.
 
 \subsection{Second-Backbone Robustness}
 
-We repeat the complete B1--A3--memory pipeline with the frozen
+We repeat the complete Base--Alt--memory pipeline with the frozen
 Mistral-7B-Instruct-v0.3 snapshot \texttt{c170c70}; no Qwen scores, action
 outcomes, or memory records are reused. Table~\ref{tab:second-backbone}
-reports natural routing. On grouped AVeriTeC, NLF improves B1 accuracy by
+reports natural routing. On grouped AVeriTeC, Memory-Global improves Base accuracy by
 3.55 points while using 4.94 rather than 8.00 mean forward passes, although
-its macro-F1 interval over B1 crosses zero. At the NLF budget it exceeds
+its macro-F1 interval over Base crosses zero. At the Memory-Global budget it exceeds
 confidence-only by 2.35 accuracy points (95\% CI [.01369,.03357]) and 1.80
 macro-F1 points (95\% CI [.00674,.02937]). Thus, outcome-based selective
 routing is not specific to Qwen.
 
-The compatibility result does not replicate. HardLabel exceeds NLF on grouped
-AVeriTeC at both natural routing ($\Delta$accuracy NLF$-$HardLabel $=-.00554$,
-95\% CI $[-.00978,-.00130]$, exact $p=.0161$) and the matched NLF budget
-($-.00587$, 95\% CI $[-.01076,-.00098]$, $p=.0300$). NLF-only natural routes
-have net $-6$, whereas HardLabel-only routes have net $+11$.
+The compatibility result does not replicate. Memory-SameLabel exceeds Memory-Global on grouped
+AVeriTeC at both natural routing ($\Delta$accuracy Memory-Global$-$Memory-SameLabel $=-.00554$,
+95\% CI $[-.00978,-.00130]$, exact $p=.0161$) and the matched Memory-Global budget
+($-.00587$, 95\% CI $[-.01076,-.00098]$, $p=.0300$). Memory-Global-only natural routes
+have net $-6$, whereas Memory-SameLabel-only routes have net $+11$.
 
-On CLIMATE-FEVER, both selective policies again improve accuracy over B1,
-while macro-F1 does not improve: HardLabel reaches .4932/.3709 and NLF
-.4886/.3668 from B1 at .4573/.3724. Natural NLF improves B1 accuracy by
+On CLIMATE-FEVER, both selective policies again improve accuracy over Base,
+while macro-F1 does not improve: Memory-SameLabel reaches .4932/.3709 and Memory-Global
+.4886/.3668 from Base at .4573/.3724. Natural Memory-Global improves Base accuracy by
 3.13 points (95\% CI [.01498,.04821], exact $p=.00031$), but its macro-F1
 change is $-.00558$ with an interval crossing zero. At the primary matched
-NLF budget, NLF--HardLabel accuracy is $-.00782$ and inconclusive
-($p=.104$); at the matched HardLabel budget, the difference is $-.01173$
-(95\% CI $[-.02020,-.00391]$, $p=.00643$). NLF lookup is also more expensive:
+Memory-Global budget, Memory-Global--Memory-SameLabel accuracy is $-.00782$ and inconclusive
+($p=.104$); at the matched Memory-SameLabel budget, the difference is $-.01173$
+(95\% CI $[-.02020,-.00391]$, $p=.00643$). Memory-Global lookup is also more expensive:
 37.1 versus 11.5 ms per AVeriTeC query and 49.8 versus 15.0 ms per
 CLIMATE-FEVER query. These CPU timings exclude model inference.
 
 \begin{table*}[t]
-\caption{Second-backbone replication with Mistral-7B-Instruct-v0.3. B1 and
-A3, residual outcomes, and memory are rebuilt for this backbone. Selective
+\caption{Second-backbone replication with Mistral-7B-Instruct-v0.3. Base and
+Alt, residual outcomes, and memory are rebuilt for this backbone. Selective
 rows use their natural route thresholds.}
 \label{tab:second-backbone}
 \centering\small
@@ -609,16 +611,16 @@ rows use their natural route thresholds.}
 Dataset & Method & Route rate & Accuracy & Macro-F1 & Helpful & Harmful \\
 \midrule
 \multirow{4}{*}{AVeriTeC grouped}
- & B1 & .000 & .4465 & .4196 & 0 & 0 \\
- & A3-All & 1.000 & .4410 & .3157 & 310 & 327 \\
- & R6-HardLabel & .214 & \textbf{.4876} & \textbf{.4321} & 174 & 48 \\
- & R6-NLF & .235 & .4821 & .4276 & 173 & 64 \\
+ & Base & .000 & .4465 & .4196 & 0 & 0 \\
+ & Alt-All & 1.000 & .4410 & .3157 & 310 & 327 \\
+ & Memory-SameLabel & .214 & \textbf{.4876} & \textbf{.4321} & 174 & 48 \\
+ & Memory-Global & .235 & .4821 & .4276 & 173 & 64 \\
 \midrule
 \multirow{4}{*}{CLIMATE-FEVER}
- & B1 & .000 & .4573 & \textbf{.3724} & 0 & 0 \\
- & A3-All & 1.000 & .4593 & .2262 & 231 & 228 \\
- & R6-HardLabel & .211 & \textbf{.4932} & .3709 & 116 & 61 \\
- & R6-NLF & .247 & .4886 & .3668 & 110 & 62 \\
+ & Base & .000 & .4573 & \textbf{.3724} & 0 & 0 \\
+ & Alt-All & 1.000 & .4593 & .2262 & 231 & 228 \\
+ & Memory-SameLabel & .211 & \textbf{.4932} & .3709 & 116 & 61 \\
+ & Memory-Global & .247 & .4886 & .3668 & 110 & 62 \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -631,33 +633,31 @@ Dataset & Method & Route rate & Accuracy & Macro-F1 & Helpful & Harmful \\
 Table~\ref{tab:memory-ablation} isolates three questions central to ERRORFlow:
 whether historical outcomes matter, whether instance-level neighbors add value
 beyond class-level rates, and whether explicitly penalizing regressions is
-necessary. We use the canonical N-A taxonomy for direct NLF controls; the
-corresponding historical artifact identifiers are recorded in the caption.
-Except for NA1, all rows use the same 375-route (12.22\%) correction
-budget. NA2 and NA3 report means over 20 deterministic seeds; their inferential
+necessary. Historical artifact identifiers are listed in
+Appendix~\ref{sec:name-map}. Except for the Base-only row, all rows use the
+same 375-route (12.22\%) correction budget. Random neighbors and outcome
+shuffle report means over 20 deterministic seeds; their inferential
 tests use only the predeclared seed 2026 and are not tests of the displayed
-means. All rows use final NLF retrieval without a predicted-label filter.
+means. All rows use Memory-Global retrieval without a predicted-label filter.
 
 \begin{table*}[t]
 \caption{Outcome-memory and utility ablations under a matched correction
-budget on grouped AVeriTeC. NA2 and NA3 are 20-seed means; deterministic rows
-are single frozen evaluations. NA1 performs no correction. Historical aliases
-are NA0/B9, NA1/B0, NA2/B1, NA3/B14, NA5/B15, and NA6/B10. Holm $p$ compares
-NA0 with each row using seed 2026 for stochastic controls.}
+budget on grouped AVeriTeC. Stochastic controls are 20-seed means; their
+paired tests use seed 2026. Holm $p$ compares Memory-Global with each row.}
 \label{tab:memory-ablation}
 \centering\small
-\begin{tabular}{lllrrr}
+\begin{tabular}{llrrr}
 \toprule
-ID & Configuration & Routed & Accuracy (\%) $\uparrow$ & Macro-F1 (\%) $\uparrow$ & Holm $p_{\rm Acc}$ \\
+Configuration & Routed & Accuracy (\%) $\uparrow$ & Macro-F1 (\%) $\uparrow$ & Holm $p_{\rm Acc}$ \\
 \midrule
-NA1 & No memory (B1 only) & 0 & 74.02 & 54.60 & $7.12{\times}10^{-6}$ \\
-NA2 & Random neighbors$\dagger$ & 375 & 73.89 & 54.79 & $3.81{\times}10^{-7}$ \\
-NA3 & Stratified outcome shuffle$\dagger$ & 375 & 74.26 & 54.70 & $1.03{\times}10^{-5}$ \\
-NA5 & Class-conditional prior & 375 & 75.33 & 54.53 & .609 \\
-NA6 & Recovery-only utility & 375 & 75.78 & 56.31 & 1.000 \\
-NA0 & Full outcome memory (R6-NLF) & 375 & \textbf{75.85} & \textbf{56.66} & -- \\
+Base only & 0 & 74.02 & 54.60 & $7.12{\times}10^{-6}$ \\
+Random neighbors$\dagger$ & 375 & 73.89 & 54.79 & $3.81{\times}10^{-7}$ \\
+Stratified outcome shuffle$\dagger$ & 375 & 74.26 & 54.70 & $1.03{\times}10^{-5}$ \\
+Class-conditional prior & 375 & 75.33 & 54.53 & .609 \\
+Recovery-only utility & 375 & 75.78 & 56.31 & 1.000 \\
+Memory-Global & 375 & \textbf{75.85} & \textbf{56.66} & -- \\
 \bottomrule
-\multicolumn{6}{l}{\footnotesize $\dagger$Mean over 20 seeds; seed 2026 is used for paired tests.} \\
+\multicolumn{5}{l}{\footnotesize $\dagger$Mean over 20 seeds; seed 2026 is used for paired tests.} \\
 \end{tabular}
 \end{table*}
 
@@ -700,19 +700,19 @@ competitive reduced control: its matched differences from NA0 are
 inconclusive, motivating the budget analysis below rather than a claim of
 uniform dominance.
 
-\subsection{Final-NLF Similarity Components}
+\subsection{Memory-Global Similarity Components}
 \label{sec:group-c-ablation}
 
 The earlier Group-C sweep selected no-label-filter retrieval. We now ablate
-the similarity function directly under that final NLF candidate space, using
+the similarity function directly under that final Memory-Global candidate space, using
 the canonical \texttt{[\textbackslash w'-]+} token boundary. This distinction
 matters because removing the hard label filter changes both the candidate pool
-and top-five neighborhood; historical HardLabel removals are not treated as
+and top-five neighborhood; historical Memory-SameLabel removals are not treated as
 proofs about the final router. Table~\ref{tab:nc-main} fixes every variant to
 the same 375-route budget and compares it with NC0.
 
 \begin{table*}[t]
-\caption{Similarity-component ablations for final R6-NLF on grouped
+\caption{Similarity-component ablations for final Memory-Global on grouped
 AVeriTeC. All rows route 375 claims. Holm $p$ compares matched accuracy with
 NC0 across NC1--NC8.}
 \label{tab:nc-main}
@@ -721,7 +721,7 @@ NC0 across NC1--NC8.}
 \toprule
 ID & Variant & Accuracy (\%) $\uparrow$ & Macro-F1 (\%) $\uparrow$ & Holm $p_{\rm Acc}$ \\
 \midrule
-NC0 & Full NLF similarity & \textbf{75.85} & 56.66 & -- \\
+NC0 & Full Memory-Global similarity & \textbf{75.85} & 56.66 & -- \\
 NC1 & w/o claim Jaccard & 75.52 & 56.12 & .486 \\
 NC2 & w/o label-score similarity & 74.28 & 55.68 & $4.30{\times}10^{-4}$ \\
 NC3 & w/o evidence length & 75.33 & 54.96 & .400 \\
@@ -745,16 +745,16 @@ appendix; NC0 significantly exceeds Hellinger and Jensen--Shannon in corrected
 accuracy, but not TF--IDF claim similarity.
 
 The compatibility decision itself remains a design-selection result rather
-than a universal superiority claim. Canonical NLF reduces harmful corrections
+than a universal superiority claim. Canonical Memory-Global reduces harmful corrections
 from 44 to 38 and raises net corrections from 46 to 56 relative to natural
-HardLabel. Its accuracy interval against HardLabel crosses zero, while the
+Memory-SameLabel. Its accuracy interval against Memory-SameLabel crosses zero, while the
 macro-F1 interval is positive. The exploratory Group-C table and tokenizer
 audit remain in the appendix, whereas all final-method claims use the
-canonical NLF replay above.
+canonical Memory-Global replay above.
 
 Across the four frozen settings, 11.0--19.7\% of queries retrieve at least one
-cross-label neighbor and 30.8--37.5\% of naturally routed NLF queries do so.
-At natural thresholds, NLF-only versus HardLabel-only routes have net changes
+cross-label neighbor and 30.8--37.5\% of naturally routed Memory-Global queries do so.
+At natural thresholds, Memory-Global-only versus Memory-SameLabel-only routes have net changes
 of $+7/-3$ on AVeriTeC, $+1/+2$ on CLIMATE-FEVER, $0/0$ on SciFact oracle,
 and $+1/0$ on SciFact BM25. These counts explain where the relaxed
 compatibility rule changes behavior without implying that every cross-label
@@ -765,7 +765,7 @@ neighbor is causally helpful.
 
 Table~\ref{tab:cross-label-mechanism} separates access to a larger candidate
 pool from direct use of cross-label corrective outcomes. NB3 first retrieves
-the unchanged NLF top five and then removes cross-label outcome contributions
+the unchanged Memory-Global top five and then removes cross-label outcome contributions
 without backfilling; fewer than two remaining records makes the query
 unroutable. NB4 preserves similarities and same-label outcomes but permutes
 cross-label outcomes within source-fold/source-label strata. NB4 reports the
@@ -784,8 +784,8 @@ NB4 inference uses seed 2026.}
 \toprule
 Variant & Natural routes & Natural Acc. & Natural F1 & Matched Acc. & Matched F1 & Holm $p_{\rm Acc}$ \\
 \midrule
-NB0 Full NLF & 375 & \textbf{75.85} & \textbf{56.66} & \textbf{75.85} & \textbf{56.66} & -- \\
-NB1 HardLabel & 343 & 75.52 & 55.77 & 75.62 & 56.22 & 1.000 \\
+NB0 Full Memory-Global & 375 & \textbf{75.85} & \textbf{56.66} & \textbf{75.85} & \textbf{56.66} & -- \\
+NB1 Memory-SameLabel & 343 & 75.52 & 55.77 & 75.62 & 56.22 & 1.000 \\
 NB2 Cross-label only & 1,128 & 73.17 & 55.08 & 73.79 & 54.71 & $8.83{\times}10^{-7}$ \\
 NB3 Suppress cross-label outcomes & 330 & \textbf{75.85} & 56.60 & 75.81 & 56.64 & 1.000 \\
 NB4 Shuffle cross-label outcomes & 358 & 75.68 & 56.40 & 75.65 & 56.52 & 1.000 \\
@@ -810,18 +810,18 @@ routing 333 rather than 375 claims. At matched budget it differs by only
 $+.03$ accuracy point and $+.03$ macro-F1 point in favor of NB0; both paired
 intervals cross zero and the Holm-adjusted accuracy test is 1.0. Therefore
 these experiments do not establish that instance-specific cross-label
-outcomes directly cause NLF's gain.
+outcomes directly cause Memory-Global's gain.
 
 The supported mechanism is narrower: cross-label records can displace weaker
 same-label records in the global top five, thereby changing support and
 selective abstention even when their outcomes are suppressed. Cross-label
 neighbors occur for 339/3,068 queries (11.05\%), but for 123/375 naturally
-routed queries (32.8\%); 90 natural route decisions differ from HardLabel.
-NB5 and NB6 exactly reproduce HardLabel because same-label records fill the
+routed queries (32.8\%); 90 natural route decisions differ from Memory-SameLabel.
+NB5 and NB6 exactly reproduce Memory-SameLabel because same-label records fill the
 neighborhood and a .5 penalty prevents cross-label entry. Quotas interpolate
 between the endpoints, but their Holm-adjusted exact tests are null despite
 bootstrap intervals favoring NB0. In this mechanism harness, CPU lookup means
-are 38.2 ms for NB0 and 17.4 ms for HardLabel; the dual-pool soft/quota
+are 38.2 ms for NB0 and 17.4 ms for Memory-SameLabel; the dual-pool soft/quota
 implementations require about 40.4 ms. These run-specific routing-only
 measurements are not end-to-end latency.
 
@@ -834,9 +834,9 @@ comparison: it selects one threshold per target fold using only the remaining
 source folds and routes 393 claims.
 
 \begin{table*}[t]
-\caption{Final-NLF utility and decision ablations on grouped AVeriTeC.
+\caption{Memory-Global utility and decision ablations on grouped AVeriTeC.
 Natural recovery-only and regression-only scores are positive for every
-claim, so both invoke A3-All; matched columns isolate ranking quality.}
+claim, so both invoke Alt-All; matched columns isolate ranking quality.}
 \label{tab:utility-ablation}
 \centering\small
 \begin{tabular}{llrrrr}
@@ -874,7 +874,7 @@ externally retuned operating policy.
 
 \subsection{Budget and Memory-Composition Sensitivity}
 
-The final NLF sweep compares full outcome memory (NA0), error-only memory
+The final Memory-Global sweep compares full outcome memory (NA0), error-only memory
 (NA7),
 recovery-only utility, outcome shuffle, and confidence routing under exactly
 matched route counts. Error-only memory is stronger than full memory at 5\%
@@ -887,7 +887,7 @@ the intervention budget; no single reduced control dominates the complete
 frontier. Detailed values and paired tests appear in
 Appendix~\ref{sec:memory-appendix}.
 
-Final-NLF sensitivity supports the frozen operating point without making it
+Memory-Global sensitivity supports the frozen operating point without making it
 uniquely optimal. For top-$k=1,3,5,10,20$, natural accuracy is
 74.93/75.49/75.85/75.42/75.36 and macro-F1 is
 55.87/56.30/56.66/55.91/55.78. Top-five gives the strongest joint natural
@@ -911,9 +911,9 @@ these settings.
 \subsection{Robustness and Error Analysis}
 
 Table~\ref{tab:per-class} confirms that aggregate gains do not solve
-CONFLICTING recognition. R6-NLF improves every AVeriTeC class over B1, but
+CONFLICTING recognition. Memory-Global improves every AVeriTeC class over Base, but
 CONFLICTING F1 remains only .1012. On CLIMATE-FEVER it improves REFUTED, NEI,
-SUPPORTED, and CONFLICTING over B1, while A3-All remains stronger on NEI.
+SUPPORTED, and CONFLICTING over Base, while Alt-All remains stronger on NEI.
 
 \begin{table*}[t]
 \caption{Per-class F1 under each evidence protocol. SciFact has no
@@ -924,32 +924,32 @@ CONFLICTING target class after the predeclared projection.}
 \toprule
 Dataset/protocol & Method & SUPPORTED & REFUTED & NEI & CONFLICTING \\
 \midrule
-AVeriTeC grouped & B1 & .7497 & .8163 & .5357 & .0823 \\
-AVeriTeC grouped & A3-All & .7394 & .8276 & .5506 & .1059 \\
-AVeriTeC grouped & R6-HardLabel & .7614 & .8333 & .5498 & .0863 \\
-AVeriTeC grouped & R6-NLF & .7630 & .8354 & .5667 & .1012 \\
+AVeriTeC grouped & Base & .7497 & .8163 & .5357 & .0823 \\
+AVeriTeC grouped & Alt-All & .7394 & .8276 & .5506 & .1059 \\
+AVeriTeC grouped & Memory-SameLabel & .7614 & .8333 & .5498 & .0863 \\
+AVeriTeC grouped & Memory-Global & .7630 & .8354 & .5667 & .1012 \\
 \midrule
-CLIMATE-FEVER candidates & B1 & .6791 & .4101 & .3227 & .1111 \\
-CLIMATE-FEVER candidates & A3-All & .6982 & .4680 & .4707 & .1202 \\
-CLIMATE-FEVER candidates & R6-HardLabel & .6963 & .4438 & .3722 & .1128 \\
-CLIMATE-FEVER candidates & R6-NLF & .6920 & .4509 & .3665 & .1373 \\
+CLIMATE-FEVER candidates & Base & .6791 & .4101 & .3227 & .1111 \\
+CLIMATE-FEVER candidates & Alt-All & .6982 & .4680 & .4707 & .1202 \\
+CLIMATE-FEVER candidates & Memory-SameLabel & .6963 & .4438 & .3722 & .1128 \\
+CLIMATE-FEVER candidates & Memory-Global & .6920 & .4509 & .3665 & .1373 \\
 \midrule
-SciFact oracle & B1 & .7015 & .4522 & .5250 & -- \\
-SciFact oracle & A3-All & .8249 & .6346 & .8870 & -- \\
-SciFact oracle & R6-HardLabel & .7085 & .4959 & .5750 & -- \\
-SciFact oracle & R6-NLF & .7044 & .5042 & .5767 & -- \\
+SciFact oracle & Base & .7015 & .4522 & .5250 & -- \\
+SciFact oracle & Alt-All & .8249 & .6346 & .8870 & -- \\
+SciFact oracle & Memory-SameLabel & .7085 & .4959 & .5750 & -- \\
+SciFact oracle & Memory-Global & .7044 & .5042 & .5767 & -- \\
 \midrule
-SciFact BM25 & B1 & .7099 & .4960 & .5275 & -- \\
-SciFact BM25 & A3-All & .7007 & .5378 & .6087 & -- \\
-SciFact BM25 & R6-HardLabel & .7143 & .5385 & .5579 & -- \\
-SciFact BM25 & R6-NLF & .7143 & .5426 & .5654 & -- \\
+SciFact BM25 & Base & .7099 & .4960 & .5275 & -- \\
+SciFact BM25 & Alt-All & .7007 & .5378 & .6087 & -- \\
+SciFact BM25 & Memory-SameLabel & .7143 & .5385 & .5579 & -- \\
+SciFact BM25 & Memory-Global & .7143 & .5426 & .5654 & -- \\
 \bottomrule
 \end{tabular}
 \end{table*}
 
-The final NLF method is evaluated directly with outcome shuffle,
+The final Memory-Global method is evaluated directly with outcome shuffle,
 class-conditional utility, recovery-only utility, random-neighbor, and uniform
-outcome-weight controls. Historical HardLabel component removals remain in the
+outcome-weight controls. Historical same-label component removals remain in the
 appendix and are not treated as direct proofs about the final router.
 
 \paragraph{Cross-domain source-memory composition.}
@@ -961,9 +961,10 @@ oracle, and SciFact BM25, whereas a 48-record source-predicted-CONFLICTING
 memory routes 74.5/59.7/85.0\%. Its oracle accuracy reaches .7733, but this is
 an exploratory target-observed sensitivity, not a selected method or a
 matched-budget comparison. Across subsets, route rates range from zero to
-85\%, and the best subset differs by evidence protocol. We therefore use NE6
-only to show that source composition can materially alter transfer; it does
-not justify target-specific memory selection. Topic sensitivity is unavailable
+85\%, and the best subset differs by evidence protocol. We use this
+source-composition sensitivity only to show that memory composition can
+materially alter transfer; it does not justify target-specific memory
+selection. Topic sensitivity is unavailable
 because the source memory contains no verified topic metadata.
 
 \subsection{Compute and Runtime Accounting}
@@ -977,25 +978,25 @@ one label-scoring call; each four-label request performs four model forwards.}
 \toprule
 Component & Per-example work & Available measurement & Claim boundary \\
 \midrule
-B1 & 1 request / 4 forwards & cached component latency & not fresh end-to-end \\
+Base & 1 request / 4 forwards & cached component latency & not fresh end-to-end \\
 Memory lookup & CPU scan + top-5 sort & fresh mean/p95 lookup time & single-process CPU only \\
-R6 arithmetic & weighted estimates & not benchmarked separately & no latency claim \\
-A3 when routed & +1 request / +4 forwards & cached component latency & incurred only on routes \\
+Utility arithmetic & weighted estimates & not benchmarked separately & no latency claim \\
+Alt when routed & +1 request / +4 forwards & cached component latency & incurred only on routes \\
 Input volume & claim + evidence reprocessed & whitespace-token proxy & not tokenizer tokens \\
 Full pipeline & $4+4r$ forwards & no synchronized wall clock & forward-pass efficiency only \\
 \bottomrule
 \end{tabular}
 \end{table*}
 
-Fresh single-process lookup timing gives NLF means of 35.3, 45.9, 41.2, and
+Fresh single-process lookup timing gives Memory-Global means of 35.3, 45.9, 41.2, and
 40.3 ms on AVeriTeC, CLIMATE-FEVER, SciFact oracle, and SciFact BM25; p95 is
-44.4--58.5 ms. HardLabel means are 15.1--18.1 ms because its compatibility
-filter reduces scoring work. These measurements exclude B1, A3, GPU
+44.4--58.5 ms. Memory-SameLabel means are 15.1--18.1 ms because its compatibility
+filter reduces scoring work. These measurements exclude Base, Alt, GPU
 synchronization, and process warm-up controls, so they quantify retrieval
-overhead but not end-to-end latency. The full A3 cache processed 3,068 examples
+overhead but not end-to-end latency. The full Alt cache processed 3,068 examples
 in 366.998 seconds on one RTX 5090, but that batch also excludes the online
 router path. The defensible efficiency claim remains fewer model forward
-passes than A3-All, not proportional wall-clock or monetary reduction.
+passes than Alt-All, not proportional wall-clock or monetary reduction.
 
 \section{Discussion}
 
@@ -1016,13 +1017,13 @@ not comparable under the cited protocol, not a score of zero.}
 \toprule
 Work & Dataset/split & Evidence source & Backbone & Training & Verdict acc. & Official score & Comparable? \\
 \midrule
-ERRORFlow R6-NLF & AVeriTeC train grouped & human QA evidence & Qwen3-4B & no weight update & .7585 & -- & internal only \\
+ERRORFlow Memory-Global & AVeriTeC train grouped & human QA evidence & Qwen3-4B & no weight update & .7585 & -- & internal only \\
 AVeriTeC task \cite{schlichtkrull2024averitec} & official dev/test & web retrieval + QA & varied & varied & -- & AVeriTeC score & no \\
-ERRORFlow R6-NLF & CLIMATE-FEVER all & five official candidates & Qwen3-4B & no weight update & .5368 & -- & protocol-specific \\
+ERRORFlow Memory-Global & CLIMATE-FEVER all & five official candidates & Qwen3-4B & no weight update & .5368 & -- & protocol-specific \\
 CLIMATE-FEVER \cite{diggelmann2020climate} & official release & supplied candidates & dataset baselines & supervised & -- & paper metrics & context only \\
-ERRORFlow R6-NLF & SciFact dev oracle & gold rationales & Qwen3-4B & no weight update & .6300 & -- & adapter-sensitive \\
+ERRORFlow Memory-Global & SciFact dev oracle & gold rationales & Qwen3-4B & no weight update & .6300 & -- & adapter-sensitive \\
 SciFact \cite{wadden2020scifact} & official dev/test & corpus retrieval/rationales & trained verifier & supervised & -- & task metrics & no \\
-ERRORFlow R6-NLF & SciFact dev BM25 & open corpus top-5 & Qwen3-4B & no weight update & .6300 & -- & closest internal condition \\
+ERRORFlow Memory-Global & SciFact dev BM25 & open corpus top-5 & Qwen3-4B & no weight update & .6300 & -- & closest internal condition \\
 \bottomrule
 \end{tabular}}
 \end{table*}
@@ -1045,7 +1046,7 @@ the signal.
 \toprule
 Supported by current experiments & Not established \\
 \midrule
-Selective escalation improves B1 on grouped source development and modestly
+Selective escalation improves Base on grouped source development and modestly
 on frozen external protocols. & An unbiased AVeriTeC held-out gain after broad
 method selection. \\
 Outcome-linked memory beats shuffled outcomes and random routing on source
@@ -1053,15 +1054,15 @@ development. & A universal advantage over supervised logistic, static, or
 confidence gates. \\
 Compatibility is backbone-dependent. & Causal benefit from cross-label
 outcomes or one universally best compatibility rule. \\
-Forward-pass use falls relative to A3-All. & General wall-clock or
+Forward-pass use falls relative to Alt-All. & General wall-clock or
 heterogeneous-cost optimality. \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-On external settings, always-on A3 is stronger than the selective router. This
+On external settings, always-on Alt is stronger than the selective router. This
 is consistent with a conservative AVeriTeC memory being transferred into
-domains where A3 has a higher base rate of benefit. Constant action cost makes
+domains where Alt has a higher base rate of benefit. Constant action cost makes
 the cost coefficient a threshold shift, and the current evidence does not
 identify regression subtraction as a superior fixed-budget ranking rule.
 Accordingly, ERRORFlow is described as outcome-memory-guided selective prompt
@@ -1075,21 +1076,21 @@ However, recovery-only utility is statistically indistinguishable from NA0 at
 therefore help define selective coverage and the higher-budget frontier, but
 their inclusion is not uniformly beneficial at every operating point.
 
-The NLF mechanism ablation further limits the interpretation. Cross-label-only
+The Memory-Global mechanism ablation further limits the interpretation. Cross-label-only
 memory is harmful, while suppressing or shuffling cross-label outcomes does
 not significantly reduce matched performance. The stricter NB8 control also
-preserves NLF's global support and abstention geometry while neutralizing
+preserves Memory-Global's global support and abstention geometry while neutralizing
 cross-label outcomes, yet remains statistically indistinguishable. The
 current evidence therefore supports compatibility relaxation, global
 candidate-pool competition, and selective pruning, not a causal claim that
 instance-specific outcomes transferred across predicted labels are
-individually necessary. This distinction is retained even though NLF has the
+individually necessary. This distinction is retained even though Memory-Global has the
 strongest joint natural AVeriTeC point estimate under the main Qwen backbone.
 
-The final-NLF component tests establish a corrected accuracy contribution from
+The final-Memory-Global component tests establish a corrected accuracy contribution from
 label-score similarity and a macro-F1 contribution from evidence length, but
 do not establish an independent claim-Jaccard effect or superiority of manual
-weights over uniform weights. Historical HardLabel removals differ---notably,
+weights over uniform weights. Historical same-label removals differ---notably,
 label-score removal had a much smaller effect---which confirms that conclusions
 must not be transferred across candidate spaces. These negative results are
 retained because ablation inclusion is based on mechanistic relevance and
@@ -1100,23 +1101,21 @@ statistical reliability rather than whether a row favors ERRORFlow.
 Main experiments use one frozen Qwen3-4B-Instruct-2507 identifier, BF16 on
 CUDA, deterministic mean label log probability, and seed 2026. The
 second-backbone check uses the locally frozen Mistral-7B-Instruct-v0.3
-snapshot \texttt{c170c708...bab71} and independently rebuilds B1, A3, and
-memory under the same prompts and routing constants. B1 and A3 instruction
+snapshot \texttt{c170c708...bab71} and independently rebuilds Base, Alt, and
+memory under the same prompts and routing constants. Base and Alt instruction
 SHA-256 values are \texttt{700ebdc1...decf7} and
 \texttt{09e187ec...aaf}. These identify instruction strings; the reported
 model hash identifies the model name, not weight files. The Mistral experiment
-pins Hugging Face snapshot revision \texttt{c170c708...bab71}; the Qwen run
-does not yet provide a byte-level checkpoint digest, which remains a release
-requirement. Exact replay found
+pins Hugging Face snapshot revision \texttt{c170c708...bab71}; the Qwen result
+is tied to the reported local model identifier and configuration hash but does
+not have a byte-level checkpoint digest. Exact replay found
 zero route and prediction mismatches, and rotating target gold labels did not
 alter routes. Group exclusion removes the validation fold from usable memory;
 it does not prove absence of shared evidence or semantic paraphrases. Large
-experimental JSONL files remain server-side and are represented by an
-artifact ledger rather than committed to Git. Submission requires an
-anonymized public code snapshot plus immutable hashes or archived copies of
-the redistributable evaluation artifacts.
+prediction files are represented by checksum-addressed entries in the
+artifact ledger rather than embedded in the manuscript repository.
 
-The frozen NLF evaluation manifests have configuration IDs
+The frozen Memory-Global evaluation manifests have configuration IDs
 \texttt{bdac31d1...5625b} for grouped AVeriTeC and
 \texttt{19542dc4...b523} for each external protocol; input hashes in each
 manifest distinguish the external datasets despite the shared policy ID.
@@ -1180,6 +1179,16 @@ content of this article.
 \end{credits}
 
 \appendix
+\section{Method Names and Historical Artifact IDs}
+\label{sec:name-map}
+The main text uses semantic names. Historical IDs are retained only to make
+the released artifacts auditable: Base corresponds to \texttt{B1}, Alt to
+\texttt{A3}, Memory-SameLabel to \texttt{R6-HardLabel}, and Memory-Global to
+\texttt{R6-NLF}. Families NA,
+NB, NC, and ND denote outcome-memory, cross-label-mechanism,
+similarity-component, and utility ablations, respectively. Tables below show
+IDs only where they are needed to locate prediction-level artifacts.
+
 \section{Prompt and Scoring Details}
 The rendered prompt is plain text, not a chat template. Evidence order is
 preserved and only evidence text is included. Each candidate is tokenized as a
@@ -1187,10 +1196,10 @@ leading space plus the literal label. Candidate-token log probabilities are
 averaged; four candidates require four independent forward passes. Exact ties
 follow label order: SUPPORTED, REFUTED, NOT ENOUGH INFO, CONFLICTING. Reported
 confidence is a softmax over mean label scores, not a calibrated sequence
-probability. Although A3 asks to list evidence directions, label scoring does
+probability. Although Alt asks to list evidence directions, label scoring does
 not generate a rationale.
 
-\paragraph{B1 instruction (SHA-256 \texttt{700ebdc1...decf7}).}
+\paragraph{Base instruction (SHA-256 \texttt{700ebdc1...decf7}).}
 \begin{quote}\small
 Audit whether the evidence contains credible support and credible
 contradiction for the same essential claim. Choose CONFLICTING only when both
@@ -1199,7 +1208,7 @@ evidence supports one direction without a credible opposite, choose SUPPORTED
 or REFUTED. If neither direction is established, choose NOT ENOUGH INFO.
 \end{quote}
 
-\paragraph{A3 instruction (SHA-256 \texttt{09e187ec...aaf}).}
+\paragraph{Alt instruction (SHA-256 \texttt{09e187ec...aaf}).}
 \begin{quote}\small
 Independently list the strongest supporting evidence and the strongest
 refuting evidence for the same essential claim. Choose CONFLICTING only if
@@ -1211,15 +1220,16 @@ ENOUGH INFO.
 
 The phrase ``list'' is part of the immutable instruction, but the deployed
 label-scoring decoder does not generate that list. It scores only the four
-candidate verdict strings. A3 changes verification emphasis, not output format.
+candidate verdict strings. Alt changes verification emphasis, not output format.
 
 \section{Fold-Safe Worked Cases}
+\label{sec:worked-cases}
 
 We exported two post-hoc qualitative cases from the grouped, fold-excluded
 artifacts. Gold correctness was used only to select explanatory examples, not
 for routing or quantitative model selection. The deterministic exporter found
-10 cases in which NLF prevented a harmful HardLabel correction and 11 in
-which NLF made a helpful correction that HardLabel skipped; it selected the
+10 cases in which Memory-Global prevented a harmful Memory-SameLabel correction and 11 in
+which Memory-Global made a helpful correction that Memory-SameLabel skipped; it selected the
 largest utility separation in each category. The export uses threshold .90
 (2,924 groups; largest group 9), and excludes the complete query fold from
 every displayed neighborhood.
@@ -1231,7 +1241,7 @@ estimates from independently recomputed fold-excluded top-five memories.}
 \centering\small
 \begin{tabular}{lp{.33\textwidth}lllrr}
 \toprule
-ID & Claim & Gold & B1 & A3 & $U_{\rm NLF}$ & $U_{\rm Hard}$ \\
+ID & Claim & Gold & Base & Alt & $U_{\rm Memory-Global}$ & $U_{\rm Hard}$ \\
 \midrule
 train:675 & Russia exposes COVID-19 with scientific data as a hoax and calls
 the pandemic fake. & REF & REF & CON & $-.3391$ & $+.0176$ \\
@@ -1242,51 +1252,51 @@ train:1933 & Kenya's forestry sector contributes 3.6\% of national GDP. & NEI
 \end{table*}
 
 For train:675 (fold 4), the evidence describes transparent post-mortem accounting and
-does not establish that Russia declared the pandemic fake. B1 is correctly
-REFUTED, whereas A3 would change it to CONFLICTING. HardLabel retrieves five
+does not establish that Russia declared the pandemic fake. Base is correctly
+REFUTED, whereas Alt would change it to CONFLICTING. Memory-SameLabel retrieves five
 REFUTED memories (four neutral and one helpful), obtains positive utility,
 and makes this harmful correction
-($\widehat R=.314,\widehat G=.196,\widehat C=1,U=.0176$). NLF instead retrieves two same-label
+($\widehat R=.314,\widehat G=.196,\widehat C=1,U=.0176$). Memory-Global instead retrieves two same-label
 neutral memories and three cross-label memories (one neutral and two harmful),
 giving $\widehat R=.194,\widehat G=.433,\widehat C=1,U=-.3391$ and abstaining.
 
 For train:1933 (fold 0), the evidence reports several incompatible forestry estimates
-and explicitly notes that the 3.6\% figure is unproven. B1 predicts REFUTED,
-while A3 correctly changes the verdict to NEI. HardLabel's five REFUTED
+and explicitly notes that the 3.6\% figure is unproven. Base predicts REFUTED,
+while Alt correctly changes the verdict to NEI. Memory-SameLabel's five REFUTED
 neighbors contain three harmful and two neutral outcomes, so it abstains
 ($\widehat R=.202,\widehat G=.561,\widehat C=1,U=-.4585$). The
-NLF neighborhood contains four cross-label memories (two helpful and two
+Memory-Global neighborhood contains four cross-label memories (two helpful and two
 neutral) plus one same-label harmful memory; its small positive utility invokes
-A3 ($\widehat R=.438,\widehat G=.316,\widehat C=1,U=.0219$) and recovers the
+Alt ($\widehat R=.438,\widehat G=.316,\widehat C=1,U=.0219$) and recovers the
 example. These traces demonstrate possible mechanisms,
 not an aggregate causal effect: NB8 and the shuffle controls remain null.
 
 \section{Statistical Detail and Negative Findings}
-For grouped AVeriTeC, R6-NLF changes 94 errors to correct and 38 correct
+For grouped AVeriTeC, Memory-Global changes 94 errors to correct and 38 correct
 predictions to errors (McNemar $p=1.19\times10^{-6}$). At the same 375-route
-budget, NLF versus HardLabel has $\Delta$accuracy $=.00228$ ($p=.324$) and
+budget, Memory-Global versus Memory-SameLabel has $\Delta$accuracy $=.00228$ ($p=.324$) and
 $\Delta$macro-F1 $=.00435$, with both intervals crossing zero; versus
 confidence it has $\Delta$accuracy $=.01793$ ($p=5.29\times10^{-5}$) and
-$\Delta$macro-F1 $=.01515$, with both intervals positive. Natural NLF versus
-HardLabel has a positive macro-F1 interval but inconclusive accuracy.
+$\Delta$macro-F1 $=.01515$, with both intervals positive. Natural Memory-Global versus
+Memory-SameLabel has a positive macro-F1 interval but inconclusive accuracy.
 
-On CLIMATE-FEVER, NLF versus B1 has McNemar $p=.00791$, while its matched
-comparisons with HardLabel and confidence are null. On SciFact oracle, the
-bootstrap intervals over B1 are positive but exact McNemar is $p=.0654$; all
-direct matched-router comparisons are inconclusive. On SciFact BM25, NLF's
-macro-F1 interval over B1 is positive while accuracy crosses zero; at the NLF
-budget its +.0100 accuracy difference over HardLabel has $p=.25$. The oracle
-raw four-label HardLabel comparison remains null, so projected SciFact gains
+On CLIMATE-FEVER, Memory-Global versus Base has McNemar $p=.00791$, while its matched
+comparisons with Memory-SameLabel and confidence are null. On SciFact oracle, the
+bootstrap intervals over Base are positive but exact McNemar is $p=.0654$; all
+direct matched-router comparisons are inconclusive. On SciFact BM25, Memory-Global's
+macro-F1 interval over Base is positive while accuracy crosses zero; at the Memory-Global
+budget its +.0100 accuracy difference over Memory-SameLabel has $p=.25$. The oracle
+raw four-label Memory-SameLabel comparison remains null, so projected SciFact gains
 must still be interpreted as adapter-mediated.
 
-\section{Final-NLF Similarity and Sensitivity Detail}
+\section{Memory-Global Similarity and Sensitivity Detail}
 
 Table~\ref{tab:nc-appendix} completes the NC family omitted from the main
 table. All comparisons use the canonical tokenizer and 375 routes. Holm
-correction is over NC1--NC8, not over the historical HardLabel family.
+correction is over NC1--NC8, not over the historical Memory-SameLabel family.
 
 \begin{table*}[t]
-\caption{Additional final-NLF similarity substitutions at matched budget.
+\caption{Additional final-Memory-Global similarity substitutions at matched budget.
 Deltas and corrected tests are evaluated against NC0.}
 \label{tab:nc-appendix}
 \centering\small
@@ -1310,7 +1320,7 @@ but the corrected accuracy comparison is null. These results support a mixed
 representation while leaving claim representation underdetermined.
 
 \begin{table*}[t]
-\caption{Final-NLF sensitivity summary. Memory-size rows are 20-seed means;
+\caption{Memory-Global sensitivity summary. Memory-size rows are 20-seed means;
 the full-memory row is deterministic. Values are percentages.}
 \label{tab:ne-appendix}
 \centering\small
@@ -1335,7 +1345,7 @@ $.01\leq U<.025$, and +.222 for $U\geq.10$. This directional separation is
 consistent with abstention, while sparse near-zero bins prevent a strong
 calibration claim.
 
-\section{Historical HardLabel Component-Ablation Detail}
+\section{Historical Same-Label Component-Ablation Detail}
 
 Table~\ref{tab:component-appendix} reports the A0-minus-variant paired results
 omitted from the main table. Natural mode lets each variant route at its own
@@ -1345,7 +1355,7 @@ are included here despite null effects; complete per-fold values and
 prediction-level rows remain in the released artifact.
 
 \begin{table*}[t]
-\caption{Component-ablation detail. Deltas are R6-HardLabel minus variant. Natural
+\caption{Component-ablation detail. Deltas are Memory-SameLabel minus variant. Natural
 Holm $p$ belongs to the separate eight-comparison natural-mode family.}
 \label{tab:component-appendix}
 \centering\scriptsize
@@ -1411,7 +1421,7 @@ C5 & Top-3 & 294 & 75.42 & 56.23 & 75.78 & 56.86 \\
 C5 & Top-10 & 238 & 75.46 & 55.41 & 75.55 & 55.34 \\
 C5 & Top-20 & 228 & 75.59 & 55.08 & 75.98 & 55.54 \\
 C6 & Bayesian shrinkage & 351 & 75.52 & 55.50 & 75.55 & 55.51 \\
-C7 & No label filter (R6-NLF) & 386 & 75.95 & 56.70 & 75.78 & 56.52 \\
+C7 & No label filter (Memory-Global) & 386 & 75.95 & 56.70 & 75.78 & 56.52 \\
 C7 & Label + confidence bin & 369 & 75.46 & 55.78 & 75.36 & 55.65 \\
 C7 & Label + margin bin & 369 & 75.07 & 55.36 & 75.07 & 55.56 \\
 P2 & Source-fold tuned weights & 441 & 75.20 & 56.29 & 75.23 & 56.20 \\
@@ -1434,7 +1444,7 @@ to NA5/B15. The constant global prior is now reported explicitly as NA4.
 \begin{table*}[t]
 \caption{Additional outcome-memory controls on grouped AVeriTeC. $\dagger$
 denotes a 20-seed mean; $\ddagger$ denotes nested calibration with 393 routes.
-All other rows use the matched 375-route NLF budget.}
+All other rows use the matched 375-route Memory-Global budget.}
 \label{tab:memory-appendix}
 \centering\small
 \begin{tabular}{lllrr}
@@ -1467,7 +1477,7 @@ nested calibration modestly raises macro-F1 but changes the route count and is
 therefore reported as sensitivity rather than a same-budget win.
 
 \begin{table*}[t]
-\caption{Full, error-only, and recovery-only NLF controls across matched
+\caption{Full, error-only, and recovery-only Memory-Global controls across matched
 correction budgets. Values are percentages; each row uses the same route count.}
 \label{tab:memory-budget-detail}
 \centering\small

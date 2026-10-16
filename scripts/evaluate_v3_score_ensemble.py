@@ -84,6 +84,23 @@ def metrics(expected, predicted):
     return {"accuracy": accuracy(predicted, expected), "macro_f1": macro_f1(predicted, expected)}
 
 
+def change_metrics(expected, baseline, candidate, routed):
+    helpful = harmful = 0
+    for gold, before, after, selected in zip(expected, baseline, candidate, routed):
+        if not selected:
+            continue
+        helpful += before != gold and after == gold
+        harmful += before == gold and after != gold
+    return {
+        "routed": sum(routed),
+        "route_rate": sum(routed) / len(routed),
+        "helpful": helpful,
+        "harmful": harmful,
+        "net": helpful - harmful,
+        "avg_model_forward_passes": 4.0 + 4.0 * sum(routed) / len(routed),
+    }
+
+
 def load_folds(meta_dir):
     rows = read_jsonl(Path(meta_dir) / "per_query_features.jsonl")
     folds = {str(row["example_id"]): row.get("outer_fold") for row in rows}
@@ -212,8 +229,19 @@ def main():
         nlf_index = indexed(nlf_rows, "natural NLF predictions")
         if set(nlf_index) != set(ids):
             raise ValueError("Natural NLF prediction IDs do not match evaluation IDs")
+        if any("routed" not in nlf_index[key] for key in ids):
+            raise ValueError("Natural NLF rows must include the routed decision")
         nlf = [nlf_index[key]["prediction"] for key in ids]
+        routed = [bool(nlf_index[key]["routed"]) for key in ids]
+        routed_fusion = [
+            ensemble_prediction if selected else baseline_prediction
+            for ensemble_prediction, baseline_prediction, selected in zip(ensemble, b1, routed)
+        ]
         report["results"]["Global-neighbor-memory"] = metrics(expected, nlf)
+        report["results"]["Routed-Score-Fusion"] = {
+            **metrics(expected, routed_fusion),
+            **change_metrics(expected, b1, routed_fusion, routed),
+        }
         report["comparisons"]["ensemble_vs_global_neighbor_memory"] = {
             "orientation": "ensemble_minus_global_neighbor_memory",
             "mcnemar_exact": mcnemar_exact(expected, nlf, ensemble),
@@ -221,6 +249,23 @@ def main():
                 expected, nlf, ensemble, args.bootstrap_samples, args.seed
             ),
         }
+        report["comparisons"]["routed_score_fusion_vs_global_neighbor_memory"] = {
+            "orientation": "routed_score_fusion_minus_global_neighbor_memory",
+            "mcnemar_exact": mcnemar_exact(expected, nlf, routed_fusion),
+            "paired_bootstrap": paired_bootstrap(
+                expected, nlf, routed_fusion, args.bootstrap_samples, args.seed
+            ),
+        }
+        report["comparisons"]["routed_score_fusion_vs_b1"] = {
+            "orientation": "routed_score_fusion_minus_b1",
+            "mcnemar_exact": mcnemar_exact(expected, b1, routed_fusion),
+            "paired_bootstrap": paired_bootstrap(
+                expected, b1, routed_fusion, args.bootstrap_samples, args.seed
+            ),
+        }
+        for row, selected, prediction in zip(rows, routed, routed_fusion):
+            row["memory_global_routed"] = selected
+            row["routed_score_fusion_prediction"] = prediction
     args.output_dir.mkdir(parents=True, exist_ok=True)
     write_jsonl(args.output_dir / "predictions.jsonl", rows)
     atomic_write_json(args.output_dir / "summary.json", report)

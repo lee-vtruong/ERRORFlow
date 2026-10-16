@@ -4,6 +4,7 @@ import sys
 from errorflow.io import write_jsonl
 from scripts.evaluate_v3_quality_budget_controls import main as curve_main
 from scripts.evaluate_v3_score_ensemble import main as ensemble_main
+from scripts.evaluate_v3_supervised_controls import main as supervised_main
 
 
 def rows():
@@ -38,7 +39,7 @@ def test_score_ensemble_grouped(tmp_path, monkeypatch):
     write_jsonl(meta / "per_query_features.jsonl", features)
     write_jsonl(meta / "per_query_predictions.jsonl", [
         {"example_id": row["example_id"], "mode": "natural", "policy": "D1_NLF",
-         "prediction": gold[index]["label"]}
+         "prediction": gold[index]["label"], "routed": True}
         for index, row in enumerate(features)
     ])
     out = tmp_path / "ensemble"
@@ -52,6 +53,8 @@ def test_score_ensemble_grouped(tmp_path, monkeypatch):
     report = json.loads((out / "summary.json").read_text())
     assert report["results"]["Score-Ensemble"]["accuracy"] == 0.5
     assert report["results"]["Global-neighbor-memory"]["accuracy"] == 1.0
+    assert report["results"]["Routed-Score-Fusion"]["accuracy"] == 0.5
+    assert report["results"]["Routed-Score-Fusion"]["routed"] == 4
     assert set(report["weight_selection"]) == {"0", "1", "deployable_source"}
 
 
@@ -74,3 +77,34 @@ def test_quality_budget_controls(tmp_path, monkeypatch):
     assert report["oracle"]["helpful_actions_available"] == 4
     assert report["natural_nlf"]["fraction_of_oracle_helpful_gain"] == 1.0
     assert (out / "quality_budget_curves.csv").exists()
+
+
+def test_supervised_controls_grouped(tmp_path, monkeypatch):
+    gold, b1, a3, features = rows()
+    for index, row in enumerate(gold):
+        row["claim"] = f"claim {index}"
+        row["evidence"] = [{"text": f"evidence {index}"}]
+    for name, payload in (("gold", gold), ("b1", b1), ("a3", a3)):
+        write_jsonl(tmp_path / f"{name}.jsonl", payload)
+    meta = tmp_path / "meta"
+    meta.mkdir()
+    write_jsonl(meta / "per_query_features.jsonl", features)
+    write_jsonl(meta / "per_query_predictions.jsonl", [
+        {"example_id": row["example_id"], "mode": "natural", "policy": "D1_NLF",
+         "prediction": gold[index]["label"], "routed": index < 2}
+        for index, row in enumerate(features)
+    ])
+    out = tmp_path / "supervised"
+    monkeypatch.setattr(sys, "argv", [
+        "evaluate_v3_supervised_controls.py", "--gold", str(tmp_path / "gold.jsonl"),
+        "--baseline", str(tmp_path / "b1.jsonl"), "--candidate", str(tmp_path / "a3.jsonl"),
+        "--meta-dir", str(meta), "--protocol", "grouped_internal",
+        "--route-count", "2", "--bootstrap-samples", "20", "--output-dir", str(out),
+    ])
+    supervised_main()
+    report = json.loads((out / "summary.json").read_text())
+    assert report["target_labels_used_for_fitting_or_selection"] is False
+    assert set(report["results"]) == {
+        "Memory-Global", "Logistic", "Logistic-Interactions", "Boosted-Stumps"
+    }
+    assert all(result["routed"] == 2 for result in report["results"].values())

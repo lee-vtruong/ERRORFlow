@@ -114,3 +114,51 @@ as post-selection evidence and must not call it held-out.
 - Treat HardLabel versus NLF as a backbone-dependent compatibility choice.
 - Describe constant action cost as a threshold shift, not general cost-aware
   planning.
+
+## 5. Routed score fusion
+
+The score-ensemble evaluator now reports `Routed-Score-Fusion`: it preserves
+the exact natural Memory-Global route set and compute budget, but combines the
+Base and Alt label distributions on routed examples instead of replacing the
+Base verdict with Alt. This isolates whether score fusion reduces regression.
+Rerun the commands in Section 1 with a new output directory. The summary
+contains paired tests against both Base and Memory-Global, plus helpful and
+harmful changes.
+
+## 6. Supervised controls at the Memory-Global budget
+
+The supervised-control evaluator compares three fixed models on the same
+pre-action features and same realized route count: three-class logistic,
+logistic with predeclared interactions, and squared-error boosted stumps.
+Grouped AVeriTeC is outer-fold cross-fitted:
+
+```bash
+python scripts/evaluate_v3_supervised_controls.py \
+  --gold data/processed/v2/averitec/train_all.jsonl \
+  --baseline outputs/v3/averitec/development/baseline_scores.jsonl \
+  --candidate outputs/v3/averitec/full_actions/conflicting_rescue_v1.jsonl \
+  --meta-dir outputs/v3/meta_routing_experiments/qwen3_4b/averitec_grouped090 \
+  --protocol grouped_internal --route-count 375 \
+  --output-dir outputs/v3/reviewer_controls/qwen_averitec/supervised_375
+```
+
+For external evaluation, fit once on AVeriTeC and freeze all model parameters:
+
+```bash
+python scripts/evaluate_v3_supervised_controls.py \
+  --gold data/processed/v3/climate_fever/all_official_candidates.jsonl \
+  --baseline outputs/v3/climate_fever/full/conflict_audit_v1.jsonl \
+  --candidate outputs/v3/climate_fever/full/conflicting_rescue_v1.jsonl \
+  --meta-dir outputs/v3/meta_routing_experiments/qwen3_4b/climate_fever \
+  --protocol external \
+  --source-gold data/processed/v2/averitec/train_all.jsonl \
+  --source-baseline outputs/v3/averitec/development/baseline_scores.jsonl \
+  --source-candidate outputs/v3/averitec/full_actions/conflicting_rescue_v1.jsonl \
+  --source-meta-dir outputs/v3/meta_routing_experiments/qwen3_4b/averitec_grouped090 \
+  --output-dir outputs/v3/reviewer_controls/qwen_climate_fever/supervised
+```
+
+Repeat with the SciFact paths in the meta-routing protocol and append
+`--project-conflicting-to-nei`. If `--route-count` is omitted, each external
+control uses the frozen natural Memory-Global count for that target. Target
+labels are read only after routes and predictions are materialized.
