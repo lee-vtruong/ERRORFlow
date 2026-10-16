@@ -447,12 +447,15 @@ $[+.0055,+.0261]$, whereas its macro-F1 interval crosses zero
 ($[-.0025,+.0277]$).  The ensemble nevertheless evaluates both prompts for
 every claim (8.0 forward passes).  The global-neighbor memory router has
 higher point estimates (75.85 accuracy and 56.66 macro-F1) while averaging
-4.49 passes; we treat this as a point-estimate quality--compute comparison
-until the direct paired rerun is complete.  Finally, an oracle that invokes
-A3 exactly on the 192 helpful cases has 6.26 points of available accuracy
-gain.  The natural router's net gain of 56 therefore captures 29.17\% of
-that helpful-correction headroom, leaving substantial room for better
-selection.
+4.49 passes.  Direct pairing does not establish a quality difference:
+ensemble-minus-router accuracy is $-.0023$ (95\% CI
+$[-.0114,+.0062]$, exact McNemar $p=.671$), and macro-F1 is $-.0081$
+(95\% CI $[-.0225,+.0058]$).  Thus the supported advantage is computational:
+the router attains a statistically indistinguishable point on these metrics
+without evaluating A3 for every claim.  Finally, an oracle that invokes A3
+exactly on the 192 helpful cases has 6.26 points of available accuracy gain.
+The natural router's net gain of 56 therefore captures 29.17\% of that
+helpful-correction headroom, leaving substantial room for better selection.
 
 \begin{table*}[t]
 \caption{AVeriTeC matched-budget routing. Every selective router may invoke
