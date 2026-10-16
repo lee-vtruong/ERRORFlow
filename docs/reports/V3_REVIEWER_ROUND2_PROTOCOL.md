@@ -96,12 +96,61 @@ complete supervised-control family.
 
 ## 2. Quality--compute frontiers
 
-Preflight the existing ensemble paths. If an older run used a different final
-directory name, substitute only the discovered directory; do not recompute or
-copy predictions under a misleading name.
+The frontier evaluator does not create score-ensemble predictions. Build the
+three external caches first, using the AVeriTeC-selected mixture coefficient
+without reading target labels. These commands make no LLM calls.
 
 ```bash
-find outputs/v3/reviewer_controls -type f -path '*/score_ensemble*/predictions.jsonl' -print | sort
+SOURCE_ENSEMBLE=(
+  --source-gold data/processed/v2/averitec/train_all.jsonl
+  --source-baseline outputs/v3/averitec/development/baseline_scores.jsonl
+  --source-candidate outputs/v3/averitec/full_actions/conflicting_rescue_v1.jsonl
+  --protocol external --bootstrap-samples 5000 --seed 2026
+)
+
+python scripts/evaluate_v3_score_ensemble.py \
+  --gold data/processed/v3/climate_fever/all_official_candidates.jsonl \
+  --baseline outputs/v3/climate_fever/full/conflict_audit_v1.jsonl \
+  --candidate outputs/v3/climate_fever/full/conflicting_rescue_v1.jsonl \
+  --meta-dir outputs/v3/meta_routing_experiments/qwen3_4b/climate_fever \
+  "${SOURCE_ENSEMBLE[@]}" \
+  --output-dir outputs/v3/reviewer_controls/qwen_climate_fever/score_ensemble_v3
+
+python scripts/evaluate_v3_score_ensemble.py \
+  --gold data/processed/v3/scifact/dev_oracle.jsonl \
+  --baseline outputs/v3/scifact/conflict_audit_v1.jsonl \
+  --candidate outputs/v3/scifact/conflicting_rescue_v1.jsonl \
+  --meta-dir outputs/v3/meta_routing_experiments/qwen3_4b/scifact_oracle \
+  "${SOURCE_ENSEMBLE[@]}" --project-conflicting-to-nei \
+  --output-dir outputs/v3/reviewer_controls/qwen_scifact_oracle/score_ensemble_v3
+
+python scripts/evaluate_v3_score_ensemble.py \
+  --gold data/processed/v3/scifact/dev_retrieved_bm25_top5.jsonl \
+  --baseline outputs/v3/scifact/retrieved_evidence/conflict_audit_v1.jsonl \
+  --candidate outputs/v3/scifact/retrieved_evidence/conflicting_rescue_v1.jsonl \
+  --meta-dir outputs/v3/meta_routing_experiments/qwen3_4b/scifact_bm25 \
+  "${SOURCE_ENSEMBLE[@]}" --project-conflicting-to-nei \
+  --output-dir outputs/v3/reviewer_controls/qwen_scifact_bm25/score_ensemble_v3
+```
+
+Verify exact row counts before proceeding. If any assertion fails, do not run
+the frontier with a substituted file from another protocol.
+
+```bash
+python - <<'PY'
+from pathlib import Path
+expected = {
+    "outputs/v3/reviewer_controls/qwen_averitec/score_ensemble_v3/predictions.jsonl": 3068,
+    "outputs/v3/reviewer_controls/qwen_climate_fever/score_ensemble_v3/predictions.jsonl": 1535,
+    "outputs/v3/reviewer_controls/qwen_scifact_oracle/score_ensemble_v3/predictions.jsonl": 300,
+    "outputs/v3/reviewer_controls/qwen_scifact_bm25/score_ensemble_v3/predictions.jsonl": 300,
+}
+for name, n in expected.items():
+    path = Path(name)
+    rows = sum(1 for line in path.open(encoding="utf-8") if line.strip())
+    print("OK" if rows == n else "BAD", rows, name)
+    assert rows == n
+PY
 ```
 
 ```bash

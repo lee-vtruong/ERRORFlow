@@ -113,6 +113,24 @@ def main():
     parser.add_argument("--project-conflicting-to-nei", action="store_true")
     args = parser.parse_args()
 
+    required_paths = {
+        "--gold": args.gold,
+        "--baseline": args.baseline,
+        "--candidate": args.candidate,
+        "--meta-dir/per_query_features.jsonl": args.meta_dir / "per_query_features.jsonl",
+    }
+    if args.supervised_predictions:
+        required_paths["--supervised-predictions"] = args.supervised_predictions
+    if args.ensemble_predictions:
+        required_paths["--ensemble-predictions"] = args.ensemble_predictions
+    missing = [f"{flag}: {path}" for flag, path in required_paths.items() if not path.is_file()]
+    if missing:
+        parser.error(
+            "missing required artifact(s):\n  " + "\n  ".join(missing)
+            + "\nCreate optional prediction caches before passing their flags, "
+              "or omit the corresponding optional flag."
+        )
+
     gold = indexed(read_jsonl(args.gold), "gold")
     baseline = indexed(read_jsonl(args.baseline), "baseline")
     candidate = indexed(read_jsonl(args.candidate), "candidate")
