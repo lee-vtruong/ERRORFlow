@@ -35,9 +35,10 @@ zero. In-domain cross-fitting raises the CLIMATE-FEVER gain to +2.28 points,
 but native-three-label SciFact memory does not improve Base on train
 cross-validation or frozen train-to-dev evaluation because Alt itself has
 negative net utility. Thus source-memory mismatch is only a partial,
-dataset-dependent explanation. Cross-fitted logistic and
-boosted controls are competitive in source accuracy, while paired intervals
-favor outcome memory in macro-F1; matched controls do not confirm a universal
+dataset-dependent explanation. Unweighted cross-fitted logistic and
+boosted controls are competitive in source accuracy; exploratory paired
+intervals favor outcome memory in macro-F1, but class-balanced controls remain
+necessary before assigning that gap to memory. Matched controls do not confirm a universal
 advantage for global-neighbor compatibility or regression-aware ranking. An
 independent Mistral-7B replication supports selective escalation but favors
 same-label memory, so compatibility is treated as a backbone-dependent
@@ -62,7 +63,7 @@ versioned source memory. A selective router invokes one frozen correction
 action only when neighboring source outcomes indicate positive utility. The
 method records helpful and harmful changes, route rate, and model forward
 passes, enabling matched-budget comparisons against confidence, similarity,
-label-conditional, static, and random routers.
+supervised, same-label-memory, and random routers.
 
 Our experiments emphasize claim boundaries and reproducibility. Source-domain
 evaluation excludes the complete query fold from memory and includes
@@ -75,7 +76,7 @@ The main contributions are:
 \begin{itemize}
   \item an outcome-memory formulation for selecting whether to keep a base
   verdict or invoke one fixed alternative prompt, with no model-weight update;
-  \item matched-budget evaluation against confidence, random, static, and
+  \item matched-budget evaluation against confidence, random, and
   supervised gates, with fold-safe memory exclusion and explicit forward-pass
   accounting; and
   \item cross-domain, retrieved-evidence, and second-backbone experiments that
@@ -316,9 +317,11 @@ trained model.}
 
 We compare the base prompt, always-on alternative prompt, confidence-only,
 same-label memory, and global-neighbor memory in every renewed evaluation.
-Source ablations additionally include random, margin, label-conditional,
-similarity-only, static-pattern, and a cross-fitted logistic gate trained on
-the same pre-action features.
+Source controls additionally include random routing and cross-fitted
+logistic, interaction-augmented logistic, and boosted-stump gates trained on
+the same pre-action features. Earlier exploratory margin, label-conditional,
+similarity-only, and static-pattern artifacts are not part of the renewed
+main comparison.
 Selective controls receive exactly the realized Memory-Global route count. Average model forward
 passes equal $4+4r$, where $r$ is the route rate.
 
@@ -388,32 +391,32 @@ Evaluation & System & Accuracy & Macro-F1 & Route rate & Avg. passes \\
  & Alt-All & 0.7360 & 0.5559 & 1.000 & 8.000 \\
  & Score ensemble & 0.7562 & 0.5585 & 1.000 & 8.000 \\
  & Confidence@Memory-Global budget & 0.7405 & 0.5514 & 0.122 & 4.489 \\
- & Memory-SameLabel & 0.7552 & 0.5577 & 0.112 & 4.447 \\
- & Memory-Global & \textbf{0.7585} & \textbf{0.5666} & 0.122 & 4.489 \\
+ & Memory-SameLabel (natural) & 0.7552 & 0.5577 & 0.112 & 4.447 \\
+ & Memory-Global (natural) & \textbf{0.7585} & \textbf{0.5666} & 0.122 & 4.489 \\
 \midrule
 \multirow{6}{*}{CLIMATE-FEVER}
  & Base & 0.5212 & 0.3808 & 0.000 & 4.000 \\
  & Alt-All & 0.5518 & 0.4393 & 1.000 & 8.000 \\
  & Score ensemble & 0.5518 & 0.4329 & 1.000 & 8.000 \\
  & Confidence@Memory-Global budget & 0.5355 & 0.4159 & 0.190 & 4.761 \\
- & Memory-SameLabel & 0.5375 & 0.4063 & 0.199 & 4.797 \\
- & Memory-Global & 0.5368 & 0.4117 & 0.190 & 4.761 \\
+ & Memory-SameLabel (natural) & 0.5375 & 0.4063 & 0.199 & 4.797 \\
+ & Memory-Global (natural) & 0.5368 & 0.4117 & 0.190 & 4.761 \\
 \midrule
 \multirow{6}{*}{SciFact oracle}
  & Base & 0.6067 & 0.5596 & 0.000 & 4.000 \\
  & Alt-All & 0.8167 & 0.7822 & 1.000 & 8.000 \\
  & Score ensemble & 0.7833 & 0.7291 & 1.000 & 8.000 \\
  & Confidence@Memory-Global budget & 0.6267 & 0.5814 & 0.080 & 4.320 \\
- & Memory-SameLabel & 0.6300 & 0.5931 & 0.087 & 4.347 \\
- & Memory-Global & 0.6300 & 0.5951 & 0.080 & 4.320 \\
+ & Memory-SameLabel (natural) & 0.6300 & 0.5931 & 0.087 & 4.347 \\
+ & Memory-Global (natural) & 0.6300 & 0.5951 & 0.080 & 4.320 \\
 \midrule
 \multirow{6}{*}{SciFact BM25}
  & Base & 0.6100 & 0.5778 & 0.000 & 4.000 \\
  & Alt-All & 0.6367 & 0.6157 & 1.000 & 8.000 \\
  & Score ensemble & 0.6533 & 0.6168 & 1.000 & 8.000 \\
  & Confidence@Memory-Global budget & 0.6067 & 0.5811 & 0.207 & 4.827 \\
- & Memory-SameLabel & 0.6267 & 0.6035 & 0.187 & 4.747 \\
- & Memory-Global & 0.6300 & 0.6075 & 0.207 & 4.827 \\
+ & Memory-SameLabel (natural) & 0.6267 & 0.6035 & 0.187 & 4.747 \\
+ & Memory-Global (natural) & 0.6300 & 0.6075 & 0.207 & 4.827 \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -485,28 +488,30 @@ Confidence & 375 & .7405 & .5514 & -- & -- & 4.489 \\
 Logistic & 375 & .7562 & .5503 & 87 & 38 & 4.489 \\
 Logistic + interactions & 375 & .7575 & .5493 & 89 & 36 & 4.489 \\
 Boosted stumps & 375 & .7552 & .5460 & 82 & 36 & 4.489 \\
-Memory-SameLabel & 375 & .7562 & .5622 & 99 & 50 & 4.489 \\
+Memory-SameLabel@375 & 375 & .7562 & .5622 & 99 & 50 & 4.489 \\
 Routed score fusion & 375 & .7581 & .5594 & 79 & 24 & 4.489 \\
-Memory-Global & 375 & \textbf{.7585} & \textbf{.5666} & 94 & 38 & 4.489 \\
+Memory-Global@375 & 375 & \textbf{.7585} & \textbf{.5666} & 94 & 38 & 4.489 \\
 \bottomrule
 \end{tabular}
 \end{table*}
 
 Table~\ref{tab:matched} shows that supervised gates are close to
-Memory-Global in accuracy at the same budget. However, Memory-Global has a
-positive paired macro-F1 interval over logistic, logistic with interactions,
-and boosted stumps (Table~\ref{tab:stats}); their accuracy intervals all cross
-zero. Routed score fusion reduces harmful changes from 38 to 24 but also loses
-15 helpful changes, leaving accuracy unchanged and significantly reducing
-macro-F1. Thus the evidence supports a class-balance advantage for
-non-parametric outcome retrieval, not a general accuracy advantage over every
-supervised predictor. The component ablations below separate memory utility
+Memory-Global in accuracy at the same budget. The unweighted gates have
+positive paired Memory-Global-minus-control macro-F1 intervals
+(Table~\ref{tab:stats}), while their accuracy intervals cross zero. These
+intervals are exploratory and are not multiplicity-adjusted; class-weighted
+and per-Base-label calibrated logistic controls are required before attributing
+the gap to non-parametric memory. Routed score fusion reduces harmful changes
+from 38 to 24 but also loses 15 helpful changes. Its small macro-F1 difference
+has a positive unadjusted interval but is not treated as a corrected
+significance claim. The component ablations below separate memory utility
 from neighbor representation.
 
 \begin{table*}[t]
 \caption{Direct comparisons against Memory-Global on grouped AVeriTeC.
 Selective controls use 375 routes. Deltas are Memory-Global minus the named
-control; $p$ is the unadjusted exact two-sided McNemar test.}
+control; $p$ and bootstrap intervals are unadjusted across this comparison
+family.}
 \label{tab:stats}
 \centering\small
 \begin{tabular}{lrrrrr}
@@ -601,10 +606,11 @@ three paired macro-F1 intervals favoring memory are respectively
 $[+.0051,+.0397]$, $[+.0012,+.0350]$, and $[+.0051,+.0374]$, while accuracy
 comparisons are inconclusive. On SciFact oracle, Memory-Global also exceeds
 plain logistic and boosted stumps in macro-F1, whereas the interaction model
-is inconclusive; all BM25 supervised comparisons are inconclusive. Thus
-non-parametric memory retains a class-balance advantage over these learned
-source gates, but none approaches the external quality of Alt-All where Alt
-has a high target-domain benefit rate.
+is inconclusive; all BM25 supervised comparisons are inconclusive. These
+unweighted controls leave a possible class-balance advantage, but the claim is
+provisional until outcome-balanced and per-Base-label calibrated gates are
+evaluated. None approaches the external quality of Alt-All where Alt has a
+high target-domain benefit rate.
 
 \subsection{In-Domain Memory Test}
 
@@ -748,40 +754,40 @@ Memory-Global & 375 & \textbf{75.85} & \textbf{56.66} & -- \\
 
 \paragraph{Outcome memory matters.}
 Destroying the association between retrieval features and observed outcomes
-(NA3) reduces mean accuracy and macro-F1 relative to NA0. At seed 2026, NA0
-exceeds NA3 by 1.86 accuracy and 2.46 macro-F1 points; the correctness
+with a stratified shuffle reduces mean accuracy and macro-F1 relative to
+Memory-Global. At seed 2026, Memory-Global exceeds the shuffled control by
+1.86 accuracy and 2.46 macro-F1 points; the correctness
 comparison remains significant after Holm correction
 ($p=1.03\times10^{-5}$), and both paired intervals are positive. Random memory
-(NA2) also underperforms NA0 by 1.96 accuracy and 1.87 macro-F1 points on
+also underperforms Memory-Global by 1.96 accuracy and 1.87 macro-F1 points on
 20-seed means; the predeclared-seed paired intervals are positive and the
 Holm-adjusted correctness test is significant
 ($p=3.81\times10^{-7}$). Thus both outcome identity and neighbor ranking carry
 information beyond memory access alone.
 
 \paragraph{Instance-level versus class-level memory.}
-NA0 exceeds the class-conditional estimator NA5 by 0.52 accuracy and 2.13
+Memory-Global exceeds the class-conditional estimator by 0.52 accuracy and 2.13
 macro-F1 points. The Holm-adjusted correctness test is null ($p=.609$), while
 the paired macro-F1 interval is positive [.0085,.0351]. This supports a
 class-balance benefit without establishing a corrected accuracy advantage.
-The historical B5 and B15 implementations call the same
-class-conditional estimator used by NA5 and produce identical outputs; B5 is therefore
-retained only in the artifact.
+Two historical class-conditional implementations call the same estimator and
+produce identical outputs; the duplicate is retained only in the artifact.
 
 \paragraph{Regression-aware utility.}
-Removing the regression term (NA6) lowers matched-budget accuracy by 0.07 and
-macro-F1 by 0.35 points relative to NA0; neither paired difference is
-established. More importantly, NA6's natural $U>0$ rule routes all 3,068
-claims, yielding 192 helpful but 205 harmful changes (net $-13$), whereas NA0
+Removing the regression term lowers matched-budget accuracy by 0.07 and
+macro-F1 by 0.35 points relative to Memory-Global; neither paired difference
+is established. More importantly, its natural $U>0$ rule routes all 3,068
+claims, yielding 192 helpful but 205 harmful changes (net $-13$), whereas Memory-Global
 routes 375 with net $+56$. The experiment supports regression modeling as a
 mechanism for selective abstention, but does not establish a fixed-budget
 quality advantage.
 
 The remaining extreme controls reinforce the same boundary. The global prior
-(NA4) and correct-only memory (NA8) do not route naturally; forcing each to the
-375-example budget produces net changes of $-14$ and $-4$. NA0 exceeds both
+and correct-only memory do not route naturally; forcing each to the
+375-example budget produces net changes of $-14$ and $-4$. Memory-Global exceeds both
 with positive paired accuracy and macro-F1 intervals after the declared
-multiple-comparison protocol. Error-only memory (NA7), by contrast, is a
-competitive reduced control: its matched differences from NA0 are
+multiple-comparison protocol. Error-only memory, by contrast, is a
+competitive reduced control: its matched differences from Memory-Global are
 inconclusive, motivating the budget analysis below rather than a claim of
 uniform dominance.
 
@@ -794,23 +800,23 @@ the canonical \texttt{[\textbackslash w'-]+} token boundary. This distinction
 matters because removing the hard label filter changes both the candidate pool
 and top-five neighborhood; historical Memory-SameLabel removals are not treated as
 proofs about the final router. Table~\ref{tab:nc-main} fixes every variant to
-the same 375-route budget and compares it with NC0.
+the same 375-route budget and compares it with full Memory-Global.
 
 \begin{table*}[t]
 \caption{Similarity-component ablations for final Memory-Global on grouped
 AVeriTeC. All rows route 375 claims. Holm $p$ compares matched accuracy with
-NC0 across NC1--NC8.}
+full Memory-Global across the eight declared substitutions.}
 \label{tab:nc-main}
 \centering\small
-\begin{tabular}{llrrr}
+\begin{tabular}{lrrr}
 \toprule
-ID & Variant & Accuracy (\%) $\uparrow$ & Macro-F1 (\%) $\uparrow$ & Holm $p_{\rm Acc}$ \\
+Variant & Accuracy (\%) $\uparrow$ & Macro-F1 (\%) $\uparrow$ & Holm $p_{\rm Acc}$ \\
 \midrule
-NC0 & Full Memory-Global similarity & \textbf{75.85} & 56.66 & -- \\
-NC1 & w/o claim Jaccard & 75.52 & 56.12 & .486 \\
-NC2 & w/o label-score similarity & 74.28 & 55.68 & $4.30{\times}10^{-4}$ \\
-NC3 & w/o evidence length & 75.33 & 54.96 & .400 \\
-NC4 & Uniform component weights & 75.26 & \textbf{56.67} & .164 \\
+Full Memory-Global similarity & \textbf{75.85} & 56.66 & -- \\
+w/o claim Jaccard & 75.52 & 56.12 & .486 \\
+w/o label-score similarity & 74.28 & 55.68 & $4.30{\times}10^{-4}$ \\
+w/o evidence length & 75.33 & 54.96 & .400 \\
+Uniform component weights & 75.26 & \textbf{56.67} & .164 \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -819,14 +825,14 @@ Label-score similarity supplies the clearest independent signal: removing it
 reduces accuracy by 1.56 points, with a positive paired interval
 [.0078,.0231] and a Holm-significant exact test. Removing evidence length has
 a smaller, statistically inconclusive accuracy effect, but lowers macro-F1 by
-1.69 points with a positive NC0-minus-NC3 interval [.0069,.0283]. Removing
+1.69 points with a positive full-minus-ablation interval [.0069,.0283]. Removing
 claim Jaccard lowers both point estimates, yet both intervals include zero.
-Uniform weighting slightly exceeds NC0 macro-F1 by .01 point while losing .59
+Uniform weighting slightly exceeds full Memory-Global macro-F1 by .01 point while losing .59
 accuracy point; the corrected accuracy test is null. Thus the evidence does
 not establish that every component is individually necessary or that the
 manual .35/.50/.15 weights outperform uniform weighting. Label-score-only,
 Hellinger, Jensen--Shannon, and TF--IDF substitutions are reported in the
-appendix; NC0 significantly exceeds Hellinger and Jensen--Shannon in corrected
+appendix; full Memory-Global significantly exceeds Hellinger and Jensen--Shannon in corrected
 accuracy, but not TF--IDF claim similarity.
 
 The compatibility decision itself remains a design-selection result rather
@@ -849,50 +855,51 @@ neighbor is causally helpful.
 \label{sec:cross-label-mechanism}
 
 Table~\ref{tab:cross-label-mechanism} separates access to a larger candidate
-pool from direct use of cross-label corrective outcomes. NB3 first retrieves
+pool from direct use of cross-label corrective outcomes. The suppression control first retrieves
 the unchanged Memory-Global top five and then removes cross-label outcome contributions
 without backfilling; fewer than two remaining records makes the query
-unroutable. NB4 preserves similarities and same-label outcomes but permutes
-cross-label outcomes within source-fold/source-label strata. NB4 reports the
-predeclared seed 2026 in the table and 20 seeds for sensitivity. NB8 is the
-strict support/abstention control: it retains NB0's exact global top five,
+unroutable. The shuffle control preserves similarities and same-label outcomes but permutes
+cross-label outcomes within source-fold/source-label strata. It reports the
+predeclared seed 2026 in the table and 20 seeds for sensitivity. The strict
+support/abstention control retains Memory-Global's exact global top five,
 similarity denominator, cost, support count, and minimum-support decision, but
 sets cross-label recovery/regression outcomes to zero.
 
 \begin{table*}[t]
 \caption{Cross-label mechanism ablations on grouped AVeriTeC. Matched mode
-uses the 375-route NB0 budget. Holm $p$ compares matched accuracy with NB0;
-NB4 inference uses seed 2026.}
+uses the 375-route Memory-Global budget. Holm $p$ compares matched accuracy
+with Memory-Global;
+the shuffle inference uses seed 2026.}
 \label{tab:cross-label-mechanism}
 \centering\small
 \begin{tabular}{lrrrrrr}
 \toprule
 Variant & Natural routes & Natural Acc. & Natural F1 & Matched Acc. & Matched F1 & Holm $p_{\rm Acc}$ \\
 \midrule
-NB0 Full Memory-Global & 375 & \textbf{75.85} & \textbf{56.66} & \textbf{75.85} & \textbf{56.66} & -- \\
-NB1 Memory-SameLabel & 343 & 75.52 & 55.77 & 75.62 & 56.22 & 1.000 \\
-NB2 Cross-label only & 1,128 & 73.17 & 55.08 & 73.79 & 54.71 & $8.83{\times}10^{-7}$ \\
-NB3 Suppress cross-label outcomes & 330 & \textbf{75.85} & 56.60 & 75.81 & 56.64 & 1.000 \\
-NB4 Shuffle cross-label outcomes & 358 & 75.68 & 56.40 & 75.65 & 56.52 & 1.000 \\
-NB5 Same-label priority & 343 & 75.52 & 55.77 & 75.62 & 56.22 & 1.000 \\
-NB6 Soft penalty (.5) & 343 & 75.52 & 55.77 & 75.62 & 56.22 & 1.000 \\
-NB7 Quota 1 & 370 & 75.59 & 56.03 & 75.55 & 56.06 & .381 \\
-NB7 Quota 2 & 371 & 75.65 & 56.39 & 75.59 & 56.34 & .270 \\
-NB8 Same-label outcomes, global support & 333 & \textbf{75.85} & 56.55 & 75.81 & 56.63 & 1.000 \\
+Full Memory-Global & 375 & \textbf{75.85} & \textbf{56.66} & \textbf{75.85} & \textbf{56.66} & -- \\
+Memory-SameLabel & 343 & 75.52 & 55.77 & 75.62 & 56.22 & 1.000 \\
+Cross-label only & 1,128 & 73.17 & 55.08 & 73.79 & 54.71 & $8.83{\times}10^{-7}$ \\
+Suppress cross-label outcomes & 330 & \textbf{75.85} & 56.60 & 75.81 & 56.64 & 1.000 \\
+Shuffle cross-label outcomes & 358 & 75.68 & 56.40 & 75.65 & 56.52 & 1.000 \\
+Same-label priority & 343 & 75.52 & 55.77 & 75.62 & 56.22 & 1.000 \\
+Soft label penalty (.5) & 343 & 75.52 & 55.77 & 75.62 & 56.22 & 1.000 \\
+Cross-label quota 1 & 370 & 75.59 & 56.03 & 75.55 & 56.06 & .381 \\
+Cross-label quota 2 & 371 & 75.65 & 56.39 & 75.59 & 56.34 & .270 \\
+Same-label outcomes, global support & 333 & \textbf{75.85} & 56.55 & 75.81 & 56.63 & 1.000 \\
 \bottomrule
 \end{tabular}
 \end{table*}
 
-Cross-label memory is complementary rather than sufficient. NB2 routes 36.8\%
+Cross-label memory is complementary rather than sufficient. Cross-label-only retrieval routes 36.8\%
 of examples naturally but yields net $-26$ corrections and is significantly
-worse than NB0 after Holm correction. Conversely, NB3 matches NB0 natural
+worse than Memory-Global after Holm correction. Conversely, suppressing cross-label outcomes matches Memory-Global natural
 accuracy with 45 fewer routes and differs negligibly at matched budget; both
-paired intervals cross zero. The 20-seed NB4 matched means are
+paired intervals cross zero. The 20-seed shuffle matched means are
 .7575 accuracy ($\mathrm{sd}=.0009$) and .5663 macro-F1
-($\mathrm{sd}=.0014$), again close to NB0, with null seed-2026 paired tests.
-NB8 likewise matches NB0 natural accuracy and net correction ($+56$), while
+($\mathrm{sd}=.0014$), again close to Memory-Global, with null seed-2026 paired tests.
+The global-support control likewise matches Memory-Global natural accuracy and net correction ($+56$), while
 routing 333 rather than 375 claims. At matched budget it differs by only
-$+.03$ accuracy point and $+.03$ macro-F1 point in favor of NB0; both paired
+$+.03$ accuracy point and $+.03$ macro-F1 point in favor of Memory-Global; both paired
 intervals cross zero and the Holm-adjusted accuracy test is 1.0. Therefore
 these experiments do not establish that instance-specific cross-label
 outcomes directly cause Memory-Global's gain.
@@ -902,11 +909,11 @@ same-label records in the global top five, thereby changing support and
 selective abstention even when their outcomes are suppressed. Cross-label
 neighbors occur for 339/3,068 queries (11.05\%), but for 123/375 naturally
 routed queries (32.8\%); 90 natural route decisions differ from Memory-SameLabel.
-NB5 and NB6 exactly reproduce Memory-SameLabel because same-label records fill the
+Same-label priority and soft label penalty exactly reproduce Memory-SameLabel because same-label records fill the
 neighborhood and a .5 penalty prevents cross-label entry. Quotas interpolate
 between the endpoints, but their Holm-adjusted exact tests are null despite
-bootstrap intervals favoring NB0. In this mechanism harness, CPU lookup means
-are 38.2 ms for NB0 and 17.4 ms for Memory-SameLabel; the dual-pool soft/quota
+bootstrap intervals favoring Memory-Global. In this mechanism harness, CPU lookup means
+are 38.2 ms for Memory-Global and 17.4 ms for Memory-SameLabel; the dual-pool soft/quota
 implementations require about 40.4 ms. These run-specific routing-only
 measurements are not end-to-end latency.
 
@@ -914,7 +921,8 @@ measurements are not end-to-end latency.
 \label{sec:utility-ablation}
 
 Table~\ref{tab:utility-ablation} separates utility estimation from neighbor
-retrieval. Matched rows use the 375-route ND0 budget. ND6 is not a matched
+retrieval. Matched rows use the 375-route Memory-Global budget. Nested
+threshold calibration is not a matched
 comparison: it selects one threshold per target fold using only the remaining
 source folds and routes 393 claims.
 
@@ -924,31 +932,32 @@ Natural recovery-only and regression-only scores are positive for every
 claim, so both invoke Alt-All; matched columns isolate ranking quality.}
 \label{tab:utility-ablation}
 \centering\small
-\begin{tabular}{llrrrr}
+\begin{tabular}{lrrrr}
 \toprule
-ID & Utility/decision rule & Natural routes & Natural Acc. & Matched Acc. & Matched F1 \\
+Utility/decision rule & Natural routes & Natural Acc. & Matched Acc. & Matched F1 \\
 \midrule
-ND0 & Recovery $-$ regression $-$ cost & 375 & \textbf{75.85} & \textbf{75.85} & 56.66 \\
-ND1 & Recovery only & 3,068 & 73.60 & 75.78 & 56.31 \\
-ND2 & Unsmoothed signed outcome & 375 & \textbf{75.85} & \textbf{75.85} & 56.66 \\
-ND3 & Source-prior shrinkage & 375 & \textbf{75.85} & \textbf{75.85} & 56.66 \\
-ND4 & Low regression only & 3,068 & 73.60 & 73.99 & 54.62 \\
-ND6 & Nested calibrated threshold & 393 & \textbf{75.85} & -- & \textbf{56.74}$\dagger$ \\
+Recovery $-$ regression $-$ cost & 375 & \textbf{75.85} & \textbf{75.85} & 56.66 \\
+Recovery only & 3,068 & 73.60 & 75.78 & 56.31 \\
+Unsmoothed signed outcome & 375 & \textbf{75.85} & \textbf{75.85} & 56.66 \\
+Source-prior shrinkage & 375 & \textbf{75.85} & \textbf{75.85} & 56.66 \\
+Low regression only & 3,068 & 73.60 & 73.99 & 54.62 \\
+Nested calibrated threshold & 393 & \textbf{75.85} & -- & \textbf{56.74}$\dagger$ \\
 \bottomrule
-\multicolumn{6}{l}{\footnotesize $\dagger$Natural nested result; not a 375-route comparison.} \\
+\multicolumn{5}{l}{\footnotesize $\dagger$Natural nested result; not a 375-route comparison.} \\
 \end{tabular}
 \end{table*}
 
 Symmetric smoothing and source-prior shrinkage produce exactly the same route
-set and final predictions as ND0 at this operating point. ND2 nevertheless
+set and final predictions as the full utility at this operating point. The
+unsmoothed variant nevertheless
 changes utility ranks for 933 claims, with a maximum absolute shift of 350,
 showing that prediction equality does not imply identical scores. This agrees
 with the algebra in Section~4: symmetric pseudo-counts cancel in the signed
 numerator and mainly rescale it relative to the fixed cost term. Recovery-only
-is indistinguishable from ND0 at matched budget, but its natural rule routes
+is indistinguishable from the full utility at matched budget, but its natural rule routes
 all claims and yields net $-13$; the regression term is therefore important
 for abstention, not proven superior for fixed-budget ranking. Regression-only
-is inadequate: ND0 exceeds it by 1.86 accuracy and 2.04 macro-F1 points, with
+is inadequate: the full utility exceeds it by 1.86 accuracy and 2.04 macro-F1 points, with
 Holm $p=4.88\times10^{-6}$ and positive paired intervals.
 
 Threshold sensitivity is locally flat: thresholds $-.05$ and $0$ select the
@@ -959,8 +968,7 @@ externally retuned operating policy.
 
 \subsection{Budget and Memory-Composition Sensitivity}
 
-The final Memory-Global sweep compares full outcome memory (NA0), error-only memory
-(NA7),
+The final Memory-Global sweep compares full outcome memory, error-only memory,
 recovery-only utility, outcome shuffle, and confidence routing under exactly
 matched route counts. Error-only memory is stronger than full memory at 5\%
 and marginally at 10\%; full memory is stronger at 11.18\%, ties at 15\%, and
@@ -1147,15 +1155,15 @@ heterogeneous-cost optimality. \\
 \end{tabular}
 \end{table}
 
-On external settings, always-on Alt is stronger than the selective router. A
-source-selected score ensemble also exceeds memory on CLIMATE-FEVER and has
-the strongest SciFact-BM25 accuracy point estimate, while Alt-All remains
-significantly stronger than the ensemble on SciFact oracle. Therefore, when
-eight forwards per claim are acceptable, the current external results favor
-always-on inference rather than ERRORFlow. The router's practical role is a
-compute-constrained operating point: it retains part of the quality gain at
-roughly 4.3--4.8 average forwards, not a quality-dominant replacement for
-Alt-All. In-domain memory confirms this source-mismatch account on
+External behavior is protocol-dependent. Alt-All dominates selective routing
+on SciFact oracle; on CLIMATE-FEVER the score ensemble exceeds Memory-Global
+by 1.50 accuracy and 2.12 macro-F1 points. On SciFact BM25, however, Alt-All's
+accuracy advantage over Memory-Global is only 0.67 point and has not been
+confirmed by a direct paired test, while the score ensemble has the strongest
+point estimate. Thus eight-forward inference is clearly preferable only in
+some external conditions. The router's practical role is a compute-constrained
+operating point at roughly 4.3--4.8 average forwards, not a universally
+quality-dominant replacement for Alt-All. In-domain memory confirms this source-mismatch account on
 CLIMATE-FEVER, but SciFact does not: under matched native-three-label prompts,
 Alt is harmful on both train and dev, so the limiting factor is action quality
 rather than memory provenance. Memory mismatch is therefore a
@@ -1169,14 +1177,14 @@ learning or general cost-aware planning.
 The memory ablations sharpen this interpretation. Shuffling outcomes degrades
 both metrics and is rejected by the multiplicity-corrected correctness test,
 showing that the feature--outcome association contains routing information.
-However, recovery-only utility is statistically indistinguishable from NA0 at
+However, recovery-only utility is statistically indistinguishable from Memory-Global at
 375 routes, and error-only memory is stronger at low budgets. Harmful outcomes
 therefore help define selective coverage and the higher-budget frontier, but
 their inclusion is not uniformly beneficial at every operating point.
 
 The Memory-Global mechanism ablation further limits the interpretation. Cross-label-only
 memory is harmful, while suppressing or shuffling cross-label outcomes does
-not significantly reduce matched performance. The stricter NB8 control also
+not significantly reduce matched performance. The stricter global-support control also
 preserves Memory-Global's global support and abstention geometry while neutralizing
 cross-label outcomes, yet remains statistically indistinguishable. The
 current evidence therefore supports compatibility relaxation, global
@@ -1268,7 +1276,7 @@ ERRORFlow shows that a frozen alternative prompt can be invoked selectively
 using non-parametric source action outcomes. The method reduces second-pass
 compute and improves the base prompt in several studied protocols, but not
 under native-three-label SciFact in-domain evaluation. Always-on correction
-is stronger on the original external conditions and a supervised logistic
+is stronger on some original external conditions and a supervised logistic
 gate is competitive on source development. The evidence therefore supports
 memory-based selective prompt escalation, not a uniquely optimal kNN router,
 cross-label knowledge transfer, or general cost-aware planning. Compatibility
@@ -1297,6 +1305,31 @@ the released artifacts auditable: Base corresponds to \texttt{B1}, Alt to
 NB, NC, and ND denote outcome-memory, cross-label-mechanism,
 similarity-component, and utility ablations, respectively. Tables below show
 IDs only where they are needed to locate prediction-level artifacts.
+
+\begin{table*}[t]
+\caption{Single lookup table for historical artifact IDs retained in the
+appendix. Main-text tables use semantic names only.}
+\label{tab:artifact-id-map}
+\centering\scriptsize
+\begin{tabular}{llll}
+\toprule
+Artifact ID & Semantic configuration & Artifact ID & Semantic configuration \\
+\midrule
+A0 & Full Memory-SameLabel & A1/A4/A8 & Without claim / label-only / random neighbors \\
+B2/B3 & Claim-nearest / score-nearest & B11 & Regression-only utility \\
+B12/B13 & Size-matched full / mixed memory & B16/B17 & Uniform outcomes / calibrated threshold \\
+NA0 & Full Memory-Global & NA2/NA3 & Random neighbors / stratified outcome shuffle \\
+NA4/NA5 & Global / class-conditional prior & NA6 & Recovery-only utility \\
+NA7/NA8 & Error-only / correct-only memory & NB0/NB1 & Memory-Global / Memory-SameLabel \\
+NB2/NB3 & Cross-label only / suppress cross-label outcomes & NB4 & Shuffle cross-label outcomes \\
+NB5/NB6 & Same-label priority / soft label penalty & NB7 & Cross-label quota (one or two) \\
+NB8 & Same-label outcomes with global support & NC0 & Full Memory-Global similarity \\
+NC1--NC4 & Three removals / uniform weights & NC5--NC8 & Label-only / Hellinger / JS / TF--IDF \\
+ND0/ND1 & Full / recovery-only utility & ND2/ND3 & Unsmoothed / source-prior shrinkage \\
+ND4/ND6 & Regression-only / calibrated threshold & C0/C7 & Historical same-label / no-label-filter sweep \\
+\bottomrule
+\end{tabular}
+\end{table*}
 
 \section{Prompt and Scoring Details}
 The rendered prompt is plain text, not a chat template. Evidence order is
@@ -1350,7 +1383,7 @@ estimates from independently recomputed fold-excluded top-five memories.}
 \centering\small
 \begin{tabular}{lp{.33\textwidth}lllrr}
 \toprule
-ID & Claim & Gold & Base & Alt & $U_{\rm Memory-Global}$ & $U_{\rm Hard}$ \\
+ID & Claim & Gold & Base & Alt & $U_{\rm Memory-Global}$ & $U_{\rm SameLabel}$ \\
 \midrule
 train:675 & Russia exposes COVID-19 with scientific data as a hoax and calls
 the pandemic fake. & REF & REF & CON & $-.3391$ & $+.0176$ \\
@@ -1378,7 +1411,7 @@ Memory-Global neighborhood contains four cross-label memories (two helpful and t
 neutral) plus one same-label harmful memory; its small positive utility invokes
 Alt ($\widehat R=.438,\widehat G=.316,\widehat C=1,U=.0219$) and recovers the
 example. These traces demonstrate possible mechanisms,
-not an aggregate causal effect: NB8 and the shuffle controls remain null.
+not an aggregate causal effect: the global-support and shuffle controls remain null.
 
 \section{Statistical Detail and Negative Findings}
 For grouped AVeriTeC, Memory-Global changes 94 errors to correct and 38 correct

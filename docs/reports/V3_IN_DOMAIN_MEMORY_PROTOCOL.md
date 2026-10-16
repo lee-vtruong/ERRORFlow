@@ -37,9 +37,9 @@ for f in \
   data/processed/v3/climate_fever/all_official_candidates.jsonl \
   outputs/v3/climate_fever/full/conflict_audit_v1.jsonl \
   outputs/v3/climate_fever/full/conflicting_rescue_v1.jsonl \
-  data/raw/scifact/corpus.jsonl \
-  data/raw/scifact/claims_train.jsonl \
-  data/raw/scifact/claims_dev.jsonl
+  data/raw/scifact/data/corpus.jsonl \
+  data/raw/scifact/data/claims_train.jsonl \
+  data/raw/scifact/data/claims_dev.jsonl
 do
   test -f "$f" && echo "OK $f" || echo "MISSING $f"
 done
@@ -70,13 +70,13 @@ tar -xzf "$SCIFACT_TMP/data.tar.gz" -C "$SCIFACT_TMP"
 
 CLAIMS_TRAIN=$(find "$SCIFACT_TMP" -type f -name claims_train.jsonl -print -quit)
 test -n "$CLAIMS_TRAIN"
-install -m 0644 "$CLAIMS_TRAIN" data/raw/scifact/claims_train.jsonl
+install -m 0644 "$CLAIMS_TRAIN" data/raw/scifact/data/claims_train.jsonl
 
-wc -l data/raw/scifact/claims_train.jsonl
-sha256sum data/raw/scifact/claims_train.jsonl
+wc -l data/raw/scifact/data/claims_train.jsonl
+sha256sum data/raw/scifact/data/claims_train.jsonl
 python - <<'PY'
 import json
-path = "data/raw/scifact/claims_train.jsonl"
+path = "data/raw/scifact/data/claims_train.jsonl"
 rows = [json.loads(line) for line in open(path, encoding="utf-8") if line.strip()]
 print("rows:", len(rows))
 print("unique_ids:", len({str(row["id"]) for row in rows}))
@@ -117,8 +117,8 @@ echo "PIPELINE_EXIT=${PIPESTATUS[0]}"
 
 ```bash
 python scripts/prepare_scifact_oracle.py \
-  --corpus data/raw/scifact/corpus.jsonl \
-  --claims data/raw/scifact/claims_train.jsonl \
+  --corpus data/raw/scifact/data/corpus.jsonl \
+  --claims data/raw/scifact/data/claims_train.jsonl \
   --split train \
   --output data/processed/v3/scifact/train_oracle.jsonl \
   --manifest data/processed/v3/scifact/train_oracle_manifest.json
@@ -128,8 +128,8 @@ python scripts/prepare_scifact_oracle.py \
 
 ```bash
 python scripts/prepare_scifact_retrieved.py \
-  --corpus data/raw/scifact/corpus.jsonl \
-  --claims data/raw/scifact/claims_train.jsonl \
+  --corpus data/raw/scifact/data/corpus.jsonl \
+  --claims data/raw/scifact/data/claims_train.jsonl \
   --split train \
   --output data/processed/v3/scifact/train_retrieved_bm25_top5.jsonl \
   --manifest data/processed/v3/scifact/train_retrieved_bm25_top5_manifest.json \

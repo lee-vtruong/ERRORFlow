@@ -5,6 +5,7 @@ from errorflow.io import write_jsonl
 from scripts.evaluate_v3_quality_budget_controls import main as curve_main
 from scripts.evaluate_v3_score_ensemble import main as ensemble_main
 from scripts.evaluate_v3_supervised_controls import main as supervised_main
+from scripts.select_v3_compatibility_rule import main as compatibility_main
 
 
 def rows():
@@ -65,18 +66,35 @@ def test_quality_budget_controls(tmp_path, monkeypatch):
     meta = tmp_path / "meta"
     meta.mkdir()
     write_jsonl(meta / "per_query_features.jsonl", features)
+    supervised = tmp_path / "supervised.jsonl"
+    write_jsonl(supervised, [
+        {"example_id": row["example_id"], "method": "Logistic", "score": float(index)}
+        for index, row in enumerate(features)
+    ])
+    ensemble = tmp_path / "ensemble.jsonl"
+    write_jsonl(ensemble, [
+        {"example_id": row["example_id"], "prediction": gold[index]["label"]}
+        for index, row in enumerate(features)
+    ])
     out = tmp_path / "curves"
     monkeypatch.setattr(sys, "argv", [
         "evaluate_v3_quality_budget_controls.py", "--gold", str(tmp_path / "gold.jsonl"),
         "--baseline", str(tmp_path / "b1.jsonl"), "--candidate", str(tmp_path / "a3.jsonl"),
         "--meta-dir", str(meta), "--output-dir", str(out),
         "--budgets", "0", "0.5", "1", "--random-seeds", "1", "2",
+        "--supervised-predictions", str(supervised),
+        "--supervised-methods", "Logistic",
+        "--ensemble-predictions", str(ensemble),
     ])
     curve_main()
     report = json.loads((out / "summary.json").read_text())
     assert report["oracle"]["helpful_actions_available"] == 4
     assert report["natural_nlf"]["fraction_of_oracle_helpful_gain"] == 1.0
+    assert report["supervised_methods"] == ["Logistic"]
+    assert report["score_ensemble_included"] is True
     assert (out / "quality_budget_curves.csv").exists()
+    csv_lines = (out / "quality_budget_curves.csv").read_text().splitlines()
+    assert any("Score-Ensemble" in row for row in csv_lines)
 
 
 def test_supervised_controls_grouped(tmp_path, monkeypatch):
@@ -105,6 +123,46 @@ def test_supervised_controls_grouped(tmp_path, monkeypatch):
     report = json.loads((out / "summary.json").read_text())
     assert report["target_labels_used_for_fitting_or_selection"] is False
     assert set(report["results"]) == {
-        "Memory-Global", "Logistic", "Logistic-Interactions", "Boosted-Stumps"
+        "Memory-Global", "Logistic", "Logistic-BalancedOutcome",
+        "Logistic-PerLabelRank", "Logistic-Interactions", "Boosted-Stumps"
     }
     assert all(result["routed"] == 2 for result in report["results"].values())
+    assert all("per_class" in result for result in report["results"].values())
+    assert all(
+        "holm_accuracy_p" in comparison
+        for comparison in report["comparisons"].values()
+    )
+    assert all(
+        "bonferroni_familywise_interval" in comparison
+        for comparison in report["comparisons"].values()
+    )
+
+
+def test_group_safe_compatibility_selection(tmp_path, monkeypatch):
+    gold, _, _, features = rows()
+    write_jsonl(tmp_path / "gold.jsonl", gold)
+    meta = tmp_path / "meta"
+    meta.mkdir()
+    write_jsonl(meta / "per_query_features.jsonl", features)
+    predictions = []
+    for row, target in zip(features, gold):
+        key = row["example_id"]
+        wrong = "REFUTED" if target["label"] == "SUPPORTED" else "SUPPORTED"
+        predictions.extend([
+            {"example_id": key, "mode": "natural", "policy": "D0_HardLabel",
+             "prediction": wrong, "routed": False},
+            {"example_id": key, "mode": "natural", "policy": "D1_NLF",
+             "prediction": target["label"], "routed": True},
+        ])
+    write_jsonl(meta / "per_query_predictions.jsonl", predictions)
+    out = tmp_path / "compatibility"
+    monkeypatch.setattr(sys, "argv", [
+        "select_v3_compatibility_rule.py", "--gold", str(tmp_path / "gold.jsonl"),
+        "--meta-dir", str(meta), "--output-dir", str(out),
+        "--bootstrap-samples", "20",
+    ])
+    compatibility_main()
+    report = json.loads((out / "summary.json").read_text())
+    assert report["all_source_deployment_choice"]["selected_rule"] == "Memory-Global"
+    assert report["cross_fitted_selection"]["accuracy"] == 1.0
+    assert all(not row["held_out_labels_used_for_selection"] for row in report["folds"])

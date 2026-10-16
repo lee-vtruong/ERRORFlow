@@ -9,15 +9,17 @@ labels until predictions and routes have been materialized.
 from __future__ import annotations
 
 import argparse
+import bisect
 import json
 import math
+import random
 from pathlib import Path
 
 import numpy as np
 
 from errorflow.evaluation_v2 import accuracy, macro_f1
 from errorflow.io import atomic_write_json, read_jsonl, write_jsonl
-from errorflow.v3_statistics import mcnemar_exact, paired_bootstrap
+from errorflow.v3_statistics import mcnemar_exact, paired_bootstrap, percentile
 
 
 LABELS = ("SUPPORTED", "REFUTED", "NOT ENOUGH INFO", "CONFLICTING")
@@ -91,20 +93,30 @@ def signed_outcome(gold, baseline, candidate):
     return 1 if (not before and after) else (-1 if (before and not after) else 0)
 
 
-def fit_softmax(x, outcomes, l2=0.01, epochs=800, learning_rate=0.05):
+def fit_softmax(x, outcomes, l2=0.01, epochs=800, learning_rate=0.05,
+                class_weight=None):
     x = np.asarray(x, dtype=np.float64)
     means, scales = x.mean(0), x.std(0)
     scales[scales < 1e-8] = 1.0
     design = np.column_stack([np.ones(len(x)), (x - means) / scales])
     mapping = {-1: 0, 0: 1, 1: 2}
-    target = np.eye(3)[np.asarray([mapping[value] for value in outcomes], dtype=int)]
+    target_ids = np.asarray([mapping[value] for value in outcomes], dtype=int)
+    target = np.eye(3)[target_ids]
+    sample_weight = np.ones(len(target_ids), dtype=np.float64)
+    if class_weight == "balanced":
+        counts = np.bincount(target_ids, minlength=3)
+        for class_id, count in enumerate(counts):
+            if count:
+                sample_weight[target_ids == class_id] = len(target_ids) / (3.0 * count)
+    elif class_weight is not None:
+        raise ValueError(f"Unsupported class_weight: {class_weight}")
     weights = np.zeros((design.shape[1], 3), dtype=np.float64)
     for _ in range(epochs):
         logits = design @ weights
         logits -= logits.max(axis=1, keepdims=True)
         predicted = np.exp(logits)
         predicted /= predicted.sum(axis=1, keepdims=True)
-        gradient = design.T @ (predicted - target) / len(design)
+        gradient = design.T @ ((predicted - target) * sample_weight[:, None]) / sample_weight.sum()
         gradient[1:] += l2 * weights[1:]
         weights -= learning_rate * gradient
     return weights, means, scales
@@ -168,6 +180,26 @@ def top_count(ids, values, count):
     return set(ranked[:count])
 
 
+def per_label_rank_scores(train_ids, train_values, test_ids, test_values, baseline):
+    """Calibrate a score to its source empirical percentile within Base label.
+
+    This is a label-conditional threshold control.  It uses no held-out labels:
+    only source-fold model scores and Base predictions define each empirical CDF.
+    """
+    pools = {}
+    global_pool = sorted(float(train_values[key]) for key in train_ids)
+    for key in train_ids:
+        label = str(baseline[key]["prediction"])
+        pools.setdefault(label, []).append(float(train_values[key]))
+    for values in pools.values():
+        values.sort()
+    result = {}
+    for key in test_ids:
+        pool = pools.get(str(baseline[key]["prediction"]), global_pool)
+        result[key] = bisect.bisect_right(pool, float(test_values[key])) / len(pool)
+    return result
+
+
 def project(label, enabled):
     return "NOT ENOUGH INFO" if enabled and label == "CONFLICTING" else label
 
@@ -179,12 +211,64 @@ def evaluate(ids, gold, baseline, candidate, selected, projection):
     prediction = [right if key in selected else left for key, left, right in zip(ids, before, after)]
     helpful = sum(left != target and pred == target for target, left, pred in zip(expected, before, prediction))
     harmful = sum(left == target and pred != target for target, left, pred in zip(expected, before, prediction))
+    per_class = {}
+    for label in sorted(set(expected) | set(prediction)):
+        tp = sum(g == p == label for g, p in zip(expected, prediction))
+        fp = sum(g != label and p == label for g, p in zip(expected, prediction))
+        fn = sum(g == label and p != label for g, p in zip(expected, prediction))
+        precision = tp / (tp + fp) if tp + fp else 0.0
+        recall = tp / (tp + fn) if tp + fn else 0.0
+        per_class[label] = {
+            "precision": precision,
+            "recall": recall,
+            "f1": 2 * precision * recall / (precision + recall) if precision + recall else 0.0,
+            "support": sum(g == label for g in expected),
+        }
     return {
         "routed": len(selected), "route_rate": len(selected) / len(ids),
         "accuracy": accuracy(prediction, expected), "macro_f1": macro_f1(prediction, expected),
         "helpful": helpful, "harmful": harmful, "net": helpful - harmful,
+        "per_class": per_class,
         "avg_model_forward_passes": 4.0 + 4.0 * len(selected) / len(ids),
     }, prediction
+
+
+def holm_adjust(values):
+    ordered = sorted(values.items(), key=lambda item: (item[1], item[0]))
+    adjusted, running = {}, 0.0
+    for index, (name, value) in enumerate(ordered):
+        running = max(running, min(1.0, value * (len(ordered) - index)))
+        adjusted[name] = running
+    return adjusted
+
+
+def paired_bootstrap_interval(gold, left, right, samples, seed, alpha):
+    """Percentile interval with caller-specified two-sided alpha."""
+    rng = random.Random(seed)
+    accuracy_deltas, f1_deltas = [], []
+    for _ in range(samples):
+        indexes = [rng.randrange(len(gold)) for _ in gold]
+        sampled_gold = [gold[index] for index in indexes]
+        sampled_left = [left[index] for index in indexes]
+        sampled_right = [right[index] for index in indexes]
+        accuracy_deltas.append(
+            accuracy(sampled_right, sampled_gold) - accuracy(sampled_left, sampled_gold)
+        )
+        f1_deltas.append(
+            macro_f1(sampled_right, sampled_gold) - macro_f1(sampled_left, sampled_gold)
+        )
+    return {
+        "two_sided_alpha": alpha,
+        "confidence_level": 1.0 - alpha,
+        "accuracy_delta_ci": [
+            percentile(accuracy_deltas, alpha / 2),
+            percentile(accuracy_deltas, 1.0 - alpha / 2),
+        ],
+        "macro_f1_delta_ci": [
+            percentile(f1_deltas, alpha / 2),
+            percentile(f1_deltas, 1.0 - alpha / 2),
+        ],
+    }
 
 
 def load_nlf(meta_dir, ids):
@@ -227,7 +311,10 @@ def main():
         False: {key: feature_vector(gold[key], baseline[key], False) for key in ids},
         True: {key: feature_vector(gold[key], baseline[key], True) for key in ids},
     }
-    model_scores = {name: {} for name in ("Logistic", "Logistic-Interactions", "Boosted-Stumps")}
+    model_scores = {name: {} for name in (
+        "Logistic", "Logistic-BalancedOutcome", "Logistic-PerLabelRank",
+        "Logistic-Interactions", "Boosted-Stumps",
+    )}
 
     if args.protocol == "grouped_internal":
         fold_rows = indexed(read_jsonl(args.meta_dir / "per_query_features.jsonl"), "fold features")
@@ -241,6 +328,21 @@ def main():
                 model = fit_softmax([target_features[interactions][key] for key in train_ids], outcomes)
                 values = predict_softmax(model, [target_features[interactions][key] for key in test_ids])
                 model_scores[name].update(zip(test_ids, map(float, values)))
+                if name == "Logistic":
+                    train_values = predict_softmax(
+                        model, [target_features[False][key] for key in train_ids]
+                    )
+                    train_scores = dict(zip(train_ids, map(float, train_values)))
+                    test_scores = dict(zip(test_ids, map(float, values)))
+                    model_scores["Logistic-PerLabelRank"].update(per_label_rank_scores(
+                        train_ids, train_scores, test_ids, test_scores, baseline
+                    ))
+            model = fit_softmax(
+                [target_features[False][key] for key in train_ids], outcomes,
+                class_weight="balanced",
+            )
+            values = predict_softmax(model, [target_features[False][key] for key in test_ids])
+            model_scores["Logistic-BalancedOutcome"].update(zip(test_ids, map(float, values)))
             model = fit_boosted_stumps([target_features[False][key] for key in train_ids], outcomes)
             values = predict_boosted_stumps(model, [target_features[False][key] for key in test_ids])
             model_scores["Boosted-Stumps"].update(zip(test_ids, map(float, values)))
@@ -264,6 +366,22 @@ def main():
             model = fit_softmax([source_features[interactions][key] for key in source_ids], outcomes)
             values = predict_softmax(model, [target_features[interactions][key] for key in ids])
             model_scores[name].update(zip(ids, map(float, values)))
+            if name == "Logistic":
+                source_values = predict_softmax(
+                    model, [source_features[False][key] for key in source_ids]
+                )
+                source_scores = dict(zip(source_ids, map(float, source_values)))
+                target_scores = dict(zip(ids, map(float, values)))
+                model_scores["Logistic-PerLabelRank"].update(per_label_rank_scores(
+                    source_ids, source_scores, ids, target_scores,
+                    {**source_baseline, **baseline},
+                ))
+        model = fit_softmax(
+            [source_features[False][key] for key in source_ids], outcomes,
+            class_weight="balanced",
+        )
+        values = predict_softmax(model, [target_features[False][key] for key in ids])
+        model_scores["Logistic-BalancedOutcome"].update(zip(ids, map(float, values)))
         model = fit_boosted_stumps([source_features[False][key] for key in source_ids], outcomes)
         values = predict_boosted_stumps(model, [target_features[False][key] for key in ids])
         model_scores["Boosted-Stumps"].update(zip(ids, map(float, values)))
@@ -271,11 +389,12 @@ def main():
 
     expected = [gold_label(gold[key]) for key in ids]
     nlf_predictions = [project(nlf[key]["prediction"], args.project_conflicting_to_nei) for key in ids]
-    results, predictions, comparisons = {}, [], {}
+    results, predictions, comparisons, predictions_by_name = {}, [], {}, {}
     for name, values in model_scores.items():
         selected = top_count(ids, values, route_count)
         result, predicted = evaluate(ids, gold, baseline, candidate, selected, args.project_conflicting_to_nei)
         results[name] = result
+        predictions_by_name[name] = predicted
         comparisons[f"{name}_vs_Memory-Global"] = {
             "orientation": f"{name}_minus_Memory-Global",
             "mcnemar_exact": mcnemar_exact(expected, nlf_predictions, predicted),
@@ -292,16 +411,38 @@ def main():
 
     nlf_selected = {key for key in ids if bool(nlf[key]["routed"])}
     nlf_result, _ = evaluate(ids, gold, baseline, candidate, nlf_selected, args.project_conflicting_to_nei)
+    raw_p = {
+        name: value["mcnemar_exact"]["exact_two_sided_p"]
+        for name, value in comparisons.items()
+    }
+    adjusted = holm_adjust(raw_p)
+    for name, value in comparisons.items():
+        value["holm_accuracy_p"] = adjusted[name]
+    family_alpha = 0.05 / len(comparisons)
+    for comparison_name, value in comparisons.items():
+        method = comparison_name.removesuffix("_vs_Memory-Global")
+        value["bonferroni_familywise_interval"] = paired_bootstrap_interval(
+            expected, nlf_predictions, predictions_by_name[method],
+            args.bootstrap_samples, args.seed, family_alpha,
+        )
     report = {
         "evaluation": "fold_safe_supervised_routing_controls",
         "protocol": args.protocol, "n": len(ids), "route_count": route_count,
         "features": "Base label probabilities, predicted-label one-hot, confidence, margin, entropy, claim/evidence sizes",
         "models": {
             "Logistic": "three-class softmax outcome model; fixed L2=0.01",
+            "Logistic-BalancedOutcome": "same model with inverse-frequency outcome-class weights fitted within each source fold",
+            "Logistic-PerLabelRank": "plain logistic score converted to a source empirical percentile within each Base-predicted label",
             "Logistic-Interactions": "Logistic plus confidence/margin-by-label and length interactions",
             "Boosted-Stumps": "50 squared-error boosting rounds, depth-one stumps, learning rate 0.1",
         },
         "target_labels_used_for_fitting_or_selection": target_labels_used_for_fitting,
+        "multiple_comparisons": {
+            "family": sorted(results),
+            "holm_applied_to": "exact McNemar accuracy p-values",
+            "interval_adjustment": "Bonferroni percentile intervals across the complete supervised-control family",
+            "familywise_alpha": 0.05,
+        },
         "results": {"Memory-Global": nlf_result, **results},
         "comparisons": comparisons,
     }

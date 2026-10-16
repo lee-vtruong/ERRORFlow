@@ -45,6 +45,10 @@ def uncertainty(row):
     return 1.0 - max(distribution.values())
 
 
+def project_prediction(label, enabled):
+    return "NOT ENOUGH INFO" if enabled and label == "CONFLICTING" else label
+
+
 def top_count(ids, scores, count):
     return set(sorted(ids, key=lambda key: (-scores[key], key))[:count])
 
@@ -61,6 +65,20 @@ def evaluate(ids, gold, baseline, candidate, selected):
         "helpful": helpful, "harmful": harmful, "net": helpful - harmful,
         "avg_model_forward_passes": 4.0 + 4.0 * len(selected) / len(ids),
     }, after
+
+
+def evaluate_materialized(ids, gold, baseline, predictions, forward_passes):
+    expected = [gold_label(gold[key]) for key in ids]
+    before = [baseline[key]["prediction"] for key in ids]
+    after = [predictions[key] for key in ids]
+    helpful = sum(b != g and a == g for g, b, a in zip(expected, before, after))
+    harmful = sum(b == g and a != g for g, b, a in zip(expected, before, after))
+    return {
+        "routed": len(ids), "route_rate": 1.0,
+        "accuracy": accuracy(after, expected), "macro_f1": macro_f1(after, expected),
+        "helpful": helpful, "harmful": harmful, "net": helpful - harmful,
+        "avg_model_forward_passes": float(forward_passes),
+    }
 
 
 def write_csv(path, rows):
@@ -80,6 +98,18 @@ def main():
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--budgets", nargs="+", type=float, default=[0, .05, .10, .15, .20, .30, .40, .50, 1.0])
     parser.add_argument("--random-seeds", nargs="+", type=int, default=list(range(2026, 2046)))
+    parser.add_argument(
+        "--supervised-predictions", type=Path,
+        help="Prediction-level output from evaluate_v3_supervised_controls.py; adds each method score to the frontier",
+    )
+    parser.add_argument(
+        "--supervised-methods", nargs="+",
+        default=["Logistic", "Logistic-BalancedOutcome", "Logistic-PerLabelRank"],
+    )
+    parser.add_argument(
+        "--ensemble-predictions", type=Path,
+        help="Prediction-level output from evaluate_v3_score_ensemble.py; adds the always-on score ensemble point",
+    )
     parser.add_argument("--project-conflicting-to-nei", action="store_true")
     args = parser.parse_args()
 
@@ -100,6 +130,28 @@ def main():
         candidate = {
             key: {**row, "prediction": "NOT ENOUGH INFO" if row["prediction"] == "CONFLICTING" else row["prediction"]}
             for key, row in candidate.items()
+        }
+
+    supervised_scores = {}
+    if args.supervised_predictions:
+        rows = list(read_jsonl(args.supervised_predictions))
+        for method in args.supervised_methods:
+            method_rows = [row for row in rows if row.get("method") == method]
+            method_index = indexed(method_rows, f"supervised predictions for {method}")
+            if set(method_index) != set(ids):
+                raise ValueError(f"Supervised method {method} IDs do not match evaluation IDs")
+            supervised_scores[method] = {
+                key: float(method_index[key]["score"]) for key in ids
+            }
+
+    ensemble_predictions = None
+    if args.ensemble_predictions:
+        ensemble_rows = indexed(read_jsonl(args.ensemble_predictions), "ensemble predictions")
+        if set(ensemble_rows) != set(ids):
+            raise ValueError("Ensemble prediction IDs do not match evaluation IDs")
+        ensemble_predictions = {
+            key: project_prediction(ensemble_rows[key]["prediction"], args.project_conflicting_to_nei)
+            for key in ids
         }
 
     # Match the frozen V3 confidence-only comparator: one minus the largest
@@ -127,6 +179,8 @@ def main():
             "No-label-filter-memory": top_count(ids, nlf, count),
             "Oracle-exact-budget": top_count(ids, effect, count),
         }
+        for method, values in supervised_scores.items():
+            selections[method] = top_count(ids, values, count)
         helpful_ranked = sorted((key for key in ids if effect[key] > 0), key=str)
         selections["Oracle-at-most-budget"] = set(helpful_ranked[:count])
         for policy, selected in selections.items():
@@ -153,6 +207,18 @@ def main():
             row[f"{field}_std"] = statistics.pstdev(values)
         curve_rows.append(row)
 
+    base_result, _ = evaluate(ids, gold, baseline, candidate, set())
+    alt_result, _ = evaluate(ids, gold, baseline, candidate, set(ids))
+    curve_rows.extend([
+        {"policy": "Base", "budget": 0.0, **base_result},
+        {"policy": "Alt-All", "budget": 1.0, **alt_result},
+    ])
+    if ensemble_predictions is not None:
+        curve_rows.append({
+            "policy": "Score-Ensemble", "budget": 1.0,
+            **evaluate_materialized(ids, gold, baseline, ensemble_predictions, 8.0),
+        })
+
     natural_nlf = {
         key for key in ids
         if features[key]["nlf"].get("eligible") and nlf[key] > 0.0
@@ -163,6 +229,8 @@ def main():
         "evaluation": "quality_budget_controls",
         "n": len(ids), "budgets": sorted(set(args.budgets)),
         "random_seeds": args.random_seeds,
+        "supervised_methods": sorted(supervised_scores),
+        "score_ensemble_included": ensemble_predictions is not None,
         "oracle": {
             "helpful_actions_available": oracle_helpful,
             "harmful_actions_available": sum(value < 0 for value in effect.values()),
