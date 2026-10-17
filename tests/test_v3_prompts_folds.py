@@ -10,7 +10,7 @@ def test_b1_prompt_is_byte_identical_to_historical_runner():
     assert INSTRUCTION_PROFILES["conflict_audit_v1"] == B1_CONFLICT_AUDIT
     assert set(V3_ACTION_PROMPTS) == {
         "coverage_audit_v2", "refutation_audit_v2", "conflicting_rescue_v1",
-        "entity_scope_audit_v1", "structured_decomposition_v1",
+        "entity_scope_audit_v1", "structured_decomposition_v1", "standard_verdict_v1",
     }
 
 

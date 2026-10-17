@@ -28,6 +28,15 @@ def test_scifact_standard_prompt_is_native_and_not_available_for_four_labels():
         resolve_protocol("scifact_standard_v1", "averitec4")
 
 
+def test_four_label_standard_prompt_is_not_an_audit_instruction():
+    labels, prompt = resolve_protocol("standard_verdict_v1", "averitec4")
+    assert labels == ("SUPPORTED", "REFUTED", "NOT ENOUGH INFO", "CONFLICTING")
+    assert "audit" not in prompt.lower()
+    assert "Classify the claim" in prompt
+    with pytest.raises(ValueError, match="No frozen SciFact"):
+        resolve_protocol("standard_verdict_v1", "scifact3")
+
+
 def test_projection_and_metrics_make_label_space_effect_explicit():
     gold = ["NOT ENOUGH INFO", "SUPPORTED"]
     raw = ["CONFLICTING", "SUPPORTED"]

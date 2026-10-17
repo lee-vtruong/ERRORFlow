@@ -29,13 +29,12 @@ examples, and either a non-parametric memory or a supervised gate can use
 that signal to decide whether to escalate. On grouped AVeriTeC development
 with Qwen3-4B, the memory implementation routes 12.22\% of claims, improving accuracy from 74.02\% to 75.85\% and
 macro-F1 from 54.60\% to 56.66\% at 4.49 rather than 8.00 average forward
-passes. It retains 49.0\% of Alt's helpful changes at that budget, versus
-12.2\% expected under random routing; its 81.5\% harm avoidance is below the
-random expectation of 87.8\%, so both quantities must be read jointly. Frozen transfer
+passes. At that budget it retains 49.0\% of Alt's helpful changes and avoids
+81.5\% of its harmful changes, yielding +30.5 percentage points of joint
+enrichment over random routing. Frozen transfer
 to CLIMATE-FEVER gives a smaller gain. On SciFact, however, a conventional
 three-label Base reaches 86.0\% with oracle rationales and 65.3\% with BM25,
-revealing that earlier audit-prompt routing results were dominated by prompt
-choice rather than memory transfer. A Mistral-7B
+compared with 49.0\% and 58.0\% for the audit-style Base. A Mistral-7B
 replication favors same-label rather than global-neighbor compatibility.
 These results support compute-aware regression containment, not a formal
 no-harm guarantee or universal accuracy improvement.

@@ -17,6 +17,12 @@ B1_CONFLICT_AUDIT_SHA256 = "700ebdc1b55cb9f04f7524f31b7a5d3bd41813f198e5629fe75c
 
 
 V3_ACTION_PROMPTS = {
+    "standard_verdict_v1": (
+        "Classify the claim using only the provided evidence. Choose SUPPORTED when the evidence "
+        "establishes the claim, REFUTED when the evidence establishes that the claim is false, "
+        "NOT ENOUGH INFO when the evidence is insufficient to decide, and CONFLICTING only when "
+        "credible evidence materially supports and refutes the same essential claim. Return exactly one verdict."
+    ),
     "coverage_audit_v2": (
         "Check every essential entity, relation, condition, and subclaim separately. "
         "SUPPORTED requires complete grounding of all essential parts. REFUTED requires direct evidence that an essential part is false. "
