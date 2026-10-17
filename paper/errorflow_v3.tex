@@ -23,14 +23,15 @@
 
 \begin{abstract}
 Applying an alternative verification prompt uniformly can recover errors but
-also regress correct verdicts. ERRORFlow is a non-parametric selective
-escalation method: it retrieves source-domain outcomes of one frozen
-alternative prompt and invokes that prompt only when neighboring outcomes
-predict positive utility. On grouped AVeriTeC development with Qwen3-4B, it
-routes 12.22\% of claims, improving accuracy from 74.02\% to 75.85\% and
+also regress correct verdicts. ERRORFlow studies outcome-based gating: source
+labels reveal whether one frozen alternative prompt helped or harmed earlier
+examples, and either a non-parametric memory or a supervised gate can use
+that signal to decide whether to escalate. On grouped AVeriTeC development
+with Qwen3-4B, the memory implementation routes 12.22\% of claims, improving accuracy from 74.02\% to 75.85\% and
 macro-F1 from 54.60\% to 56.66\% at 4.49 rather than 8.00 average forward
-passes. Relative to always invoking the same alternative, it avoids 81.5\%
-of harmful changes while retaining 49.0\% of helpful changes. Frozen transfer
+passes. It retains 49.0\% of Alt's helpful changes at that budget, versus
+12.2\% expected under random routing; its 81.5\% harm avoidance is below the
+random expectation of 87.8\%, so both quantities must be read jointly. Frozen transfer
 to CLIMATE-FEVER gives a smaller gain, while native-three-label SciFact shows
 no accuracy improvement because the alternative action itself is harmful;
 there the router largely abstains and limits regression. A Mistral-7B
@@ -51,7 +52,8 @@ and can change correct predictions into incorrect ones. The central question
 is therefore not only which corrective prompt to use, but when its expected
 benefit justifies its cost.
 
-We study this question without updating model parameters. ERRORFlow first
+We study this question as outcome-based gating without updating verifier
+parameters. ERRORFlow first
 executes a frozen verifier, then retrieves residual outcomes from a
 versioned source memory. A selective router invokes one frozen correction
 action only when neighboring source outcomes indicate positive utility. The
@@ -70,8 +72,9 @@ and an open-corpus BM25 SciFact condition that exposes retrieval failures.
 
 The main contributions are:
 \begin{itemize}
-  \item an outcome-memory formulation for selecting whether to keep a base
-  verdict or invoke one fixed alternative prompt, with no model-weight update;
+  \item an outcome-based gating formulation for selecting whether to keep a
+  base verdict or invoke one fixed alternative prompt, instantiated by both
+  case-based memory and supervised gates without verifier-weight updates;
   \item matched-budget evaluation against confidence, random, and
   supervised gates, with fold-safe memory exclusion and explicit forward-pass
   accounting; and
@@ -167,10 +170,11 @@ additional cost. A routing policy $\pi(x)\in\{0,1\}$ returns Base when
 $\pi(x)=0$ and Alt when $\pi(x)=1$. For a labeled source population, a routed
 example is helpful when Base is wrong and Alt is correct, harmful when Base is
 correct and Alt is wrong, and neutral otherwise. ERRORFlow estimates this
-signed residual outcome from compatible source cases while constraining the
-expected extra forward passes. The goal is not to learn a new verifier or a
-new correction strategy, but to perform \emph{memory-guided selection of one
-fixed corrective action}.
+signed residual outcome from labeled source examples while constraining
+expected extra forward passes. Its main implementation uses compatible source
+cases, while logistic controls estimate the same decision parametrically. The
+goal is not to learn a new verifier or correction strategy, but to perform
+\emph{outcome-guided selection of one fixed corrective action}.
 
 Target labels never enter $\pi$. They are read only after predictions are
 materialized for evaluation. Source labels are required to construct outcome
@@ -367,9 +371,10 @@ We report accuracy, macro-F1, per-class F1, helpful and harmful prediction
 changes, route rate, and average forward passes. Paired comparisons use exact
 two-sided McNemar tests and 5,000-sample paired bootstrap confidence intervals.
 For grouped source analyses, the released evaluator additionally resamples
-complete near-duplicate groups; claim-level intervals are retained for exact
-reproduction of earlier tables until the grouped rerun is materialized. Source
-matched-router comparisons additionally apply Holm correction.
+complete near-duplicate groups. Unless explicitly labeled group-bootstrap,
+reported intervals resample claims; grouped intervals are treated as the more
+conservative dependence-aware sensitivity analysis. Source matched-router
+comparisons additionally apply Holm correction.
 
 \section{Main Results}
 
@@ -504,23 +509,33 @@ only 38 of its 205 harmful changes. The Mistral replication shows the same
 qualitative filtering pattern even though it favors Memory-SameLabel.
 
 \begin{table*}[t]
-\caption{Harm containment in settings with audited flip counts. ``Avoided''
-is $1-H_{\rm router}/H_{\rm Alt}$ and ``retained'' is
-$G_{\rm router}/G_{\rm Alt}$. These descriptive ratios are not safety
-guarantees.}
+\caption{Harm containment with audited flip counts. ``Avoided'' is
+$1-H_{\rm route}/H_{\rm Alt}$, ``retained'' is
+$G_{\rm route}/G_{\rm Alt}$, and enrichment is their sum minus 100 points.
+Random routing at rate $r$ has expected retained $r$, avoided $1-r$, and zero
+enrichment. Qwen uses the matched 375-route budget; other router rows use
+their natural thresholds. SciFact oracle is degenerate (one helpful Alt flip
+and zero routed claims), so its percentages are descriptive only.}
 \label{tab:harm-containment}
 \centering\small
-\begin{tabular}{lrrrrrr}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llrrrrrr}
 \toprule
-Setting & Alt $G$ & Alt $H$ & Router $G$ & Router $H$ & Avoided & Retained \\
+Setting & Policy & Route \% & Alt $G{:}H$ & Routed $G{:}H$ & Retained & Avoided & Enrichment \\
 \midrule
-AVeriTeC, Qwen Global & 192 & 205 & 94 & 38 & 81.5\% & 49.0\% \\
-AVeriTeC, Mistral Global & 310 & 327 & 173 & 64 & 80.4\% & 55.8\% \\
-CLIMATE-FEVER, in-domain Global & 128 & 81 & 67 & 32 & 60.5\% & 52.3\% \\
-SciFact oracle dev, native & 1 & 16 & 0 & 0 & 100.0\% & 0.0\% \\
-SciFact BM25 dev, native & 15 & 31 & 3 & 6 & 80.6\% & 20.0\% \\
+AVeriTeC, Qwen & Memory-Global & 12.22 & 192:205 & 94:38 & 49.0\% & 81.5\% & +30.5 \\
+ & Random@$r$ & 12.22 & 192:205 & -- & 12.2\% & 87.8\% & 0.0 \\
+AVeriTeC, Mistral & Memory-Global & 23.5 & 310:327 & 173:64 & 55.8\% & 80.4\% & +36.2 \\
+ & Random@$r$ & 23.5 & 310:327 & -- & 23.5\% & 76.5\% & 0.0 \\
+CLIMATE-FEVER, in-domain & Memory-Global & 18.0 & 128:81 & 67:32 & 52.3\% & 60.5\% & +12.8 \\
+ & Random@$r$ & 18.0 & 128:81 & -- & 18.0\% & 82.0\% & 0.0 \\
+SciFact oracle, native & Memory-Global & 1.7 & 1:16 & 0:0 & 0.0\% & 100.0\% & 0.0 \\
+ & Random@$r$ & 1.7 & 1:16 & -- & 1.7\% & 98.3\% & 0.0 \\
+SciFact BM25, native & Memory-Global & 12.7 & 15:31 & 3:6 & 20.0\% & 80.6\% & +0.6 \\
+ & Random@$r$ & 12.7 & 15:31 & -- & 12.7\% & 87.3\% & 0.0 \\
 \bottomrule
 \end{tabular}
+}
 \end{table*}
 
 \begin{table*}[t]
@@ -565,17 +580,22 @@ paired intervals include zero.
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/helpful_harmful.pdf}
-\caption{Quality--budget behavior. Panel (a) shows helpful and harmful
-prediction changes; panel (b) compares full-outcome, error-only, and
+\caption{Quality--budget behavior. Panel (a) plots helpful gain retained
+against harmful change avoided; the dashed diagonal is the expectation under
+random routing at the same route rate, and arrows run from random expectation
+to each observed router. SciFact oracle is marked as a one-helpful-flip,
+zero-route degenerate case. Panel (b) compares full-outcome, error-only, and
 recovery-only memory across matched budgets. The star marks the natural
-Memory-Global operating point (12.22\%). Recovery-only matches or exceeds full
-memory at low budgets, while full memory becomes stronger at higher budgets.}
+Memory-Global operating point (12.22\%).}
 \label{fig:flips}
 \end{figure}
 
-Figure~\ref{fig:flips} makes the central trade-off explicit: selective
-escalation filters many Alt regressions, but neither the natural threshold nor
-the full recovery-minus-regression utility dominates at every budget.
+Figure~\ref{fig:flips} makes the central trade-off explicit. Harm avoidance
+alone is not evidence of selective skill: a small random budget avoids most
+Alt harms mechanically. Memory-Global's value on AVeriTeC is enrichment toward
+helpful actions---49.0\% retained at 12.22\% coverage---while SciFact BM25 is
+nearly random by this joint criterion. Neither the natural threshold nor the
+full recovery-minus-regression utility dominates at every budget.
 The full 5--40\% quality--compute sweep reaches the same conclusion. On
 AVeriTeC, Memory-Global peaks at .7588 accuracy/.5672 macro-F1 at 15\%
 routing, whereas outcome-balanced logistic peaks at .7598/.5530 at the same
@@ -1015,8 +1035,8 @@ CONFLICTING F1 remains only .1012. On CLIMATE-FEVER it improves REFUTED, NEI,
 SUPPORTED, and CONFLICTING over Base, while Alt-All remains stronger on NEI.
 
 \begin{table*}[t]
-\caption{Per-class F1 in the two main four-label protocols. Native SciFact
-per-class outputs are distributed with the train-to-dev artifacts.}
+\caption{Per-class F1 in the two main four-label protocols. Native SciFact is
+reported separately because it uses a different three-label ontology.}
 \label{tab:per-class}
 \centering\small
 \begin{tabular}{llrrrr}
@@ -1120,12 +1140,12 @@ ERRORFlow Memory-Global & SciFact dev BM25 & open corpus top-5, native 3-label &
 \subsection{What the Evidence Supports}
 
 Table~\ref{tab:claims} separates the demonstrated result from open claims.
-Outcome memory ranks the observed paired effect of the same fixed alternative
-prompt, whereas confidence ranks ambiguity without observing whether that
-prompt helped similar source examples. The cross-fitted logistic result shows
-that these source labels can also support a conventional supervised gate;
-kNN contributes a direct case-based representation, not exclusive access to
-the signal.
+Outcome-based gating ranks the observed paired effect of the same fixed
+alternative prompt, whereas confidence ranks ambiguity without observing
+whether that action helped source examples. Memory and cross-fitted logistic
+are two implementations of this common signal. kNN contributes transparent
+case-based retrieval and competitive macro-F1, not exclusive access to the
+decision target or a demonstrated universal advantage over supervised gates.
 
 \begin{table}[t]
 \caption{Scope of the empirical claims.}
@@ -1280,7 +1300,8 @@ this repository because its official repository declares no license.
 \section{Conclusion}
 
 ERRORFlow shows that a frozen alternative prompt can be invoked selectively
-using non-parametric source action outcomes. The method reduces second-pass
+using source action outcomes. Case-based memory and supervised logistic gates
+are two competitive implementations of this outcome-based decision. The method reduces second-pass
 compute and improves the base prompt in several studied protocols, but not
 under native-three-label SciFact in-domain evaluation. Always-on correction
 is stronger on some original external conditions and a supervised logistic

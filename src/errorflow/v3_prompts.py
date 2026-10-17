@@ -53,6 +53,11 @@ V3_ACTION_PROMPTS = {
 # so mixed support/refutation is resolved to NOT ENOUGH INFO. Results produced
 # with these prompts are not interchangeable with post-hoc label projection.
 SCIFACT_THREE_LABEL_PROMPTS = {
+    "scifact_standard_v1": (
+        "Classify the claim using only the provided evidence. Choose SUPPORTED when the evidence "
+        "establishes the claim, REFUTED when the evidence establishes that the claim is false, "
+        "and NOT ENOUGH INFO when the evidence is insufficient to decide. Return exactly one verdict."
+    ),
     "conflict_audit_v1": (
         "Audit whether the evidence credibly supports or contradicts the same essential claim. "
         "Choose SUPPORTED when support is established without a credible contradiction, and REFUTED "

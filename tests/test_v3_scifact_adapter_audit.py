@@ -19,6 +19,15 @@ def test_scifact_direct_protocol_has_three_labels_and_no_conflicting_verdict():
         resolve_protocol("coverage_audit_v2", "scifact3")
 
 
+def test_scifact_standard_prompt_is_native_and_not_available_for_four_labels():
+    labels, prompt = resolve_protocol("scifact_standard_v1", "scifact3")
+    assert labels == ("SUPPORTED", "REFUTED", "NOT ENOUGH INFO")
+    assert "conflict" not in prompt.lower()
+    assert "audit" not in prompt.lower()
+    with pytest.raises(ValueError, match="No frozen four-label"):
+        resolve_protocol("scifact_standard_v1", "averitec4")
+
+
 def test_projection_and_metrics_make_label_space_effect_explicit():
     gold = ["NOT ENOUGH INFO", "SUPPORTED"]
     raw = ["CONFLICTING", "SUPPORTED"]

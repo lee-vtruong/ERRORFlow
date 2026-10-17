@@ -29,6 +29,8 @@ def resolve_protocol(action, protocol):
         if action not in SCIFACT_THREE_LABEL_PROMPTS:
             raise ValueError(f"No frozen SciFact three-label prompt for action: {action}")
         return labels, SCIFACT_THREE_LABEL_PROMPTS[action]
+    if action not in ACTION_PROMPTS:
+        raise ValueError(f"No frozen four-label prompt for action: {action}")
     return labels, ACTION_PROMPTS[action]
 
 
@@ -90,7 +92,11 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", required=True)
     parser.add_argument("--input", required=True, type=Path)
-    parser.add_argument("--action", required=True, choices=sorted(ACTION_PROMPTS))
+    parser.add_argument(
+        "--action",
+        required=True,
+        choices=sorted(set(ACTION_PROMPTS) | set(SCIFACT_THREE_LABEL_PROMPTS)),
+    )
     parser.add_argument("--label-protocol", choices=sorted(LABEL_PROTOCOLS), default="averitec4")
     parser.add_argument("--split", default="train")
     destinations = parser.add_mutually_exclusive_group(required=True)
