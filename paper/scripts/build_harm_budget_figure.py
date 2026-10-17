@@ -21,32 +21,23 @@ def main():
 
     ax = axes[0]
     settings = [
-        ("Qwen AV", 12.22, 81.46, 48.96, (5, -12)),
-        ("Mistral AV", 23.5, 80.43, 55.81, (-44, 8)),
-        ("Climate in-domain", 18.0, 60.49, 52.34, (5, 4)),
-        ("SciFact BM25\n(audit prompts)", 12.7, 80.65, 20.0, (5, 4)),
+        ("Qwen AV", 18.54, 48.96, (5, -12)),
+        ("Mistral AV", 19.57, 55.81, (-2, 8)),
+        ("Climate in-domain", 39.51, 52.34, (5, 4)),
+        ("SciFact BM25\n(audit prompts)", 19.35, 20.0, (5, 4)),
     ]
     diagonal = list(range(0, 101))
-    ax.plot(diagonal, [100 - value for value in diagonal], "--", color="#777777",
-            linewidth=1.1)
-    for index, (name, rate, avoided, retained, offset) in enumerate(settings):
-        random_point = (100 - rate, rate)
-        ax.scatter(*random_point, marker="x", s=38, color="#888888", zorder=3)
-        ax.annotate("", xy=(avoided, retained), xytext=random_point,
-                    arrowprops={"arrowstyle": "->", "color": "#AAAAAA", "lw": .8})
-        ax.scatter(avoided, retained, s=46, zorder=4,
+    ax.plot(diagonal, diagonal, "--", color="#777777", linewidth=1.1)
+    for index, (name, incurred, retained, offset) in enumerate(settings):
+        ax.scatter(incurred, retained, s=46, zorder=4,
                    color=["#4C78A8", "#7A5195", "#54A24B", "#F58518"][index])
-        ax.annotate(name, (avoided, retained), xytext=offset,
+        ax.annotate(name, (incurred, retained), xytext=offset,
                     textcoords="offset points", fontsize=7)
-    ax.scatter(100, 0, facecolors="none", edgecolors="#E45756", s=48, zorder=4)
-    ax.annotate("SciFact oracle, audit prompts\n(degenerate: 0 routes, 1 helpful Alt flip)",
-                (100, 0), xytext=(-108, 14), textcoords="offset points", fontsize=6.6,
-                arrowprops={"arrowstyle": "-", "color": "#E45756", "lw": .7})
-    ax.set_xlim(48, 103)
-    ax.set_ylim(-3, 63)
-    ax.set_xlabel("Harmful Audit-Alt changes avoided (%)")
+    ax.set_xlim(0, 50)
+    ax.set_ylim(0, 63)
+    ax.set_xlabel("Harmful Audit-Alt changes incurred (%)")
     ax.set_ylabel("Helpful Audit-Alt changes retained (%)")
-    ax.set_title("(a) Containment relative to random routing")
+    ax.set_title("(a) Enrichment relative to random routing")
     ax.grid(alpha=.18)
 
     ax = axes[1]
@@ -59,6 +50,8 @@ def main():
     ax.plot(budgets, error_only, "^:", color="#7651A8", label="Error-only memory")
     ax.axhline(74.02, color="#666666", linestyle="--", linewidth=.9,
                label="Audit-Base (4 passes)")
+    ax.axhline(76.86, color="#1F77B4", linestyle="-.", linewidth=.9,
+               label="Standard-Base (4 passes)")
     ax.axhline(75.62, color="#A020C0", linestyle=(0, (6, 3)), linewidth=.9,
                label="Score ensemble (8 passes)")
     ax.axhline(73.60, color="#D62728", linestyle=":", linewidth=.9,
@@ -70,6 +63,7 @@ def main():
                 arrowprops={"arrowstyle": "-", "color": "#444444", "lw": .8})
     ax.set_xlabel("Routed to Audit-Alt (% of claims)")
     ax.set_ylabel("Accuracy (%)")
+    ax.set_ylim(73.45, 77.05)
     ax.set_title("(b) AVeriTeC accuracy vs. correction budget")
     ax.grid(alpha=.18)
     ax.legend(frameon=False, fontsize=6.8, ncol=2, loc="upper center",

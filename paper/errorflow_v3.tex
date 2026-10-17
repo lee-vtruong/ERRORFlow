@@ -32,13 +32,14 @@ with Qwen3-4B, the memory implementation routes 12.22\% of claims, improving
 accuracy over Audit-Base from 74.02\% to 75.85\% at 4.49 rather
 than 8.00 average forward passes. At that budget it retains 49.0\% of Audit-Alt's
 helpful changes while incurring 18.5\% of its harmful changes, yielding
-+30.4 percentage points of enrichment over random routing. A Mistral-7B
-replication favors same-label rather than global-neighbor compatibility.
-However, a conventional four-label Standard-Base reaches 76.86\% at four
++30.4 percentage points of enrichment over random routing. A conventional
+four-label Standard-Base reaches 76.86\% at four
 passes, above the audit-pair router; after rebuilding outcome memory around a
 frozen Standard-Base/Standard-Alt pair, routing changes accuracy by $-0.16$
 points on AVeriTeC and $+0.65$ points on CLIMATE-FEVER, with both intervals
 including zero.
+A Mistral-7B replication favors same-label rather than global-neighbor
+compatibility.
 These results support compute-aware regression containment, not a formal
 no-harm guarantee or universal accuracy improvement.
 \keywords{Fact verification \and Non-parametric routing \and Outcome memory
@@ -619,17 +620,16 @@ not to the conventional four-pass comparator.
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/helpful_harmful.pdf}
-\caption{Quality--budget behavior. Panel (a) plots the fractions of Audit-Alt-All's
-helpful changes retained and harmful changes avoided by each gate. The dashed
-diagonal is random routing; gray crosses mark same-rate random expectations,
-and arrows lead to observed routers. Points above the diagonal have positive
-enrichment $J=\text{retained}-\text{incurred}$. Markers show Qwen and Mistral
-AVeriTeC, in-domain CLIMATE-FEVER, and audit-prompt SciFact BM25; the open red
-SciFact-oracle point is degenerate (zero routes and one helpful Alt flip). Panel (b)
-compares full-outcome, recovery-only, and error-only memory over AVeriTeC
-budgets; the star is natural Memory-Global (12.22\%) and the open diamond is
-the outcome-balanced logistic peak at 15\%. The three horizontal lines show
-Audit-Base, score-ensemble, and Audit-Alt-All accuracy.}
+\caption{Quality--budget behavior. (a) Helpful Audit-Alt changes retained
+versus harmful changes incurred, each as a fraction of Audit-Alt-All's. The
+dashed diagonal is random routing at the same route rate, and
+$J=\text{retained}-\text{incurred}$ is enrichment over random in percentage
+points. The audit-prompt SciFact oracle run routes no claims and is omitted.
+(b) AVeriTeC accuracy at matched correction budgets for full-outcome,
+recovery-only, and error-only memory; the star is natural Memory-Global
+(12.22\%) and the open diamond is the outcome-balanced logistic peak at 15\%.
+Horizontal lines show Standard-Base, Audit-Base, the score ensemble, and
+Audit-Alt-All.}
 \label{fig:flips}
 \end{figure}
 
@@ -1323,10 +1323,10 @@ The in-domain analysis adds another protocol boundary. CLIMATE-FEVER has only
 one labeled release, so its five-fold result is cross-fitted rather than an
 untouched test. SciFact train$\rightarrow$dev excludes dev labels from memory
 and routing, but the dev set had already been inspected elsewhere in this
-project. Moreover, the audit-style native-three-label prompts produce markedly
+project. Moreover, the native-three-label Audit-Base/Audit-Alt pair produces markedly
 different behavior from both the four-label projection sensitivity and the
 conventional-prompt sensitivity control. SciFact conclusions are therefore
-specific to the frozen audit-style action pair.
+specific to the frozen Audit-Base/Audit-Alt pair.
 
 A separately frozen four-label Standard-Base/Standard-Alt pair provides a stronger
 negative control (Appendix~\ref{sec:standard-pair-control}). Rebuilding the
