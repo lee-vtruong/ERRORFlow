@@ -413,7 +413,8 @@ Evaluation & System & Accuracy & Macro-F1 & Route rate & Avg. passes \\
 
 \begin{table*}[t]
 \caption{Natural Memory-Global change over Base in the four-label protocols,
-with paired 95\% bootstrap intervals.
+with paired 95\% bootstrap intervals. The AVeriTeC row resamples complete
+near-duplicate groups; the external CLIMATE-FEVER row resamples claims.
 A positive point estimate is not treated as established when its interval
 crosses zero. Native SciFact results are in Table~\ref{tab:in-domain-memory}.}
 \label{tab:delta-ci}
@@ -422,7 +423,7 @@ crosses zero. Native SciFact results are in Table~\ref{tab:in-domain-memory}.}
 \toprule
 Condition & $\Delta$Accuracy & 95\% CI & $\Delta$Macro-F1 & 95\% CI \\
 \midrule
-AVeriTeC grouped & +.01825 & [.01076,.02575] & +.02055 & [.00865,.03337] \\
+AVeriTeC grouped & +.01825 & [.01102,.02560] & +.02055 & [.00901,.03255] \\
 CLIMATE-FEVER candidates & +.01564 & [.00456,.02736] & +.03091 & [.01378,.04892] \\
 \bottomrule
 \end{tabular}
@@ -431,8 +432,10 @@ CLIMATE-FEVER candidates & +.01564 & [.00456,.02736] & +.03091 & [.01378,.04892]
 \subsection{Source-Domain Routing}
 
 Under conservative token-Jaccard 0.90 grouping, the development-selected
-Memory-Global policy improves AVeriTeC accuracy by 1.83 points and macro-F1 by 2.05
-points while routing 12.22\%. It produces 94 helpful and 38 harmful changes
+Memory-Global policy improves AVeriTeC accuracy by 1.83 points
+(group-bootstrap 95\% CI [1.10,2.56]) and macro-F1 by 2.05 points
+(group-bootstrap 95\% CI [.90,3.25]) while routing 12.22\%.
+The exact paired accuracy test gives $p=1.19\times10^{-6}$. It produces 94 helpful and 38 harmful changes
 (net $+56$), compared with 90/44 (net $+46$) for Memory-SameLabel at 11.18\%
 routing. At the Memory-Global budget, Memory-Global exceeds confidence-only by 1.79 accuracy and
 1.52 macro-F1 points; both paired intervals are positive. Compared with

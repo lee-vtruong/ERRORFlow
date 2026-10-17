@@ -73,7 +73,7 @@ python scripts/evaluate_v3_grouped_pair.py \
   --gold data/processed/v2/averitec/train_all.jsonl \
   --baseline outputs/v3/meta_routing_experiments/qwen3_4b/averitec_grouped090/per_query_predictions.jsonl \
   --baseline-filter policy=D1_NLF --baseline-filter mode=natural \
-  --candidate outputs/v3/reviewer_round2/averitec/supervised/predictions.jsonl \
+  --candidate outputs/v3/reviewer_round2/averitec/supervised_375/predictions.jsonl \
   --candidate-filter method=Logistic-BalancedOutcome \
   --baseline-name Memory-Global --candidate-name Logistic-BalancedOutcome \
   --group-threshold 0.90 --samples 5000 --seed 2026 \
