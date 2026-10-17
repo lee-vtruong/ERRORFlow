@@ -44,7 +44,7 @@ python scripts/run_v3_qwen_action.py \
   --output "$OUT/averitec.jsonl" \
   --action standard_verdict_v1 \
   --label-protocol averitec4 \
-  --split train --source-development --seed 2026 \
+  --split train --seed 2026 \
   2>&1 | tee outputs/logs/reviewer5_standard_averitec.log
 echo "AV_PIPELINE_EXIT=${PIPESTATUS[0]}"
 
