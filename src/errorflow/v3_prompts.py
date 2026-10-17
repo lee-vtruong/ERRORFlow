@@ -23,6 +23,15 @@ V3_ACTION_PROMPTS = {
         "NOT ENOUGH INFO when the evidence is insufficient to decide, and CONFLICTING only when "
         "credible evidence materially supports and refutes the same essential claim. Return exactly one verdict."
     ),
+    "standard_deliberate_verdict_v1": (
+        "Re-evaluate the claim from first principles using only the provided evidence. Check each essential "
+        "entity, relation, scope, date, quantity, and subclaim; distinguish direct contradiction from missing "
+        "information; and compare the strongest aligned support with the strongest aligned refutation. Choose "
+        "SUPPORTED only when all essential parts are established, REFUTED when an essential part is established "
+        "as false, NOT ENOUGH INFO when the evidence is incomplete or inconclusive, and CONFLICTING only when "
+        "credible evidence materially establishes both directions for the same essential claim. Return exactly "
+        "one verdict."
+    ),
     "coverage_audit_v2": (
         "Check every essential entity, relation, condition, and subclaim separately. "
         "SUPPORTED requires complete grounding of all essential parts. REFUTED requires direct evidence that an essential part is false. "

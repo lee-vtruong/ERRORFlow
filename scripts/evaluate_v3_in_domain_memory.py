@@ -207,7 +207,7 @@ def aggregate_random(seed_results):
     return result
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--gold", required=True, type=Path)
     parser.add_argument("--baseline", required=True, type=Path)
@@ -223,7 +223,7 @@ def main():
     parser.add_argument("--samples", type=int, default=5000)
     parser.add_argument("--seed", type=int, default=2026)
     parser.add_argument("--random-seeds", nargs="+", type=int, default=list(range(2026, 2046)))
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     if args.folds < 2:
         raise ValueError("--folds must be at least two")
     if not 0.0 <= args.group_threshold <= 1.0:
