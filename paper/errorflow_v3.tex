@@ -32,9 +32,10 @@ macro-F1 from 54.60\% to 56.66\% at 4.49 rather than 8.00 average forward
 passes. It retains 49.0\% of Alt's helpful changes at that budget, versus
 12.2\% expected under random routing; its 81.5\% harm avoidance is below the
 random expectation of 87.8\%, so both quantities must be read jointly. Frozen transfer
-to CLIMATE-FEVER gives a smaller gain, while native-three-label SciFact shows
-no accuracy improvement because the alternative action itself is harmful;
-there the router largely abstains and limits regression. A Mistral-7B
+to CLIMATE-FEVER gives a smaller gain. On SciFact, however, a conventional
+three-label Base reaches 86.0\% with oracle rationales and 65.3\% with BM25,
+revealing that earlier audit-prompt routing results were dominated by prompt
+choice rather than memory transfer. A Mistral-7B
 replication favors same-label rather than global-neighbor compatibility.
 These results support compute-aware regression containment, not a formal
 no-harm guarantee or universal accuracy improvement.
@@ -349,9 +350,11 @@ SciFact dev & 300 & 3 & Open-corpus BM25 top-5 sentences \\
 
 The CLIMATE-FEVER release is evaluated as one locked external population. Its
 DISPUTED label maps directly to CONFLICTING. SciFact has no CONFLICTING label.
-Our primary SciFact experiments therefore use native three-label Base and Alt
-prompts. Historical four-label runs that map CONFLICTING predictions to NOT
-ENOUGH INFO are retained only as an ontology-adapter sensitivity analysis.
+Our SciFact routing diagnostics use native three-label audit-style Base and
+Alt prompts. A conventional task-specific three-label prompt is evaluated as
+a direct Base control. Historical four-label runs that map CONFLICTING
+predictions to NOT ENOUGH INFO are retained only as an ontology-adapter
+sensitivity analysis.
 
 The SciFact retriever ranks all 5,183 corpus documents with BM25 over title and
 abstract, retains five documents, and then ranks their sentences to retain
@@ -382,9 +385,10 @@ comparisons additionally apply Holm correction.
 \caption{Main four-label quality--cost results. The global-neighbor memory router is
 selected on grouped AVeriTeC development. Confidence is matched to its natural
 route count and is therefore a controlled-budget comparator rather than a
-separately tuned natural policy. Native-three-label SciFact is reported in
-Table~\ref{tab:in-domain-memory}; historical projected results are a protocol
-sensitivity analysis.}
+separately tuned natural policy. Audit-prompt SciFact routing and the
+conventional three-label Base control are reported in
+Tables~\ref{tab:in-domain-memory}--\ref{tab:scifact-standard}; historical
+projected results are a protocol sensitivity analysis.}
 \label{tab:main}
 \centering
 \small
@@ -491,8 +495,10 @@ Memory-Global@375 & 375 & \textbf{.7585} & \textbf{.5666} & 94 & 38 & 4.489 \\
 
 Table~\ref{tab:matched} shows that supervised gates are close to
 Memory-Global in accuracy at the same budget. Outcome-balanced logistic ties
-Memory-Global accuracy and differs by 1.31 macro-F1 points, but its 99\%
-familywise Memory-minus-logistic interval $[-.00393,.03160]$ includes zero.
+Memory-Global accuracy and differs by 1.31 macro-F1 points. Its 99\%
+familywise Memory-minus-logistic interval $[-.00393,.03160]$ includes zero;
+the near-duplicate-group bootstrap interval $[-.00006,.02678]$ reaches the
+same null conclusion.
 Thus the earlier unweighted-logistic gap
 does not establish a class-balance advantage for memory. Base-label ranking
 is worse on both metrics after familywise correction (accuracy Holm
@@ -517,7 +523,8 @@ $1-H_{\rm route}/H_{\rm Alt}$, ``retained'' is
 $G_{\rm route}/G_{\rm Alt}$, and enrichment is their sum minus 100 points.
 Random routing at rate $r$ has expected retained $r$, avoided $1-r$, and zero
 enrichment. Qwen uses the matched 375-route budget; other router rows use
-their natural thresholds. SciFact oracle is degenerate (one helpful Alt flip
+their natural thresholds. The SciFact rows use the audit-prompt pair; oracle
+is degenerate (one helpful Alt flip
 and zero routed claims), so its percentages are descriptive only.}
 \label{tab:harm-containment}
 \centering\small
@@ -532,9 +539,9 @@ AVeriTeC, Mistral & Memory-Global & 23.5 & 310:327 & 173:64 & 55.8\% & 80.4\% & 
  & Random@$r$ & 23.5 & 310:327 & -- & 23.5\% & 76.5\% & 0.0 \\
 CLIMATE-FEVER, in-domain & Memory-Global & 18.0 & 128:81 & 67:32 & 52.3\% & 60.5\% & +12.8 \\
  & Random@$r$ & 18.0 & 128:81 & -- & 18.0\% & 82.0\% & 0.0 \\
-SciFact oracle, native & Memory-Global & 1.7 & 1:16 & 0:0 & 0.0\% & 100.0\% & 0.0 \\
+SciFact oracle, audit prompts & Memory-Global & 1.7 & 1:16 & 0:0 & 0.0\% & 100.0\% & 0.0 \\
  & Random@$r$ & 1.7 & 1:16 & -- & 1.7\% & 98.3\% & 0.0 \\
-SciFact BM25, native & Memory-Global & 12.7 & 15:31 & 3:6 & 20.0\% & 80.6\% & +0.6 \\
+SciFact BM25, audit prompts & Memory-Global & 12.7 & 15:31 & 3:6 & 20.0\% & 80.6\% & +0.6 \\
  & Random@$r$ & 12.7 & 15:31 & -- & 12.7\% & 87.3\% & 0.0 \\
 \bottomrule
 \end{tabular}
@@ -545,7 +552,9 @@ SciFact BM25, native & Memory-Global & 12.7 & 15:31 & 3:6 & 20.0\% & 80.6\% & +0
 \caption{Direct comparisons against Memory-Global on grouped AVeriTeC.
 Selective controls use 375 routes. Deltas are Memory-Global minus the named
 control. The table gives exact McNemar $p$ and paired 95\% intervals; the
-text separately reports multiplicity-adjusted supervised-control results.}
+outcome-balanced logistic row uses group bootstrap and the remaining rows use
+claim bootstrap. The text separately reports multiplicity-adjusted
+supervised-control results.}
 \label{tab:stats}
 \centering\small
 \begin{tabular}{lrrrrr}
@@ -556,7 +565,7 @@ Score ensemble & +.00228 & +.00805 & .671 & [-.00619,.01141] & [-.00577,.02251] 
 Memory-SameLabel & +.00228 & +.00435 & .324 & [-.00163,.00619] & [-.00258,.01167] \\
 Routed score fusion & +.00033 & +.00720 & 1.000 & [-.00326,.00391] & [.00029,.01555] \\
 Logistic & +.00228 & +.01623 & .547 & [-.00391,.00847] & [.00314,.02985] \\
-Logistic, outcome-balanced & .00000 & +.01315 & 1.000 & [-.00619,.00652] & [-.00013,.02706] \\
+Logistic, outcome-balanced & .00000 & +.01315 & 1.000 & [-.00650,.00653] & [-.00006,.02678] \\
 Logistic, Base-label ranked & +.01369 & +.02038 & .00020 & [.00684,.02053] & [.00799,.03309] \\
 Logistic + interactions & +.00098 & +.01728 & .841 & [-.00522,.00750] & [.00485,.03061] \\
 Boosted stumps & +.00326 & +.02060 & .373 & [-.00293,.00978] & [.00827,.03410] \\
@@ -586,7 +595,7 @@ paired intervals include zero.
 \caption{Quality--budget behavior. Panel (a) plots helpful gain retained
 against harmful change avoided; the dashed diagonal is the expectation under
 random routing at the same route rate, and arrows run from random expectation
-to each observed router. SciFact oracle is marked as a one-helpful-flip,
+to each observed router. Audit-prompt SciFact oracle is marked as a one-helpful-flip,
 zero-route degenerate case. Panel (b) compares full-outcome, error-only, and
 recovery-only memory across matched budgets. The star marks the natural
 Memory-Global operating point (12.22\%).}
@@ -596,8 +605,8 @@ Memory-Global operating point (12.22\%).}
 Figure~\ref{fig:flips} makes the central trade-off explicit. Harm avoidance
 alone is not evidence of selective skill: a small random budget avoids most
 Alt harms mechanically. Memory-Global's value on AVeriTeC is enrichment toward
-helpful actions---49.0\% retained at 12.22\% coverage---while SciFact BM25 is
-nearly random by this joint criterion. Neither the natural threshold nor the
+helpful actions---49.0\% retained at 12.22\% coverage---while the audit-prompt
+SciFact BM25 run is nearly random by this joint criterion. Neither the natural threshold nor the
 full recovery-minus-regression utility dominates at every budget.
 The full 5--40\% quality--compute sweep reaches the same conclusion. On
 AVeriTeC, Memory-Global peaks at .7588 accuracy/.5672 macro-F1 at 15\%
@@ -610,17 +619,18 @@ routers; the projected SciFact curves are reported only in the ontology
 sensitivity appendix.
 
 Historical four-label SciFact results are moved to
-Appendix~\ref{sec:scifact-projection}; they reverse the native action effect
+Appendix~\ref{sec:scifact-projection}; they reverse the audit-prompt action effect
 after mapping CONFLICTING to NEI and therefore cannot be mixed with the
-primary three-label evaluation.
+native audit pair or the conventional Base control.
 
 \subsection{Cross-Domain Summary}
 
 Table~\ref{tab:delta-ci} summarizes the two four-label protocols. AVeriTeC is
 train-selected, whereas CLIMATE-FEVER has supplied candidates rather than open
-retrieval. Native-three-label SciFact in Table~\ref{tab:in-domain-memory} does
-not improve Base; the historical projected condition is discussed only as
-ontology sensitivity. Direct Memory-Global--Memory-SameLabel and
+retrieval. Audit-prompt SciFact routing in Table~\ref{tab:in-domain-memory}
+does not improve its Base, while the conventional control in
+Table~\ref{tab:scifact-standard} is substantially stronger; the historical
+projected condition is discussed only as ontology sensitivity. Direct Memory-Global--Memory-SameLabel and
 Memory-Global--confidence comparisons are mostly inconclusive, so the evidence supports
 Memory-Global as a competitive transferred router rather than a universally superior one.
 
@@ -632,16 +642,16 @@ familywise macro-F1, while all accuracy comparisons remain inconclusive.
 Accordingly, these controls establish supervised routing as competitive and
 reject a unique class-balance explanation for kNN; they do not identify a
 universally superior router. The projected SciFact control rows are retained
-only as adapter sensitivity and are not transferred to the native-three-label
-main protocol.
+only as adapter sensitivity and are not transferred to the native audit-prompt
+routing protocol.
 
 \subsection{In-Domain Memory Test}
 
 Table~\ref{tab:in-domain-memory} directly tests whether replacing AVeriTeC
 memory with fold-safe target-domain outcomes resolves the external gap.
 CLIMATE-FEVER uses five near-duplicate-grouped folds over its only labeled
-release. SciFact uses native three-label prompts throughout: memory is first
-cross-fitted on official train and then frozen for train-to-dev evaluation.
+release. SciFact routing uses a native three-label audit-prompt pair: memory is
+first cross-fitted on official train and then frozen for train-to-dev evaluation.
 These SciFact rows are therefore not numerically interchangeable with the
 historical four-label, post-projection appendix sensitivity.
 
@@ -655,7 +665,7 @@ after routes are fixed.}
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{lrrrrrl}
 \toprule
-Condition & Base Acc. & Alt-All Acc. & Memory Acc. & Route rate & Avg. passes & $\Delta$Accuracy 95\% CI \\
+Condition & Audit Base & Audit Alt-All & Audit Memory & Route rate & Avg. passes & $\Delta$Accuracy 95\% CI \\
 \midrule
 CLIMATE-FEVER cross-fit & .5212 & .5518 & .5440 & .180 & 4.722 & +.0228 [.0104,.0352] \\
 SciFact oracle train cross-fit & .5365 & .4475 & .5340 & .009 & 3.026 & $-.0025$ [$-.0062$,0] \\
@@ -666,6 +676,24 @@ SciFact BM25 train$\rightarrow$dev & .5800 & .5267 & .5700 & .127 & 3.380 & $-.0
 \end{tabular}
 }
 \end{table*}
+
+\begin{table}[t]
+\caption{Post-hoc SciFact prompt control on the same 300 dev claims. Deltas orient the
+conventional three-label Base minus the audit-style Base; intervals are paired
+claim bootstraps. No dev label enters inference, but the already inspected dev
+population makes this a diagnostic rather than a new held-out result.}
+\label{tab:scifact-standard}
+\centering\small
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lrrrrrr}
+\toprule
+Evidence & Audit Acc. & Standard Acc. & $\Delta$Acc. (95\% CI) & Audit F1 & Standard F1 & $p_{\rm McN}$ \\
+\midrule
+Oracle & .4900 & .8600 & +.3700 [.3100,.4300] & .3767 & .8447 & $2.31\!\times\!10^{-25}$ \\
+BM25 & .5800 & .6533 & +.0733 [.0233,.1233] & .5387 & .6299 & .00622 \\
+\bottomrule
+\end{tabular}}
+\end{table}
 
 In-domain memory is beneficial on CLIMATE-FEVER but not in general.
 In-domain Memory-Global improves CLIMATE-FEVER accuracy by 2.28 points and
@@ -680,16 +708,20 @@ $[-.00586,.02085]$ and near-duplicate-group bootstrap CI
 $[-.00585,.02018]$ both cross zero. Memory mismatch is therefore plausible
 but not confirmed by this paired test.
 
-SciFact exposes a different failure mode. Under a consistent native
-three-label protocol, Alt has negative net outcomes on oracle train
+The audit-prompt SciFact pair exposes a narrow action-quality failure. Within
+that pair, Alt has negative net outcomes on oracle train
 ($8$ helpful, $80$ harmful), oracle dev ($1/16$), BM25 train ($50/98$), and
 BM25 dev ($15/31$). Oracle memory consequently routes only five dev claims
 and changes no correctness; BM25 memory routes 38 and produces net $-3$.
-Outcome memory can abstain from a broadly harmful action, but cannot
-manufacture beneficial corrections that the fixed Alt prompt does not
-provide. The earlier projected SciFact gains therefore reflect the distinct
-four-label adapter protocol, not evidence that in-domain memory alone repairs
-transfer.
+Outcome memory abstains from this harmful action but cannot repair its prompt
+pair. Table~\ref{tab:scifact-standard} shows that this is not a competitive
+SciFact Base: replacing only the audit instruction with a conventional
+three-label classification prompt raises oracle accuracy from .4900 to .8600
+and BM25 accuracy from .5800 to .6533, with positive paired intervals. We
+therefore treat all audit-prompt SciFact routing and containment results as
+prompt-sensitivity diagnostics, not evidence that selective routing improves
+SciFact. A fair SciFact router would require a newly frozen alternative action
+and source outcomes built around the standard Base.
 
 \subsection{Second-Backbone Robustness}
 
@@ -1133,9 +1165,9 @@ ERRORFlow Memory-Global & AVeriTeC train grouped & human QA evidence & Qwen3-4B 
 AVeriTeC task \cite{schlichtkrull2024averitec} & official dev/test & web retrieval + QA & varied & varied & -- & AVeriTeC score & no \\
 ERRORFlow Memory-Global & CLIMATE-FEVER all & five official candidates & Qwen3-4B & no weight update & .5368 & -- & protocol-specific \\
 CLIMATE-FEVER \cite{diggelmann2020climate} & official release & supplied candidates & dataset baselines & supervised & -- & paper metrics & context only \\
-ERRORFlow Memory-Global & SciFact dev oracle & gold rationales, native 3-label & Qwen3-4B & no weight update & .4900 & -- & protocol-specific \\
+Standard Base control & SciFact dev oracle & gold rationales, native 3-label & Qwen3-4B & no weight update & .8600 & -- & protocol-specific \\
 SciFact \cite{wadden2020scifact} & official dev/test & corpus retrieval/rationales & trained verifier & supervised & -- & task metrics & no \\
-ERRORFlow Memory-Global & SciFact dev BM25 & open corpus top-5, native 3-label & Qwen3-4B & no weight update & .5700 & -- & closest internal condition \\
+Standard Base control & SciFact dev BM25 & open corpus top-5, native 3-label & Qwen3-4B & no weight update & .6533 & -- & closest internal condition \\
 \bottomrule
 \end{tabular}}
 \end{table*}
@@ -1159,7 +1191,7 @@ decision target or a demonstrated universal advantage over supervised gates.
 Supported by current experiments & Not established \\
 \midrule
 Selective escalation improves Base on grouped source development and on the
-frozen CLIMATE-FEVER protocol; it limits native SciFact regressions. & An unbiased AVeriTeC held-out gain after broad
+frozen CLIMATE-FEVER protocol; SciFact controls establish strong prompt sensitivity. & An unbiased AVeriTeC held-out gain after broad
 method selection. \\
 Outcome-linked memory beats shuffled outcomes and random routing on source
 development. & A universal advantage over supervised logistic, static, or
@@ -1176,19 +1208,20 @@ heterogeneous-cost optimality. \\
 
 External behavior is protocol-dependent. On CLIMATE-FEVER the score ensemble
 exceeds frozen AVeriTeC-memory routing by 1.50 accuracy and 2.12 macro-F1
-points. Under native-three-label SciFact, however, Alt-All is 5.0 points below
-Base with oracle evidence and 5.33 points below Base with BM25 evidence; the
-router stays equal to Base or within one point while using only 3.05--3.38
-average forwards. The historical projected oracle reversal is isolated in
-Appendix~\ref{sec:scifact-projection}. Thus the router's practical role is a
-compute-constrained, harm-limiting operating point, not a universally
-quality-dominant replacement for Alt-All. In-domain memory improves
+points. Under the audit-prompt SciFact pair, Alt-All is 5.0 points below Base
+with oracle evidence and 5.33 points below Base with BM25 evidence, and the
+router mostly abstains. The conventional Base control instead reaches .8600
+oracle and .6533 BM25 accuracy, so the audit-pair result cannot support a
+general SciFact harm-containment claim. The historical projected oracle
+reversal is isolated in Appendix~\ref{sec:scifact-projection}. Thus the
+router's demonstrated practical role is a compute-constrained operating point
+on AVeriTeC and CLIMATE-FEVER, not a universally quality-dominant replacement
+for Alt-All. In-domain memory improves
 CLIMATE-FEVER, but its direct advantage over AVeriTeC memory is only .72
 accuracy point and is not confirmed by either claim- or group-bootstrap
-uncertainty. SciFact gives a different diagnosis:
-under matched native-three-label prompts,
-Alt is harmful on both train and dev, so the limiting factor is action quality
-rather than memory provenance. Memory mismatch is therefore a
+uncertainty. SciFact gives a different diagnosis: the audit-style instruction
+is itself a major confound, and action quality cannot be separated from prompt
+choice in those routing runs. Memory mismatch is therefore a
 dataset-dependent diagnosis, not a general explanation of transfer.
 Constant action cost makes the cost coefficient a threshold shift, and the
 current evidence does not identify regression subtraction as a superior
@@ -1280,10 +1313,11 @@ The in-domain analysis adds another protocol boundary. CLIMATE-FEVER has only
 one labeled release, so its five-fold result is cross-fitted rather than an
 untouched test. SciFact train$\rightarrow$dev excludes dev labels from memory
 and routing, but the dev set had already been inspected elsewhere in this
-project. Moreover, the native-three-label prompts produce markedly different
-Base and Alt behavior from the historical four-label projection experiment.
-The comparison diagnoses action and memory mismatch; it is not a clean
-estimate of changing memory while holding every other protocol detail fixed.
+project. Moreover, the audit-style native-three-label prompts produce markedly
+different behavior from both the historical four-label projection and the
+conventional three-label control. These comparisons diagnose prompt, action,
+and memory mismatch; they are not a clean estimate of changing memory while
+holding every other protocol detail fixed.
 
 The official AVeriTeC development labels were previously opened and cannot
 serve as a new unbiased holdout. The global-neighbor choice and several
@@ -1305,8 +1339,10 @@ this repository because its official repository declares no license.
 ERRORFlow shows that a frozen alternative prompt can be invoked selectively
 using source action outcomes. Case-based memory and supervised logistic gates
 are two competitive implementations of this outcome-based decision. The method reduces second-pass
-compute and improves the base prompt in several studied protocols, but not
-under native-three-label SciFact in-domain evaluation. Always-on correction
+compute and improves the base prompt in several studied protocols. The
+audit-prompt SciFact routing experiment does not improve its Base, while a
+conventional SciFact-specific Base is dramatically stronger and exposes that
+experiment as prompt sensitivity. Always-on correction
 is stronger on some original external conditions and a supervised logistic
 gate is competitive on source development. The evidence therefore supports
 memory-based selective prompt escalation, not a uniquely optimal kNN router,
@@ -1314,8 +1350,7 @@ cross-label knowledge transfer, or general cost-aware planning. Compatibility
 is a backbone-dependent operating choice: global neighbors give the strongest
 Qwen development point estimate, whereas same-label memory is stronger for
 Mistral. In-domain memory improves CLIMATE-FEVER, although its paired
-advantage over AVeriTeC memory is not established; it also cannot rescue a
-harmful SciFact alternative action. Future confirmation requires an
+advantage over AVeriTeC memory is not established. Future confirmation requires an
 untouched held-out evaluation and a frozen predeclared configuration.
 
 \begin{credits}
@@ -1472,12 +1507,13 @@ CLIMATE-FEVER, Memory-Global improves Base by .0228 accuracy
 accuracy for in-domain over frozen AVeriTeC memory (McNemar $p=.329$); its
 claim-level CI $[-.00586,.02085]$ and group-level CI
 $[-.00585,.02018]$ cross zero. Thus the experiment does not confirm memory
-mismatch as the source of the transfer gap. In contrast, native-three-label SciFact shows no
-accuracy improvement on oracle train cross-validation ($-.0025$), frozen
+mismatch as the source of the transfer gap. Under the audit-prompt pair,
+native-three-label SciFact shows no accuracy improvement on oracle train cross-validation ($-.0025$), frozen
 oracle train-to-dev evaluation (.0000), BM25 train cross-validation
 ($-.0049$), or frozen BM25 train-to-dev evaluation ($-.0100$); every paired
 accuracy interval contains zero. This rules out a general claim that replacing
-source memory with target-domain memory is sufficient to repair transfer.
+source memory with target-domain memory is sufficient to repair that fixed
+action pair; the conventional Base control is substantially stronger.
 
 \section{Memory-Global Similarity and Sensitivity Detail}
 
@@ -1699,8 +1735,9 @@ population--budget interaction rather than universal dominance.
 \section{Historical Four-Label SciFact Projection Sensitivity}
 \label{sec:scifact-projection}
 
-These runs score four labels and then map CONFLICTING to NEI; they are not the
-primary native-three-label SciFact protocol. With oracle rationales, projected
+These runs score four labels and then map CONFLICTING to NEI; they differ from
+both the native audit-prompt routing protocol and the conventional three-label
+Base control. With oracle rationales, projected
 Memory-Global reaches .6300 accuracy and .5951 macro-F1 from a .6067/.5596
 Base. Alt-All reaches .8167/.7822. Alt emits 96 CONFLICTING predictions, and
 the projection converts 90 additional examples to correct predictions, so the
@@ -1708,8 +1745,9 @@ positive effect is adapter-mediated. Under BM25 evidence, projected Base,
 Alt-All, and Memory-Global accuracy are .6100, .6367, and .6300; the router's
 two-point accuracy interval over Base crosses zero. Only five Alt predictions
 are projected in the BM25 condition. The opposite sign of Alt under native
-three-label scoring demonstrates prompt/ontology sensitivity rather than two
-estimates of one common SciFact effect.
+audit-prompt scoring, together with the much stronger conventional Base,
+demonstrates prompt/ontology sensitivity rather than multiple estimates of
+one common SciFact effect.
 
 \section{Evidence-Regime Separation}
 AVeriTeC uses human question--answer evidence and internal fold exclusion.

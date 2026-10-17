@@ -24,7 +24,7 @@ def main():
         ("Qwen AV", 12.22, 81.46, 48.96, (5, -12)),
         ("Mistral AV", 23.5, 80.43, 55.81, (-44, 8)),
         ("Climate in-domain", 18.0, 60.49, 52.34, (5, 4)),
-        ("SciFact BM25", 12.7, 80.65, 20.0, (5, 4)),
+        ("SciFact BM25\n(audit prompts)", 12.7, 80.65, 20.0, (5, 4)),
     ]
     diagonal = list(range(0, 101))
     ax.plot(diagonal, [100 - value for value in diagonal], "--", color="#777777",
@@ -39,7 +39,7 @@ def main():
         ax.annotate(name, (avoided, retained), xytext=offset,
                     textcoords="offset points", fontsize=7)
     ax.scatter(100, 0, facecolors="none", edgecolors="#E45756", s=48, zorder=4)
-    ax.annotate("SciFact oracle\n(degenerate: 0 routes, 1 helpful Alt flip)",
+    ax.annotate("SciFact oracle, audit prompts\n(degenerate: 0 routes, 1 helpful Alt flip)",
                 (100, 0), xytext=(-108, 14), textcoords="offset points", fontsize=6.6,
                 arrowprops={"arrowstyle": "-", "color": "#E45756", "lw": .7})
     ax.set_xlim(48, 103)
