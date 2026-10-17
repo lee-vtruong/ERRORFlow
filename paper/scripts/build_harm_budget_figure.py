@@ -44,8 +44,8 @@ def main():
                 arrowprops={"arrowstyle": "-", "color": "#E45756", "lw": .7})
     ax.set_xlim(48, 103)
     ax.set_ylim(-3, 63)
-    ax.set_xlabel("Harmful Alt changes avoided (%)")
-    ax.set_ylabel("Helpful Alt changes retained (%)")
+    ax.set_xlabel("Harmful Audit-Alt changes avoided (%)")
+    ax.set_ylabel("Helpful Audit-Alt changes retained (%)")
     ax.set_title("(a) Containment relative to random routing")
     ax.grid(alpha=.18)
 
@@ -57,20 +57,23 @@ def main():
     ax.plot(budgets, full, "o-", color="#2F7F3F", label="Full outcome memory")
     ax.plot(budgets, recovery, "s--", color="#E17C24", label="Recovery-only utility")
     ax.plot(budgets, error_only, "^:", color="#7651A8", label="Error-only memory")
-    ax.axhline(74.02, color="#666666", linestyle="--", linewidth=.9, label="Base (4 passes)")
+    ax.axhline(74.02, color="#666666", linestyle="--", linewidth=.9,
+               label="Audit-Base (4 passes)")
     ax.axhline(75.62, color="#A020C0", linestyle=(0, (6, 3)), linewidth=.9,
                label="Score ensemble (8 passes)")
-    ax.axhline(73.60, color="#D62728", linestyle=":", linewidth=.9, label="Alt-All (8 passes)")
+    ax.axhline(73.60, color="#D62728", linestyle=":", linewidth=.9,
+               label="Audit-Alt-All (8 passes)")
     ax.scatter([12.22], [75.85], marker="*", s=130, color="#F2B134",
                edgecolor="#222222", zorder=5)
     ax.annotate("Natural\n(12.22%, 75.85)", (12.22, 75.85), xytext=(18, -50),
                 textcoords="offset points", fontsize=7,
                 arrowprops={"arrowstyle": "-", "color": "#444444", "lw": .8})
-    ax.set_xlabel("Routed to Alt (% of claims)")
+    ax.set_xlabel("Routed to Audit-Alt (% of claims)")
     ax.set_ylabel("Accuracy (%)")
     ax.set_title("(b) AVeriTeC accuracy vs. correction budget")
     ax.grid(alpha=.18)
-    ax.legend(frameon=False, fontsize=6.8, ncol=2, loc="upper right")
+    ax.legend(frameon=False, fontsize=6.8, ncol=2, loc="upper center",
+              bbox_to_anchor=(.5, -.25))
     top = ax.secondary_xaxis("top", functions=(lambda value: 4 + .04 * value, lambda value: (value - 4) / .04))
     top.set_xlabel("Average forward passes = $4+4r$")
 
