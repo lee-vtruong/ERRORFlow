@@ -13,7 +13,13 @@ from pathlib import Path
 
 from errorflow.io import atomic_write_json, read_jsonl
 from errorflow.v3_prompts import V3_ACTION_PROMPTS, prompt_sha256
-from scripts.evaluate_v3_in_domain_memory import main as evaluate_in_domain, sha256_file
+try:
+    from scripts.evaluate_v3_in_domain_memory import main as evaluate_in_domain, sha256_file
+except ModuleNotFoundError:
+    # Direct execution adds ``scripts/`` rather than the repository root to
+    # sys.path.  Keep the module importable both as ``python scripts/...`` and
+    # from the test suite.
+    from evaluate_v3_in_domain_memory import main as evaluate_in_domain, sha256_file
 
 
 BASE_ACTION = "standard_verdict_v1"
