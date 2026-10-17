@@ -31,11 +31,8 @@ with Qwen3-4B, the memory implementation routes 12.22\% of claims, improving
 accuracy over the audit-style Base from 74.02\% to 75.85\% at 4.49 rather
 than 8.00 average forward passes. At that budget it retains 49.0\% of Alt's
 helpful changes while incurring 18.5\% of its harmful changes, yielding
-+30.4 percentage points of enrichment over random routing. A conventional
-four-label prompt reaches 76.86\% at 4 passes, so the contribution is
-compute-aware regression containment between two prompts rather than a new
-accuracy ceiling. A Mistral-7B replication favors same-label rather than
-global-neighbor compatibility.
++30.4 percentage points of enrichment over random routing. A Mistral-7B
+replication favors same-label rather than global-neighbor compatibility.
 These results support compute-aware regression containment, not a formal
 no-harm guarantee or universal accuracy improvement.
 \keywords{Fact verification \and Non-parametric routing \and Outcome memory
@@ -351,8 +348,9 @@ The CLIMATE-FEVER release is evaluated as one locked external population. Its
 DISPUTED label maps directly to CONFLICTING. SciFact has no CONFLICTING label.
 Our SciFact routing diagnostics use native three-label audit-style Base and
 Alt prompts to test the fixed action pair under oracle and retrieved evidence.
-A conventional task-specific prompt is retained only as an appendix
-sensitivity control. Four-label runs that map CONFLICTING
+A conventional task-specific prompt and a separately rebuilt Standard
+Base/Alt outcome memory are retained as appendix sensitivity controls.
+Four-label runs that map CONFLICTING
 predictions to NOT ENOUGH INFO are retained only as an ontology-adapter
 sensitivity analysis.
 
@@ -382,8 +380,9 @@ comparisons additionally apply Holm correction.
 \section{Main Results}
 
 \begin{table*}[t]
-\caption{Main four-label quality--cost results. The global-neighbor memory router is
-selected on grouped AVeriTeC development. Confidence is matched to its natural
+\caption{Main four-label quality--cost results for the frozen audit-style
+Base/Alt pair. The global-neighbor memory router is selected on grouped
+AVeriTeC development. Confidence is matched to its natural
 route count and is therefore a controlled-budget comparator rather than a
 separately tuned natural policy. Audit-prompt SciFact routing is reported in
 Table~\ref{tab:in-domain-memory}; prompt and label-projection controls are
@@ -396,20 +395,18 @@ appendix sensitivity analyses.}
 \toprule
 Evaluation & System & Accuracy & Macro-F1 & Route rate & Avg. passes \\
 \midrule
-\multirow{7}{*}{AVeriTeC grouped internal}
+\multirow{6}{*}{AVeriTeC grouped internal}
  & Audit Base & 0.7402 & 0.5460 & 0.000 & 4.000 \\
- & Standard Base & \textbf{0.7686} & \textbf{0.5700} & 0.000 & 4.000 \\
  & Alt-All & 0.7360 & 0.5559 & 1.000 & 8.000 \\
  & Score ensemble & 0.7562 & 0.5585 & 1.000 & 8.000 \\
  & Confidence@Memory-Global budget & 0.7405 & 0.5514 & 0.122 & 4.489 \\
  & Memory-SameLabel (natural) & 0.7552 & 0.5577 & 0.112 & 4.447 \\
- & Memory-Global (natural) & 0.7585 & 0.5666 & 0.122 & 4.489 \\
+ & Memory-Global (natural) & \textbf{0.7585} & \textbf{0.5666} & 0.122 & 4.489 \\
 \midrule
-\multirow{7}{*}{CLIMATE-FEVER}
+\multirow{6}{*}{CLIMATE-FEVER}
  & Audit Base & 0.5212 & 0.3808 & 0.000 & 4.000 \\
- & Standard Base & \textbf{0.5739} & \textbf{0.4431} & 0.000 & 4.000 \\
- & Alt-All & 0.5518 & 0.4393 & 1.000 & 8.000 \\
- & Score ensemble & 0.5518 & 0.4329 & 1.000 & 8.000 \\
+ & Alt-All & \textbf{0.5518} & \textbf{0.4393} & 1.000 & 8.000 \\
+ & Score ensemble & \textbf{0.5518} & 0.4329 & 1.000 & 8.000 \\
  & Confidence@Memory-Global budget & 0.5355 & 0.4159 & 0.190 & 4.761 \\
  & Memory-SameLabel (natural) & 0.5375 & 0.4063 & 0.199 & 4.797 \\
  & Memory-Global (natural) & 0.5368 & 0.4117 & 0.190 & 4.761 \\
@@ -449,13 +446,6 @@ routing. At the Memory-Global budget, Memory-Global exceeds confidence-only by 1
 Memory-SameLabel at the same budget, the differences are +0.23 and +0.43 points and
 both intervals cross zero. These are source-development results, not an
 independent generalization estimate.
-
-A frozen conventional four-label prompt reaches .7686 accuracy and .5700
-macro-F1 with the same four forward passes. Memory-Global is 1.01 accuracy
-points lower; the group-bootstrap interval for Memory minus Standard Base is
-[$-.02187$,.00132], so the comparison is unresolved rather than evidence that
-routing beats a conventional Base. The audit-pair result should therefore be
-read as selective regression containment within two fixed prompts.
 
 A group-cross-fitted linear ensemble of the Base and Alt label scores is a
 stronger simple baseline than either prompt alone: it reaches 75.62 accuracy
@@ -599,13 +589,6 @@ for every claim. A selective routed-score fusion variant does not improve
 Memory-Global: its accuracy and macro-F1 are 0.5355 and 0.4068, and both
 paired intervals include zero.
 
-The conventional four-label Base reaches .5739 accuracy and .4431 macro-F1
-at four passes. It exceeds Memory-Global by 3.71 accuracy points
-(group-bootstrap 95\% CI [1.82,5.68]) and 3.14 macro-F1 points
-([.93,5.44]). Thus CLIMATE-FEVER supports prompt sensitivity and the
-within-audit-pair routing analysis, not a router quality gain over a standard
-task prompt.
-
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/helpful_harmful.pdf}
@@ -654,6 +637,9 @@ Appendix~\ref{sec:scifact-standard-control} and
 Appendix~\ref{sec:scifact-projection}. Direct Memory-Global--Memory-SameLabel and
 Memory-Global--confidence comparisons are mostly inconclusive, so the evidence supports
 Memory-Global as a competitive transferred router rather than a universally superior one.
+When outcome memory is rebuilt around a stronger conventional four-label
+Base and a newly frozen alternative, the predeclared improvement criterion is
+not met on either dataset (Appendix~\ref{sec:standard-pair-control}).
 
 Cross-fitted supervised gates do not reverse this conclusion. At the same
 external route budget, outcome-balanced and Base-label-ranked logistic are
@@ -1189,6 +1175,8 @@ Supported by current experiments & Not established \\
 Selective escalation improves the audit-style Base on grouped source development and on the
 frozen CLIMATE-FEVER protocol. & An unbiased AVeriTeC held-out gain after broad
 method selection. \\
+Outcome memory filters a harmful fixed action within the studied audit pair. &
+Improvement over a stronger conventional Base with a separately rebuilt action memory. \\
 Outcome-linked memory beats shuffled outcomes and random routing on source
 development. & A universal advantage over supervised logistic, static, or
 confidence gates. \\
@@ -1312,6 +1300,14 @@ different behavior from both the four-label projection sensitivity and the
 conventional-prompt sensitivity control. SciFact conclusions are therefore
 specific to the frozen audit-style action pair.
 
+A separately frozen four-label Standard Base/Alt pair provides a stronger
+negative control (Appendix~\ref{sec:standard-pair-control}). Rebuilding the
+outcome memory from that pair does not improve Standard Base on AVeriTeC, and
+its positive CLIMATE-FEVER point estimate is not statistically established.
+Selective escalation therefore depends on the alternative action offering a
+useful and learnable complement to the Base; it is not a universal way to
+improve an already stronger prompt.
+
 The official AVeriTeC development labels were previously opened and cannot
 serve as a new unbiased holdout. The global-neighbor choice and several
 hyperparameters arose from a broad source-development search, so the grouped
@@ -1333,10 +1329,9 @@ ERRORFlow shows that a frozen alternative prompt can be invoked selectively
 using source action outcomes. Case-based memory and supervised logistic gates
 are two competitive implementations of this outcome-based decision. The method reduces second-pass
 compute and improves the audit-style Base on grouped AVeriTeC and
-CLIMATE-FEVER. Conventional four-label prompts reach 76.86\% accuracy on
-AVeriTeC and 57.39\% on CLIMATE-FEVER at four passes, above the corresponding
-selective-pipeline point estimates of 75.85\% and 53.68\%; routing is therefore
-not a new accuracy ceiling. The
+CLIMATE-FEVER. A separately rebuilt Standard Base/Alt control does not
+establish improvement over the stronger Standard Base on either dataset;
+routing is therefore not a new accuracy ceiling. The
 audit-prompt SciFact routing experiment does not improve its Base and is
 prompt-sensitive. Always-on correction
 is stronger on CLIMATE-FEVER and a supervised logistic
@@ -1728,6 +1723,66 @@ zero. The two tie at 15\%, and full memory has higher point-estimate accuracy
 from 20\% onward. Its accuracy advantage becomes Holm-significant at 40\%, while several
 the corresponding intervals cross zero. The budget curve therefore supports a
 population--budget interaction rather than universal dominance.
+
+\section{Standard Base/Alt Outcome-Memory Control}
+\label{sec:standard-pair-control}
+
+To test whether outcome routing survives a stronger starting prompt, we froze
+a conventional four-label Standard Base and a new deliberate second-pass
+Standard Alt before inspecting their full results. We then discarded the
+audit-pair memory and rebuilt every recovery and regression outcome from this
+new pair. Both datasets use five near-duplicate-grouped folds, and each query
+excludes its complete fold from memory. This CLIMATE-FEVER experiment is an
+in-domain grouped cross-fit over its only labeled release; it is not the
+frozen AVeriTeC-to-CLIMATE-FEVER transfer condition in the main text.
+
+\begin{table*}[t]
+\caption{Outcome routing rebuilt around the frozen Standard Base/Alt pair.
+SameLabel and confidence are matched to the natural Global route count.
+Helpful/harmful counts are relative to Standard Base.}
+\label{tab:standard-pair-control}
+\centering\small
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llrrrrrr}
+\toprule
+Dataset & System & Routes & Accuracy & Macro-F1 & Helpful & Harmful & Avg. passes \\
+\midrule
+\multirow{5}{*}{AVeriTeC}
+ & Standard Base & 0 & \textbf{.7686} & \textbf{.5700} & 0 & 0 & 4.000 \\
+ & Standard Alt-All & 3,068 & .6568 & .4826 & 39 & 382 & 8.000 \\
+ & Memory-Global & 28 & .7669 & .5646 & 2 & 7 & 4.037 \\
+ & Memory-SameLabel@28 & 28 & .7669 & .5645 & 3 & 8 & 4.037 \\
+ & Confidence@28 & 28 & .7676 & .5688 & 1 & 4 & 4.037 \\
+\midrule
+\multirow{5}{*}{CLIMATE-FEVER}
+ & Standard Base & 0 & .5739 & .4431 & 0 & 0 & 4.000 \\
+ & Standard Alt-All & 1,535 & .5681 & .4305 & 84 & 93 & 8.000 \\
+ & Memory-Global & 153 & .5805 & .4504 & 36 & 26 & 4.399 \\
+ & Memory-SameLabel@153 & 153 & \textbf{.5831} & \textbf{.4522} & 42 & 28 & 4.399 \\
+ & Confidence@153 & 153 & .5713 & .4375 & 26 & 30 & 4.399 \\
+\bottomrule
+\end{tabular}}
+\end{table*}
+
+The predeclared success criterion is not met on either dataset. On
+AVeriTeC, natural Memory-Global routes only 28/3,068 claims and changes
+accuracy by $-.00163$ (group-bootstrap 95\% CI
+[$-.00360$,$+.00032$], exact McNemar $p=.180$); its two helpful and seven
+harmful changes give net $-5$. Standard Alt-All itself is strongly
+non-complementary, with 39 helpful versus 382 harmful changes. On
+CLIMATE-FEVER, Memory-Global filters 36 helpful and 26 harmful changes and
+raises accuracy by $+.00651$, but its group-bootstrap interval
+[$-.00326$,$+.01688$] and exact McNemar test ($p=.253$) do not establish an
+improvement. The macro-F1 delta is likewise inconclusive
+([$-.00171$,$+.01665$]), and matched SameLabel has the higher point estimate.
+
+This negative control narrows the claim: observed source outcomes can guide
+selective use of a fixed action, but useful escalation requires that the
+alternative have sufficient complementary successes for the router to learn.
+The audit-pair gains cannot be generalized to arbitrary stronger Base/Alt
+pairs. We retain the complete manifests, per-query predictions, fold-safe
+memory, and statistical outputs in the artifact rather than tuning another
+prompt on these inspected populations.
 
 \section{SciFact Conventional-Prompt Sensitivity}
 \label{sec:scifact-standard-control}
